@@ -1,0 +1,21 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trigger deploy on server
+        run: |
+          curl -sf \
+            -X POST \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            "https://dev.processengine.de/deploy-webhook.php" \
+          || echo "Webhook call failed — manual deploy needed"
