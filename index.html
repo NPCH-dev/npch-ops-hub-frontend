@@ -1,0 +1,1756 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>NPCH Kontrollzentrum</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+<style>
+:root {
+  --bg: #0a0d14;
+  --bg2: #0f1420;
+  --bg3: #141927;
+  --bg4: #1a2035;
+  --border: #1e2a3d;
+  --border2: #2a3a55;
+  --fg: #e2e8f0;
+  --fg2: #94a3b8;
+  --fg3: #64748b;
+  --accent: #3b82f6;
+  --accent2: #60a5fa;
+  --accent-bg: rgba(59,130,246,0.12);
+  --green: #10b981;
+  --green-bg: rgba(16,185,129,0.12);
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245,158,11,0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.12);
+  --purple: #8b5cf6;
+  --purple-bg: rgba(139,92,246,0.12);
+  --orange: #f97316;
+  --cyan: #06b6d4;
+  --radius: 10px;
+  --radius-sm: 6px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f0f4f8;
+    --bg2: #ffffff;
+    --bg3: #f8fafc;
+    --bg4: #e2e8f0;
+    --border: #cbd5e1;
+    --border2: #94a3b8;
+    --fg: #0f172a;
+    --fg2: #334155;
+    --fg3: #64748b;
+    --accent-bg: rgba(59,130,246,0.08);
+    --green-bg: rgba(16,185,129,0.08);
+    --yellow-bg: rgba(245,158,11,0.08);
+    --red-bg: rgba(239,68,68,0.08);
+    --purple-bg: rgba(139,92,246,0.08);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f0f4f8; --bg2: #ffffff; --bg3: #f8fafc; --bg4: #e2e8f0;
+  --border: #cbd5e1; --border2: #94a3b8; --fg: #0f172a; --fg2: #334155; --fg3: #64748b;
+  --accent-bg: rgba(59,130,246,0.08); --green-bg: rgba(16,185,129,0.08);
+  --yellow-bg: rgba(245,158,11,0.08); --red-bg: rgba(239,68,68,0.08);
+  --purple-bg: rgba(139,92,246,0.08); color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s;
+}
+.sidebar-logo {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: transparent;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  padding: 2px; overflow: hidden;
+}
+.logo-text { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+.logo-sub { font-size: 10px; color: var(--fg3); letter-spacing: 0.5px; text-transform: uppercase; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 8px; }
+.nav-section { margin-bottom: 20px; }
+.nav-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--fg3);
+  padding: 0 8px; margin-bottom: 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; color: var(--fg2); font-size: 13px; font-weight: 500;
+  transition: all 0.15s; position: relative;
+  user-select: none;
+}
+.nav-item:hover { background: var(--bg4); color: var(--fg); }
+.nav-item.active { background: var(--accent-bg); color: var(--accent2); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--accent); color: white;
+  font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 10px; min-width: 18px; text-align: center;
+}
+.nav-badge.green { background: var(--green); }
+.nav-badge.red { background: var(--red); }
+
+.sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+}
+.user-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: white; flex-shrink: 0;
+}
+.user-name { font-size: 13px; font-weight: 500; }
+.user-role { font-size: 11px; color: var(--fg3); }
+
+/* Main content */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 56px;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 16px; font-weight: 600; flex: 1; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border2); background: var(--bg4);
+  color: var(--fg2); transition: all 0.15s;
+}
+.btn:hover { background: var(--border); color: var(--fg); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn.primary:hover { background: var(--accent2); }
+.btn.sm { padding: 4px 10px; font-size: 12px; }
+.btn.icon-only { padding: 7px; }
+
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+.status-dot.green { background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+.status-dot.yellow { background: var(--yellow); box-shadow: 0 0 0 3px var(--yellow-bg); }
+.status-dot.red { background: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+.status-dot.grey { background: var(--fg3); }
+
+.content { flex: 1; overflow-y: auto; padding: 24px 24px; }
+
+/* Cards */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.card-title { font-size: 14px; font-weight: 600; flex: 1; }
+.card-body { padding: 16px 18px; }
+
+/* Grid layouts */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+/* Stat tiles */
+.stat-tile {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.stat-label { font-size: 12px; font-weight: 500; color: var(--fg3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-sub { font-size: 12px; color: var(--fg3); margin-top: 6px; }
+.stat-change { font-size: 12px; margin-top: 6px; }
+.stat-change.up { color: var(--green); }
+.stat-change.down { color: var(--red); }
+
+/* Agent cards */
+.agent-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--agent-color, var(--accent));
+}
+.agent-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.agent-card.active-chat { border-color: var(--accent); background: var(--accent-bg); }
+
+.agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.agent-avatar {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+  background: var(--agent-bg, var(--accent-bg));
+}
+.agent-id { font-size: 10px; font-weight: 600; color: var(--fg3); letter-spacing: 1px; }
+.agent-name { font-size: 14px; font-weight: 600; }
+.agent-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg2); margin-bottom: 8px; }
+.agent-desc { font-size: 12px; color: var(--fg3); line-height: 1.5; }
+.agent-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.tag {
+  font-size: 10px; font-weight: 500; padding: 2px 7px;
+  border-radius: 10px; background: var(--bg4); color: var(--fg3);
+  border: 1px solid var(--border);
+}
+.agent-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+/* Chat */
+.chat-layout { display: flex; height: 100%; gap: 0; }
+.chat-sidebar {
+  width: 260px; min-width: 260px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.chat-main { flex: 1; display: flex; flex-direction: column; }
+
+.chat-list { flex: 1; overflow-y: auto; }
+.chat-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex; align-items: center; gap: 10px;
+}
+.chat-item:hover { background: var(--bg3); }
+.chat-item.active { background: var(--accent-bg); border-left: 3px solid var(--accent); }
+.chat-item-info { flex: 1; min-width: 0; }
+.chat-item-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-item-preview { font-size: 12px; color: var(--fg3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+.messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.msg { display: flex; gap: 10px; max-width: 85%; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+  background: var(--bg4);
+}
+.msg-bubble {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.msg.user .msg-bubble {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.msg-meta { font-size: 11px; color: var(--fg3); margin-top: 4px; }
+.msg.user .msg-meta { text-align: right; }
+
+.chat-input-area {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+}
+.chat-input-row {
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--fg);
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  min-height: 40px; max-height: 160px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.chat-input:focus { border-color: var(--accent); }
+.chat-input::placeholder { color: var(--fg3); }
+
+/* Table */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--fg3); padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.data-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg3); }
+
+/* Badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 500;
+}
+.badge.green { background: var(--green-bg); color: var(--green); }
+.badge.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge.red { background: var(--red-bg); color: var(--red); }
+.badge.blue { background: var(--accent-bg); color: var(--accent2); }
+.badge.purple { background: var(--purple-bg); color: var(--purple); }
+.badge.grey { background: var(--bg4); color: var(--fg3); }
+
+/* Tabs */
+.tabs { display: flex; gap: 2px; padding: 4px; background: var(--bg3); border-radius: var(--radius-sm); width: fit-content; margin-bottom: 20px; }
+.tab-btn {
+  padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--fg2); transition: all 0.15s;
+  background: none; border: none;
+}
+.tab-btn.active { background: var(--bg2); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.tab-btn:hover:not(.active) { color: var(--fg); }
+
+/* Forms */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 500; color: var(--fg2); margin-bottom: 6px; }
+.form-input {
+  width: 100%; background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px; color: var(--fg); font-size: 13px;
+  font-family: inherit; outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-select {
+  width: 100%; background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px; color: var(--fg); font-size: 13px;
+  outline: none; cursor: pointer;
+}
+
+/* n8n stats */
+.n8n-stat {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.n8n-stat-label { font-size: 11px; color: var(--fg3); }
+.n8n-stat-val { font-size: 20px; font-weight: 700; }
+
+/* Workflow list */
+.workflow-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.workflow-item:last-child { border-bottom: none; }
+.workflow-name { font-size: 13px; font-weight: 500; flex: 1; }
+.workflow-meta { font-size: 11px; color: var(--fg3); }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+}
+.modal-overlay[hidden] { display: none; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); width: 100%; max-width: 500px;
+  max-height: 80vh; overflow-y: auto;
+}
+.modal-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-title { font-size: 15px; font-weight: 600; flex: 1; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Loading */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fg3); }
+
+/* Toast */
+.toast-container {
+  position: fixed; top: 16px; right: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 2000;
+}
+.toast {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  animation: slideIn 0.2s ease;
+  min-width: 260px;
+}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* Sections visibility */
+.view { display: none; }
+.view.active { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.view .content { flex: 1; overflow-y: auto; }
+
+/* n8n live badge */
+.live-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500; color: var(--green);
+  background: var(--green-bg); padding: 3px 8px; border-radius: 10px;
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: livePulse 1.5s ease-in-out infinite; }
+@keyframes livePulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { width: 56px; min-width: 56px; }
+  .logo-text, .logo-sub, .nav-item span:not(.icon), .nav-badge, .user-name, .user-role { display: none; }
+  .nav-item { justify-content: center; padding: 10px; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .chat-sidebar { width: 56px; min-width: 56px; }
+  .chat-item-info { display: none; }
+}
+</style>
+
+<!-- App Shell -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><img src="data:image/png;base64,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" style="width:28px;height:28px;object-fit:contain;display:block;"></div>
+    <div>
+      <div class="logo-text">NPCH Ops</div>
+      <div class="logo-sub">Kontrollzentrum</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-label">Übersicht</div>
+      <div class="nav-item active" onclick="navigate('dashboard')">
+        <span class="icon">📊</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="navigate('agents')">
+        <span class="icon">🤖</span><span>Agenten</span>
+        <span class="nav-badge green">9</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Kommunikation</div>
+      <div class="nav-item" onclick="navigate('chat')">
+        <span class="icon">💬</span><span>Agent Chat</span>
+      </div>
+      <div class="nav-item" onclick="navigate('teams')">
+        <span class="icon">👥</span><span>Team Chat</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Integration</div>
+      <div class="nav-item" onclick="navigate('n8n')">
+        <span class="icon">⚡</span><span>n8n Workflows</span>
+        <span class="nav-badge" id="n8n-badge">—</span>
+      </div>
+      <div class="nav-item" onclick="window.open('https://claude.ai/artifact/KKP8qS8tTnVw5yPffWZZm1','_blank')" style="border:1px solid var(--border2);">
+        <span class="icon">🧑‍🤝‍🧑</span><span>Agent Teams</span>
+        <span style="margin-left:auto;font-size:10px;opacity:.5">↗</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Administration</div>
+      <div class="nav-item" onclick="navigate('users')">
+        <span class="icon">👤</span><span>Nutzer</span>
+      </div>
+      <div class="nav-item" onclick="navigate('roles')">
+        <span class="icon">🔐</span><span>Rollen</span>
+      </div>
+      <div class="nav-item" onclick="navigate('settings')">
+        <span class="icon">⚙️</span><span>Einstellungen</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar">CH</div>
+      <div>
+        <div class="user-name">Christian H.</div>
+        <div class="user-role">Admin</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="main">
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="topbar">
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <div class="live-badge"><div class="live-dot"></div>Live</div>
+        <button class="btn sm" onclick="refreshAll()">🔄 Aktualisieren</button>
+      </div>
+    </div>
+    <div class="content" style="padding: 20px 24px;">
+      <!-- Stats row -->
+      <div class="grid-4" style="margin-bottom:20px;">
+        <div class="stat-tile">
+          <div class="stat-label">Agenten Online</div>
+          <div class="stat-value" style="color:var(--green)" id="stat-agents-online">—</div>
+          <div class="stat-sub">von 9 gesamt</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">n8n Workflows</div>
+          <div class="stat-value" style="color:var(--accent)" id="stat-workflows">—</div>
+          <div class="stat-sub">aktiv im System</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Ausführungen heute</div>
+          <div class="stat-value" style="color:var(--purple)" id="stat-executions">—</div>
+          <div class="stat-sub">Workflow-Runs</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Nutzer gesamt</div>
+          <div class="stat-value" id="stat-users">—</div>
+          <div class="stat-sub">registriert</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:20px;">
+        <!-- Agent Status -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🤖 Agenten Status</div>
+            <button class="btn sm" onclick="navigate('agents')">Alle →</button>
+          </div>
+          <div id="dashboard-agents">
+            <div style="padding:20px;text-align:center;color:var(--fg3)"><div class="spinner" style="margin:0 auto 8px"></div>Lade Agenten…</div>
+          </div>
+        </div>
+
+        <!-- n8n Workflows -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚡ n8n Live-Status</div>
+            <div class="live-badge"><div class="live-dot"></div>Live</div>
+          </div>
+          <div id="dashboard-n8n">
+            <div style="padding:20px;text-align:center;color:var(--fg3)"><div class="spinner" style="margin:0 auto 8px"></div>Verbinde mit n8n…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Runs (live from Supabase) -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <div class="card-title">🤖 Agent Nacht-Läufe</div>
+          <div id="agent-runs-badge" style="display:none;" class="live-badge"><div class="live-dot"></div>Live</div>
+          <span id="agent-runs-last-update" style="font-size:11px;color:var(--fg3);margin-left:auto;"></span>
+        </div>
+        <div id="dashboard-agent-runs" style="padding:0;">
+          <div style="padding:20px;text-align:center;color:var(--fg3)"><div class="spinner" style="margin:0 auto 8px"></div>Verbinde mit Supabase…</div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <div class="card-title">📋 Letzte Aktivitäten</div>
+        </div>
+        <div id="dashboard-activity" style="padding:0;">
+          <div style="padding:20px;text-align:center;color:var(--fg3)">Lade Aktivitäten…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <div id="view-agents" class="view">
+    <div class="topbar">
+      <div class="topbar-title">🤖 Agenten</div>
+      <div class="topbar-actions">
+        <button class="btn sm" onclick="showAddAgentModal()">+ Agent hinzufügen</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="grid-auto" id="agents-grid">
+        <div style="padding:20px;color:var(--fg3);grid-column:1/-1;text-align:center">
+          <div class="spinner" style="margin:0 auto 8px"></div>Lade Agenten…
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="view-chat" class="view">
+    <div class="topbar">
+      <div class="topbar-title" id="chat-title">💬 Agent Chat</div>
+      <div class="topbar-actions">
+        <div id="chat-agent-status" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg2)"></div>
+      </div>
+    </div>
+    <div class="chat-layout" style="flex:1;overflow:hidden;">
+      <div class="chat-sidebar">
+        <div style="padding:12px;border-bottom:1px solid var(--border);">
+          <input class="form-input" placeholder="🔍 Suche…" style="padding:7px 10px;font-size:12px;">
+        </div>
+        <div class="chat-list" id="chat-list">
+          <!-- populated by JS -->
+        </div>
+      </div>
+      <div class="chat-main" style="display:flex;flex-direction:column;overflow:hidden;">
+        <div class="messages" id="messages">
+          <div style="text-align:center;color:var(--fg3);padding:40px 20px;">
+            <div style="font-size:40px;margin-bottom:12px;">🤖</div>
+            <div style="font-size:15px;font-weight:500;margin-bottom:6px;">Wähle einen Agenten</div>
+            <div style="font-size:13px;">Starte ein Gespräch mit einem der NPCH-Agenten</div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;" id="quick-actions">
+            <button class="btn sm" onclick="quickPrompt('Was ist der aktuelle Sprint-Status?')">📋 Sprint Status</button>
+            <button class="btn sm" onclick="quickPrompt('Welche offenen Tasks gibt es?')">✅ Offene Tasks</button>
+            <button class="btn sm" onclick="quickPrompt('Erstelle einen täglichen Bericht')">📊 Daily Report</button>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-input" placeholder="Nachricht an Agent schreiben…" rows="1"
+              onkeydown="handleChatKey(event)"></textarea>
+            <button class="btn primary" onclick="sendMessage()">↑</button>
+          </div>
+          <div style="font-size:11px;color:var(--fg3);margin-top:6px;">Enter zum Senden · Shift+Enter für neue Zeile</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAMS -->
+  <div id="view-teams" class="view">
+    <div class="topbar">
+      <div class="topbar-title">👥 Team Chat</div>
+      <div class="topbar-actions">
+        <button class="btn sm" onclick="createTeamRoom()">+ Neues Team erstellen</button>
+      </div>
+    </div>
+    <div class="chat-layout" style="flex:1;overflow:hidden;">
+      <div class="chat-sidebar">
+        <div style="padding:12px;border-bottom:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--fg3);margin-bottom:8px;">Teams</div>
+        </div>
+        <div class="chat-list" id="team-list"></div>
+      </div>
+      <div class="chat-main" style="display:flex;flex-direction:column;overflow:hidden;">
+        <div class="messages" id="team-messages">
+          <div style="text-align:center;color:var(--fg3);padding:40px 20px;">
+            <div style="font-size:40px;margin-bottom:12px;">👥</div>
+            <div style="font-size:15px;font-weight:500;margin-bottom:6px;">Team-Chat</div>
+            <div style="font-size:13px;">Chatte mit mehreren Agenten gleichzeitig</div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="team-input" placeholder="Nachricht an Team…" rows="1"
+              onkeydown="handleTeamKey(event)"></textarea>
+            <button class="btn primary" onclick="sendTeamMessage()">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- N8N WORKFLOWS -->
+  <div id="view-n8n" class="view">
+    <div class="topbar">
+      <div class="topbar-title">⚡ n8n Workflows</div>
+      <div class="topbar-actions">
+        <div class="live-badge"><div class="live-dot"></div>Live</div>
+        <button class="btn sm" onclick="loadN8nData()">🔄 Refresh</button>
+        <a href="http://hpde-serv1.nobleprog.de:8008" target="_blank" class="btn sm">↗ n8n öffnen</a>
+      </div>
+    </div>
+    <div class="content">
+      <!-- Stats -->
+      <div class="grid-4" style="margin-bottom:20px;" id="n8n-stats-row">
+        <div class="n8n-stat"><div class="n8n-stat-label">Workflows gesamt</div><div class="n8n-stat-val" id="n8n-total">—</div></div>
+        <div class="n8n-stat"><div class="n8n-stat-label">Aktiv</div><div class="n8n-stat-val" style="color:var(--green)" id="n8n-active">—</div></div>
+        <div class="n8n-stat"><div class="n8n-stat-label">Ausführungen (24h)</div><div class="n8n-stat-val" style="color:var(--accent)" id="n8n-exec24">—</div></div>
+        <div class="n8n-stat"><div class="n8n-stat-label">Fehlerrate</div><div class="n8n-stat-val" style="color:var(--red)" id="n8n-errors">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Workflow-Übersicht</div>
+        </div>
+        <div id="n8n-workflows-list">
+          <div style="padding:20px;text-align:center;color:var(--fg3)">
+            <div class="spinner" style="margin:0 auto 8px"></div>Lade Workflows…
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <div class="card-title">📈 Letzte Ausführungen</div>
+        </div>
+        <div id="n8n-executions">
+          <div style="padding:20px;text-align:center;color:var(--fg3)">Lade Ausführungen…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div id="view-users" class="view">
+    <div class="topbar">
+      <div class="topbar-title">👤 Nutzerverwaltung</div>
+      <div class="topbar-actions">
+        <button class="btn primary sm" onclick="showUserModal()">+ Nutzer anlegen</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Alle Nutzer</div>
+          <div style="display:flex;gap:8px;margin-left:auto;">
+            <input class="form-input" style="width:200px;padding:6px 10px;font-size:12px;" placeholder="🔍 Suche…" oninput="filterUsers(this.value)">
+            <select class="form-select" style="width:140px;padding:6px 10px;font-size:12px;" onchange="filterUsersByRole(this.value)">
+              <option value="">Alle Rollen</option>
+              <option>management</option><option>coordination</option><option>finance</option>
+              <option>sales</option><option>recruitment</option><option>system</option><option>admin</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="users-table">
+            <thead>
+              <tr>
+                <th>Nutzer</th><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Erstellt</th><th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--fg3)"><div class="spinner" style="margin:0 auto 8px"></div>Lade Nutzer…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROLES -->
+  <div id="view-roles" class="view">
+    <div class="topbar">
+      <div class="topbar-title">🔐 Rollenverwaltung</div>
+      <div class="topbar-actions">
+        <button class="btn primary sm" onclick="showRoleModal()">+ Rolle erstellen</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="grid-2" style="margin-bottom:20px;gap:16px;">
+        <div id="roles-list"></div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Rollenmatrix</div></div>
+          <div class="card-body" id="role-permissions">
+            <div style="color:var(--fg3);font-size:13px;">Rolle auswählen um Berechtigungen zu sehen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="view-settings" class="view">
+    <div class="topbar">
+      <div class="topbar-title">⚙️ Einstellungen</div>
+    </div>
+    <div class="content">
+      <div class="grid-2" style="gap:20px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🗄️ Supabase Verbindung</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Supabase URL</label>
+              <input class="form-input" id="sb-url" value="https://xdssxsesxlgopmtsbtjr.supabase.co">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Anon Key (öffentlich)</label>
+              <input class="form-input" id="sb-anon-key" placeholder="eyJ... (Anon Key eingeben)">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px;">
+              <button class="btn primary" onclick="saveSupabaseConfig()">💾 Speichern</button>
+              <button class="btn" onclick="testSupabase()">🔌 Test</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚡ n8n Verbindung</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">n8n URL</label>
+              <input class="form-input" id="n8n-url" value="http://hpde-serv1.nobleprog.de:8008">
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input class="form-input" id="n8n-key" type="password" placeholder="n8n API Key (optional)">
+            </div>
+            <button class="btn primary" onclick="saveN8nConfig()">💾 Speichern</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🎨 Erscheinungsbild</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Theme</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn" onclick="setTheme('')">🌙 Auto</button>
+                <button class="btn" onclick="setTheme('dark')">🌑 Dunkel</button>
+                <button class="btn" onclick="setTheme('light')">☀️ Hell</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">ℹ️ System Info</div></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span style="color:var(--fg3)">Version</span><span>1.0.0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span style="color:var(--fg3)">Repo</span><span>NPCH-dev/npch-ops-hub</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span style="color:var(--fg3)">Branch</span><span class="badge blue">develop</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span style="color:var(--fg3)">Supabase</span><span id="sb-status" class="badge grey">nicht verbunden</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span style="color:var(--fg3)">n8n</span><span id="n8n-conn-status" class="badge grey">nicht verbunden</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: User -->
+<div class="modal-overlay" id="user-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="user-modal-title">Nutzer anlegen</div>
+      <button class="btn icon-only" onclick="closeModal('user-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Vollständiger Name *</label>
+        <input class="form-input" id="u-name" placeholder="Max Mustermann">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-Mail *</label>
+        <input class="form-input" id="u-email" type="email" placeholder="max@nobleprog.de">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rolle *</label>
+        <select class="form-select" id="u-role">
+          <option value="">Rolle wählen…</option>
+          <option>management</option><option>coordination</option><option>finance</option>
+          <option>sales</option><option>recruitment</option><option>system</option><option>admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Abteilung</label>
+        <input class="form-input" id="u-dept" placeholder="z.B. Engineering">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('user-modal')">Abbrechen</button>
+      <button class="btn primary" onclick="saveUser()">💾 Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════════════════
+const SB_DEFAULT_URL = 'https://ttziianeoiqlzqwfzsrs.supabase.co';
+const SB_DEFAULT_KEY = 'sb_publishable_8ru5Y_nJ1rAcZBvzQ4nLRA_yEQnSypb';
+const CONFIG = (() => {
+  try {
+    // Falsche alte URL korrigieren
+    const storedUrl = localStorage.getItem('npch_sb_url') || '';
+    const validUrl = storedUrl.includes('ttziianeoiqlzqwfzsrs') ? storedUrl : SB_DEFAULT_URL;
+    if (storedUrl !== validUrl) {
+      try { localStorage.setItem('npch_sb_url', validUrl); } catch(_) {}
+    }
+    // Falsche alte Keys korrigieren
+    const storedKey = localStorage.getItem('npch_sb_key') || '';
+    const validKey = storedKey.startsWith('sb_publishable_8ru5Y') ? storedKey : SB_DEFAULT_KEY;
+    if (storedKey !== validKey) {
+      try { localStorage.setItem('npch_sb_key', validKey); } catch(_) {}
+    }
+    return {
+      sbUrl: validUrl,
+      sbKey: validKey,
+      n8nUrl: localStorage.getItem('npch_n8n_url') || 'http://hpde-serv1.nobleprog.de:8008',
+      n8nKey: localStorage.getItem('npch_n8n_key') || ''
+    };
+  } catch(e) { return { sbUrl: SB_DEFAULT_URL, sbKey: SB_DEFAULT_KEY, n8nUrl:'http://hpde-serv1.nobleprog.de:8008', n8nKey:'' }; }
+})();
+
+const STATE = {
+  view: 'dashboard',
+  activeChat: null,
+  activeTeam: null,
+  users: [],
+  agents: [],
+  chatHistory: {},
+  teamHistory: {},
+  n8nData: null,
+  sbConnected: false
+};
+
+// ═══════════════════════════════════════════════════════
+// AGENTS DATA (static + DB-enriched)
+// ═══════════════════════════════════════════════════════
+const AGENTS = [
+  { id:'00', key:'00_Team-Basis', name:'Team-Basis', emoji:'🧩', role:'Fundament aller Agenten', desc:'Gemeinsame Regeln, Konventionen und Standards für alle Agenten', color:'#6366f1', bg:'rgba(99,102,241,0.12)', tags:['core','standards','basis'], status:'online', workflowId:null },
+  { id:'01', key:'01_Product-Owner', name:'Product Owner', emoji:'📋', role:'Backlog & Sprint Management', desc:'Verwaltet das Product Backlog, priorisiert User Stories und koordiniert Sprint-Planung', color:'#3b82f6', bg:'rgba(59,130,246,0.12)', tags:['agile','backlog','sprint'], status:'online', workflowId:null },
+  { id:'02', key:'02_Developer', name:'Developer', emoji:'💻', role:'Code & Implementation', desc:'Implementiert Features, behebt Bugs und führt Code Reviews durch. FastAPI + React Stack', color:'#10b981', bg:'rgba(16,185,129,0.12)', tags:['fastapi','react','typescript'], status:'online', workflowId:'kQr1VoF9u26V2tfm' },
+  { id:'03', key:'03_Tester', name:'QA Tester', emoji:'🧪', role:'Qualitätssicherung', desc:'Erstellt Testfälle, führt manuelle und automatisierte Tests durch, dokumentiert Bugs', color:'#f59e0b', bg:'rgba(245,158,11,0.12)', tags:['testing','qa','bugs'], status:'idle', workflowId:null },
+  { id:'04', key:'04_Security', name:'Security', emoji:'🔒', role:'IT-Sicherheit', desc:'Führt Security Reviews durch, identifiziert Schwachstellen und empfiehlt Maßnahmen', color:'#ef4444', bg:'rgba(239,68,68,0.12)', tags:['security','owasp','audit'], status:'offline', workflowId:null },
+  { id:'05', key:'05_Performance', name:'Performance', emoji:'⚡', role:'Performance Optimization', desc:'Analysiert Bottlenecks, optimiert Datenbankabfragen und überwacht System-Metriken', color:'#f97316', bg:'rgba(249,115,22,0.12)', tags:['perf','metrics','optimization'], status:'offline', workflowId:null },
+  { id:'06', key:'06_Reviewer', name:'Reviewer', emoji:'🔍', role:'Code Review', desc:'Reviewt Pull Requests auf Code-Qualität, Best Practices und Architektur-Konformität', color:'#8b5cf6', bg:'rgba(139,92,246,0.12)', tags:['review','quality','pr'], status:'idle', workflowId:null },
+  { id:'07', key:'07_Release', name:'Release', emoji:'🚀', role:'Release Management', desc:'Koordiniert Deployments, erstellt Changelogs und verwaltet den Release-Prozess', color:'#06b6d4', bg:'rgba(6,182,212,0.12)', tags:['deployment','release','ci-cd'], status:'online', workflowId:null },
+  { id:'08', key:'08_Documentation', name:'Documentation', emoji:'📝', role:'Technische Dokumentation', desc:'Erstellt und pflegt API-Docs, Architecture Records und User Guides', color:'#ec4899', bg:'rgba(236,72,153,0.12)', tags:['docs','api','architecture'], status:'idle', workflowId:null },
+  { id:'finance', key:'Finance-Agent', name:'Finance Agent', emoji:'💰', role:'Finanzen & Buchhaltung', desc:'Verarbeitet Eingangsrechnungen, erstellt Ausgangsrechnungen und P&L-Berichte', color:'#10b981', bg:'rgba(16,185,129,0.12)', tags:['finance','invoices','reports'], status:'local', workflowId:null }
+];
+
+const TEAMS = [
+  { id:'dev-1', name:'dev-1', emoji:'🔵', agents:['00','01','02','03','04','05','06','07','08'], desc:'SDLC Development Team — Backend NPCH Ops Hub' },
+  { id:'finance', name:'Finance', emoji:'💰', agents:['finance'], desc:'Finance Agent — Rechnungen, P&L, Liquidität' }
+];
+
+const ROLES = [
+  { name:'admin', label:'Administrator', color:'red', perms:['alle Rechte','Nutzerverwaltung','Systemkonfiguration','alle Agenten'] },
+  { name:'management', label:'Management', color:'purple', perms:['Dashboard lesen','Reports','Agenten beobachten','Strategie-Chat'] },
+  { name:'coordination', label:'Koordination', color:'blue', perms:['Sprint-Management','Team-Chat','Aufgaben verwalten'] },
+  { name:'finance', label:'Finance', color:'green', perms:['Finance-Reports','Budget-Chat','Readonly Dashboard'] },
+  { name:'sales', label:'Sales', color:'yellow', perms:['Sales-Dashboard','CRM-Chat','Leads verwalten'] },
+  { name:'recruitment', label:'Recruitment', color:'orange', perms:['HR-Dashboard','Recruitment-Chat'] },
+  { name:'system', label:'System', color:'grey', perms:['API-Zugang','Webhooks','Automatisierung'] }
+];
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function navigate(view) {
+  STATE.view = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + view + "'")) n.classList.add('active');
+  });
+  if (view === 'dashboard') loadDashboard();
+  if (view === 'agents') loadAgentsView();
+  if (view === 'chat') loadChatView();
+  if (view === 'teams') loadTeamsView();
+  if (view === 'n8n') loadN8nData();
+  if (view === 'users') loadUsers();
+  if (view === 'roles') loadRoles();
+}
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════════════
+async function sbFetch(endpoint, opts = {}) {
+  if (!CONFIG.sbKey) return null;
+  try {
+    const r = await fetch(CONFIG.sbUrl + '/rest/v1/' + endpoint, {
+      ...opts,
+      headers: {
+        'apikey': CONFIG.sbKey,
+        'Authorization': 'Bearer ' + CONFIG.sbKey,
+        'Content-Type': 'application/json',
+        'Prefer': opts.prefer || 'return=representation',
+        ...(opts.headers || {})
+      }
+    });
+    if (!r.ok) {
+      console.error('[sbFetch] HTTP', r.status, r.statusText, 'für', endpoint);
+      try { const t = await r.text(); console.error('[sbFetch] Body:', t); } catch(_) {}
+      return null;
+    }
+    STATE.sbConnected = true;
+    return r.json();
+  } catch(e) {
+    console.error('[sbFetch] Netzwerk-Fehler:', e.message, e);
+    return null;
+  }
+}
+
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  if (!CONFIG.sbKey) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--fg3)">
+      ⚙️ Supabase Anon Key erforderlich — bitte in <a href="#" onclick="navigate('settings');return false;" style="color:var(--accent)">Einstellungen</a> konfigurieren
+    </td></tr>`;
+    return;
+  }
+  const data = await sbFetch('profiles?select=*&order=created_at.desc');
+  if (!data) {
+    // Show demo data
+    renderUsers(getDemoUsers());
+    return;
+  }
+  STATE.users = data;
+  renderUsers(data);
+  document.getElementById('stat-users').textContent = data.length;
+}
+
+function getDemoUsers() {
+  return [
+    { id:'1', full_name:'Christian Hanke', email:'christian.hanke@nobleprog.com', role:'admin', department:'Engineering', is_active:true, created_at: new Date().toISOString() },
+    { id:'2', full_name:'Demo Manager', email:'manager@nobleprog.de', role:'management', department:'Management', is_active:true, created_at: new Date(Date.now()-86400000).toISOString() }
+  ];
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('users-tbody');
+  if (!users || users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--fg3)">Keine Nutzer gefunden</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px;">
+        <div class="user-avatar" style="width:30px;height:30px;font-size:11px;">${initials(u.full_name||u.email)}</div>
+        <span style="font-weight:500">${esc(u.full_name||'—')}</span>
+      </div></td>
+      <td style="color:var(--fg2)">${esc(u.email||'—')}</td>
+      <td><span class="badge ${roleBadge(u.role)}">${esc(u.role||'—')}</span></td>
+      <td><span class="badge ${u.is_active!==false?'green':'grey'}">${u.is_active!==false?'Aktiv':'Inaktiv'}</span></td>
+      <td style="color:var(--fg3)">${formatDate(u.created_at)}</td>
+      <td>
+        <button class="btn sm" onclick="editUser('${u.id}')">✏️</button>
+        <button class="btn sm" onclick="toggleUser('${u.id}', ${u.is_active!==false})" style="margin-left:4px;">${u.is_active!==false?'🚫':'✅'}</button>
+      </td>
+    </tr>
+  `).join('');
+  document.getElementById('stat-users').textContent = users.length;
+}
+
+async function saveUser() {
+  const name = document.getElementById('u-name').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+  const role = document.getElementById('u-role').value;
+  const dept = document.getElementById('u-dept').value.trim();
+  if (!name||!email||!role) { toast('Bitte alle Pflichtfelder ausfüllen','red'); return; }
+
+  const payload = { full_name:name, email, role, department:dept, is_active:true };
+  const result = await sbFetch('profiles', { method:'POST', body: JSON.stringify(payload) });
+  if (result) {
+    toast('Nutzer angelegt ✅','green');
+    closeModal('user-modal');
+    loadUsers();
+  } else {
+    // Demo mode
+    toast('Demo: Nutzer angelegt (kein Supabase Key)','yellow');
+    closeModal('user-modal');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function loadDashboard() {
+  renderDashboardAgents();
+  loadN8nForDashboard();
+  renderActivity();
+  loadAgentRuns();
+  document.getElementById('stat-agents-online').textContent = AGENTS.filter(a=>a.status==='online').length;
+}
+
+function renderDashboardAgents() {
+  const el = document.getElementById('dashboard-agents');
+  el.innerHTML = AGENTS.map(a => `
+    <div class="workflow-item" onclick="startChat(${AGENTS.indexOf(a)})" style="cursor:pointer;">
+      <div style="font-size:20px;">${a.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;">${a.name}</div>
+        <div style="font-size:11px;color:var(--fg3);">${a.role}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="status-dot ${a.status==='online'?'green':a.status==='idle'?'yellow':'grey'}"></div>
+        <span style="font-size:11px;color:var(--fg3)">${a.status}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// AGENT RUNS (live Supabase polling)
+// ═══════════════════════════════════════════════════════
+async function loadAgentRuns() {
+  const el = document.getElementById('dashboard-agent-runs');
+  if (!el) return;
+
+  if (!CONFIG.sbKey) {
+    el.innerHTML = renderAgentRunsDemoFallback();
+    return;
+  }
+
+  // Fetch last 10 runs across all agents
+  const data = await sbFetch('agent_runs?select=*&order=started_at.desc&limit=10');
+  if (!data) {
+    el.innerHTML = renderAgentRunsDemoFallback();
+    return;
+  }
+
+  // Show live badge + timestamp
+  const badge = document.getElementById('agent-runs-badge');
+  const ts = document.getElementById('agent-runs-last-update');
+  if (badge) badge.style.display = 'flex';
+  if (ts) ts.textContent = 'Zuletzt: ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
+
+  if (data.length === 0) {
+    el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--fg3)">Noch keine Agent-Läufe vorhanden.</div>`;
+    return;
+  }
+
+  el.innerHTML = data.map(run => {
+    const statusIcon = {running:'⏳', success:'✅', error:'❌', skipped:'⏭️'}[run.status] || '❓';
+    const statusColor = {running:'yellow', success:'green', error:'red', skipped:'grey'}[run.status] || 'grey';
+    const startedAt = new Date(run.started_at);
+    const timeAgo = formatTimeAgo(startedAt);
+    const duration = run.duration_seconds != null ? `${run.duration_seconds}s` : run.finished_at ? '' : 'läuft…';
+    return `
+      <div class="workflow-item" style="border-bottom:1px solid var(--border);">
+        <div style="font-size:18px;">${statusIcon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;">
+            ${run.agent_name}
+            <span class="tag" style="background:var(--${statusColor}-bg,var(--bg4));color:var(--${statusColor},var(--fg3));">${run.status}</span>
+            ${run.tickets_processed ? `<span class="tag">${run.tickets_processed} Tickets</span>` : ''}
+          </div>
+          ${run.summary ? `<div style="font-size:11px;color:var(--fg3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${run.summary}</div>` : ''}
+          ${run.error_message ? `<div style="font-size:11px;color:var(--red);margin-top:3px;">${run.error_message}</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;color:var(--fg3);">${timeAgo}</div>
+          ${duration ? `<div style="font-size:10px;color:var(--fg3);margin-top:2px;">${duration}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderAgentRunsDemoFallback() {
+  const demoRuns = [
+    { agent_name:'Developer Agent', status:'success', summary:'Sprint 1: 3 Tickets analysiert, 2 Code-Entwürfe erstellt', timeAgo:'vor 2 Std', tickets:3 },
+    { agent_name:'Developer Agent', status:'error', summary:'API-Verbindung fehlgeschlagen (Timeout)', timeAgo:'vor 1 Tag', tickets:0 },
+    { agent_name:'Product Owner', status:'success', summary:'Backlog aktualisiert, Sprint 2 vorbereitet', timeAgo:'vor 2 Tagen', tickets:5 },
+  ];
+  return demoRuns.map(r => {
+    const statusIcon = {success:'✅', error:'❌', running:'⏳'}[r.status] || '❓';
+    const statusColor = {success:'green', error:'red', running:'yellow'}[r.status] || 'grey';
+    return `
+      <div class="workflow-item" style="border-bottom:1px solid var(--border);">
+        <div style="font-size:18px;">${statusIcon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;">
+            ${r.agent_name}
+            <span class="tag" style="background:var(--${statusColor}-bg,var(--bg4));color:var(--${statusColor},var(--fg3));">${r.status}</span>
+            ${r.tickets ? `<span class="tag">${r.tickets} Tickets</span>` : ''}
+          </div>
+          <div style="font-size:11px;color:var(--fg3);margin-top:3px;">${r.summary} <em style="color:var(--border2)">(Demo)</em></div>
+        </div>
+        <div style="font-size:11px;color:var(--fg3);flex-shrink:0;">${r.timeAgo}</div>
+      </div>`;
+  }).join('');
+}
+
+function formatTimeAgo(date) {
+  const diff = Math.floor((Date.now() - date) / 1000);
+  if (diff < 60) return 'gerade eben';
+  if (diff < 3600) return `vor ${Math.floor(diff/60)} Min`;
+  if (diff < 86400) return `vor ${Math.floor(diff/3600)} Std`;
+  return `vor ${Math.floor(diff/86400)} Tagen`;
+}
+
+function renderActivity() {
+  const el = document.getElementById('dashboard-activity');
+  const items = [
+    { icon:'✅', text:'Developer Agent: PR #42 Review abgeschlossen', time:'vor 5 Min', color:'green' },
+    { icon:'🚀', text:'Release Workflow: v1.2.3 erfolgreich deployed', time:'vor 23 Min', color:'blue' },
+    { icon:'📋', text:'Product Owner: Sprint 2 Planning gestartet', time:'vor 1 Std', color:'purple' },
+    { icon:'🧪', text:'Tester Agent: 14 neue Testfälle erstellt', time:'vor 2 Std', color:'yellow' },
+    { icon:'🔒', text:'Security Audit: 3 Schwachstellen identifiziert', time:'vor 3 Std', color:'red' },
+  ];
+  el.innerHTML = items.map(i => `
+    <div class="workflow-item">
+      <div style="font-size:18px;">${i.icon}</div>
+      <div style="flex:1;font-size:13px;">${i.text}</div>
+      <div style="font-size:11px;color:var(--fg3);white-space:nowrap;">${i.time}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// AGENTS VIEW
+// ═══════════════════════════════════════════════════════
+function loadAgentsView() {
+  const grid = document.getElementById('agents-grid');
+  grid.innerHTML = AGENTS.map((a, i) => `
+    <div class="agent-card" style="--agent-color:${a.color};--agent-bg:${a.bg}">
+      <div class="agent-header">
+        <div class="agent-avatar">${a.emoji}</div>
+        <div>
+          <div class="agent-id">AGENT ${a.id}</div>
+          <div class="agent-name">${a.name}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
+          <div class="status-dot ${a.status==='online'?'green':a.status==='idle'?'yellow':'grey'}"></div>
+        </div>
+      </div>
+      <div class="agent-status">
+        <span>${a.role}</span>
+      </div>
+      <div class="agent-desc">${a.desc}</div>
+      <div class="agent-tags">${a.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <div class="agent-actions">
+        <button class="btn sm primary" onclick="startChat(${i});navigate('chat')">💬 Chat</button>
+        <button class="btn sm" onclick="showAgentDetail(${i})">ℹ️ Details</button>
+        ${a.workflowId
+          ? `<a class="btn sm" href="http://hpde-serv1.nobleprog.de:8008/workflow/${a.workflowId}" target="_blank" style="text-decoration:none;">⚡ n8n</a>`
+          : `<button class="btn sm" style="opacity:0.4;cursor:default;" title="Noch kein Workflow angelegt">⚡ n8n</button>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function showAgentDetail(i) {
+  const a = AGENTS[i];
+  toast(`${a.emoji} ${a.name} — ${a.role}`, 'blue');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════
+function loadChatView() {
+  const list = document.getElementById('chat-list');
+  list.innerHTML = AGENTS.map((a, i) => `
+    <div class="chat-item ${STATE.activeChat===i?'active':''}" onclick="startChat(${i})">
+      <div style="font-size:18px;">${a.emoji}</div>
+      <div class="chat-item-info">
+        <div class="chat-item-name">${a.name}</div>
+        <div class="chat-item-preview">${a.role}</div>
+      </div>
+      <div class="status-dot ${a.status==='online'?'green':a.status==='idle'?'yellow':'grey'}"></div>
+    </div>
+  `).join('');
+}
+
+function startChat(i) {
+  STATE.activeChat = i;
+  const a = AGENTS[i];
+  document.getElementById('chat-title').textContent = `💬 ${a.name}`;
+  document.getElementById('chat-agent-status').innerHTML = `
+    <div class="status-dot ${a.status==='online'?'green':a.status==='idle'?'yellow':'grey'}"></div>
+    ${a.status} · ${a.role}
+  `;
+  loadChatView();
+  renderMessages();
+}
+
+function renderMessages() {
+  const i = STATE.activeChat;
+  if (i === null) return;
+  const a = AGENTS[i];
+  const history = STATE.chatHistory[i] || [];
+  const el = document.getElementById('messages');
+
+  if (history.length === 0) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:40px;margin-bottom:10px;">${a.emoji}</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${a.name}</div>
+        <div style="font-size:13px;color:var(--fg3);margin-bottom:16px;">${a.desc}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+          ${a.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = history.map(m => `
+    <div class="msg ${m.role}">
+      ${m.role!=='user'?`<div class="msg-avatar">${a.emoji}</div>`:''}
+      <div>
+        <div class="msg-bubble">${m.role!=='user'&&window.marked?marked.parse(m.content):esc(m.content)}</div>
+        <div class="msg-meta">${m.time}</div>
+      </div>
+      ${m.role==='user'?`<div class="msg-avatar" style="background:var(--accent);color:white;font-size:12px;font-weight:700;">CH</div>`:''}
+    </div>
+  `).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendMessage() {
+  if (STATE.activeChat === null) { toast('Zuerst einen Agenten auswählen','yellow'); return; }
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const a = AGENTS[STATE.activeChat];
+  if (!STATE.chatHistory[STATE.activeChat]) STATE.chatHistory[STATE.activeChat] = [];
+  const h = STATE.chatHistory[STATE.activeChat];
+
+  h.push({ role:'user', content:text, time:now() });
+  renderMessages();
+
+  // Simulate agent response
+  h.push({ role:'assistant', content:'⏳ _Denke nach…_', time:now() });
+  renderMessages();
+
+  await delay(800 + Math.random()*1200);
+  h.pop();
+  h.push({ role:'assistant', content:generateResponse(a, text), time:now() });
+  renderMessages();
+}
+
+function generateResponse(agent, msg) {
+  const responses = {
+    '01': [`Als **Product Owner** analysiere ich deine Anfrage:\n\n> "${msg}"\n\nIch werde das direkt ins Backlog aufnehmen und für den nächsten Sprint priorisieren. Hast du User Stories oder Akzeptanzkriterien dazu?`, `Interessante Frage! Aus Product Owner Perspektive würde ich das als **High Priority** einstufen. Lass uns das im Sprint Planning besprechen.`],
+    '02': [`Als **Developer** sehe ich hier mehrere Implementierungsmöglichkeiten:\n\n\`\`\`python\n# Möglicher Ansatz\nasync def handle_request():\n    # FastAPI Endpoint\n    pass\n\`\`\`\n\nIch empfehle den TDD-Ansatz. Welchen Stack bevorzugst du?`, `Guter Punkt! Im FastAPI/React Stack würde ich das folgendermaßen angehen: zuerst das Datenbankmodell definieren, dann den API-Endpoint, dann den Frontend-Component.`],
+    '03': [`Als **QA Tester** überprüfe ich folgende Testszenarien:\n\n- ✅ Happy Path\n- ⚠️ Edge Cases\n- ❌ Error Handling\n\nIch erstelle direkt einen Testplan. Hast du Zugang zur Staging-Umgebung?`, `Gute Frage! Für diesen Fall würde ich folgende Tests vorschlagen:\n1. Unit Tests für die Kernlogik\n2. Integration Tests für die API\n3. E2E Tests für den User Flow`],
+    '04': [`**Security Assessment** für deine Anfrage:\n\n⚠️ Beachte folgende Sicherheitsaspekte:\n- Input Validation erforderlich\n- Rate Limiting empfohlen\n- Audit Logging nicht vergessen\n\nSoll ich ein vollständiges Security Review durchführen?`, `Aus Security-Perspektive müssen wir hier OWASP Top 10 berücksichtigen. Besonders SQL Injection und CSRF-Schutz sind kritisch.`],
+    '00': [`Als **Team-Basis** koordiniere ich alle Agenten für deine Anfrage. Basierend auf dem Kontext empfehle ich folgende Agenten:\n\n1. 📋 Product Owner — für Priorisierung\n2. 💻 Developer — für Implementierung\n3. 🧪 Tester — für Qualität\n\nSoll ich alle aktivieren?`, `Verstanden! Die Team-Basis-Regeln besagen: wir folgen Conventional Commits, nutzen Feature Branches und alle PRs brauchen Reviews.`]
+  };
+
+  const pool = responses[agent.id] || [`Als **${agent.name}** bearbeite ich deine Anfrage:\n\n"${msg}"\n\nIch analysiere dies aus meiner Perspektive als ${agent.role} und werde dir eine fundierte Antwort geben.`];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function handleChatKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function quickPrompt(text) {
+  document.getElementById('chat-input').value = text;
+  sendMessage();
+}
+
+// ═══════════════════════════════════════════════════════
+// TEAMS
+// ═══════════════════════════════════════════════════════
+function loadTeamsView() {
+  const list = document.getElementById('team-list');
+  list.innerHTML = TEAMS.map(t => `
+    <div class="chat-item ${STATE.activeTeam===t.id?'active':''}" onclick="selectTeam('${t.id}')">
+      <div style="font-size:18px;">${t.emoji}</div>
+      <div class="chat-item-info">
+        <div class="chat-item-name">${t.name}</div>
+        <div class="chat-item-preview">${t.desc}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectTeam(id) {
+  STATE.activeTeam = id;
+  const team = TEAMS.find(t=>t.id===id);
+  loadTeamsView();
+  const el = document.getElementById('team-messages');
+  const agents = team.agents.map(aid => AGENTS.find(a=>a.id===aid)).filter(Boolean);
+
+  const h = STATE.teamHistory[id] || [];
+  if (h.length === 0) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:40px;margin-bottom:10px;">${team.emoji}</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${team.name}</div>
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          ${agents.map(a=>`<span style="display:flex;align-items:center;gap:4px;font-size:13px;">${a.emoji} ${a.name}</span>`).join('')}
+        </div>
+        <div style="font-size:13px;color:var(--fg3);">Alle Agenten antworten auf deine Nachrichten</div>
+      </div>
+    `;
+  }
+}
+
+async function sendTeamMessage() {
+  if (!STATE.activeTeam) { toast('Team auswählen','yellow'); return; }
+  const input = document.getElementById('team-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const team = TEAMS.find(t=>t.id===STATE.activeTeam);
+  const agents = team.agents.map(aid => AGENTS.find(a=>a.id===aid)).filter(Boolean);
+  if (!STATE.teamHistory[STATE.activeTeam]) STATE.teamHistory[STATE.activeTeam] = [];
+  const h = STATE.teamHistory[STATE.activeTeam];
+
+  h.push({ role:'user', content:text, time:now(), agent:null });
+  renderTeamMessages();
+
+  for (const a of agents) {
+    await delay(500 + Math.random()*1500);
+    h.push({ role:'assistant', content:generateResponse(a, text), time:now(), agent:a });
+    renderTeamMessages();
+  }
+}
+
+function renderTeamMessages() {
+  if (!STATE.activeTeam) return;
+  const h = STATE.teamHistory[STATE.activeTeam] || [];
+  const el = document.getElementById('team-messages');
+  if (h.length === 0) return;
+  el.innerHTML = h.map(m => `
+    <div class="msg ${m.role==='user'?'user':''}">
+      ${m.role!=='user'&&m.agent?`<div class="msg-avatar">${m.agent.emoji}</div>`:''}
+      <div>
+        ${m.agent?`<div style="font-size:11px;color:var(--fg3);margin-bottom:4px;">${m.agent.name}</div>`:''}
+        <div class="msg-bubble">${m.role!=='user'&&window.marked?marked.parse(m.content):esc(m.content)}</div>
+        <div class="msg-meta">${m.time}</div>
+      </div>
+      ${m.role==='user'?`<div class="msg-avatar" style="background:var(--accent);color:white;font-size:12px;font-weight:700;">CH</div>`:''}
+    </div>
+  `).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function handleTeamKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendTeamMessage(); }
+}
+
+// ═══════════════════════════════════════════════════════
+// N8N
+// ═══════════════════════════════════════════════════════
+async function loadN8nData() {
+  // n8n is not directly accessible from browser (CORS/network), show known data
+  const workflowsData = [
+    { name:'NPCH Ops Hub - Push Files to GitHub', id:'DO0RR6HkdyS3Mwkk', active:true, lastExec:'vor 2 Std', status:'success' },
+    { name:'Approval Polling Workflow', id:'GT1bYVmP7uE6dmOp', active:false, lastExec:'ausstehend', status:'idle' },
+    { name:'Nacht-Lauf Developer Agent', id:'—', active:false, lastExec:'nicht erstellt', status:'pending' },
+    { name:'Daily Summary 11:45', id:'—', active:false, lastExec:'nicht erstellt', status:'pending' },
+  ];
+
+  document.getElementById('n8n-total').textContent = workflowsData.length;
+  document.getElementById('n8n-active').textContent = workflowsData.filter(w=>w.active).length;
+  document.getElementById('n8n-exec24').textContent = '14';
+  document.getElementById('n8n-errors').textContent = '0%';
+  document.getElementById('n8n-badge').textContent = workflowsData.filter(w=>w.active).length;
+
+  const wList = document.getElementById('n8n-workflows-list');
+  wList.innerHTML = workflowsData.map(w => `
+    <div class="workflow-item">
+      <div style="font-size:16px;">${w.active?'🟢':'⚫'}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="workflow-name">${esc(w.name)}</div>
+        <div class="workflow-meta">ID: ${w.id} · Letzte Ausführung: ${w.lastExec}</div>
+      </div>
+      <span class="badge ${w.status==='success'?'green':w.status==='idle'?'grey':'yellow'}">${w.status}</span>
+      ${w.id!=='—'?`<a href="${CONFIG.n8nUrl}/workflow/${w.id}" target="_blank" class="btn sm" style="margin-left:8px;">↗</a>`:''}
+    </div>
+  `).join('');
+
+  const execList = document.getElementById('n8n-executions');
+  execList.innerHTML = `
+    <div class="workflow-item">
+      <div style="font-size:16px;">✅</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">Push Files to GitHub</div><div style="font-size:11px;color:var(--fg3)">14 Dateien erfolgreich gepusht</div></div>
+      <span class="badge green">success</span>
+      <span style="font-size:11px;color:var(--fg3);margin-left:8px">vor 2 Std</span>
+    </div>
+    <div class="workflow-item">
+      <div style="font-size:16px;">⚠️</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">Push Files to GitHub</div><div style="font-size:11px;color:var(--fg3)">Branch bereits vorhanden (422) — unkritisch</div></div>
+      <span class="badge yellow">warning</span>
+      <span style="font-size:11px;color:var(--fg3);margin-left:8px">vor 2 Std</span>
+    </div>
+  `;
+
+  // For dashboard
+  const dash = document.getElementById('dashboard-n8n');
+  if (dash) {
+    dash.innerHTML = `
+      <div class="grid-2" style="padding:14px;gap:10px;">
+        ${[
+          {l:'Workflows', v:workflowsData.length, c:'var(--fg)'},
+          {l:'Aktiv', v:workflowsData.filter(w=>w.active).length, c:'var(--green)'},
+          {l:'Runs (24h)', v:'14', c:'var(--accent)'},
+          {l:'Fehler', v:'0', c:'var(--red)'}
+        ].map(s=>`<div class="n8n-stat"><div class="n8n-stat-label">${s.l}</div><div class="n8n-stat-val" style="color:${s.c}">${s.v}</div></div>`).join('')}
+      </div>
+      <div style="padding:0 14px 14px;">
+        ${workflowsData.slice(0,3).map(w=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+            <div style="font-size:14px;">${w.active?'🟢':'⚫'}</div>
+            <div style="flex:1;font-size:12px;font-weight:500;">${w.name.substring(0,35)}…</div>
+            <span class="badge ${w.status==='success'?'green':w.status==='idle'?'grey':'yellow'}" style="font-size:10px;">${w.status}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div style="padding:0 14px 12px;">
+        <a href="${CONFIG.n8nUrl}" target="_blank" class="btn sm" style="font-size:12px;">↗ n8n öffnen</a>
+      </div>
+    `;
+  }
+
+  document.getElementById('n8n-conn-status').className = 'badge yellow';
+  document.getElementById('n8n-conn-status').textContent = 'MCP only';
+}
+
+async function loadN8nForDashboard() {
+  await loadN8nData();
+}
+
+// ═══════════════════════════════════════════════════════
+// ROLES
+// ═══════════════════════════════════════════════════════
+function loadRoles() {
+  const list = document.getElementById('roles-list');
+  list.innerHTML = ROLES.map(r => `
+    <div class="card" style="margin-bottom:12px;cursor:pointer;" onclick="showRolePerms('${r.name}')">
+      <div class="card-body" style="padding:12px 16px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge ${r.color}">${r.name}</span>
+          <span style="font-size:13px;font-weight:500;flex:1;">${r.label}</span>
+          <span style="font-size:12px;color:var(--fg3);">${r.perms.length} Rechte</span>
+          <span>›</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showRolePerms(name) {
+  const r = ROLES.find(x=>x.name===name);
+  document.getElementById('role-permissions').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <span class="badge ${r.color}" style="font-size:13px;padding:4px 12px;">${r.label}</span>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Berechtigungen</div>
+    ${r.perms.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">✅ ${p}</div>`).join('')}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════
+function saveSupabaseConfig() {
+  const url = document.getElementById('sb-url').value;
+  const key = document.getElementById('sb-anon-key').value;
+  try { localStorage.setItem('npch_sb_url', url); localStorage.setItem('npch_sb_key', key); } catch(e) {}
+  CONFIG.sbUrl = url; CONFIG.sbKey = key;
+  toast('Supabase Konfiguration gespeichert ✅','green');
+}
+
+async function testSupabase() {
+  const urlEl  = document.getElementById('sb-url');
+  const keyEl  = document.getElementById('sb-anon-key');
+  const testUrl = (urlEl  ? urlEl.value.trim()  : '') || CONFIG.sbUrl;
+  const testKey = (keyEl  ? keyEl.value.trim()  : '') || CONFIG.sbKey;
+  if (!testKey) { toast('Anon Key fehlt — bitte eintragen','red'); return; }
+
+  // Temporär in CONFIG setzen, damit sbFetch ihn nutzt
+  const prevUrl = CONFIG.sbUrl, prevKey = CONFIG.sbKey;
+  CONFIG.sbUrl = testUrl;
+  CONFIG.sbKey = testKey;
+
+  console.log('[testSupabase] URL:', testUrl);
+  console.log('[testSupabase] Key (erste 20):', testKey.slice(0,20) + '…');
+
+  let r;
+  try {
+    r = await sbFetch('agent_runs?select=id&limit=1');
+  } finally {
+    CONFIG.sbUrl = prevUrl;
+    CONFIG.sbKey = prevKey;
+  }
+
+  if (r !== null) {
+    toast('Supabase Verbindung OK ✅','green');
+    const badge = document.getElementById('sb-status');
+    if (badge) { badge.className = 'badge green'; badge.textContent = 'verbunden'; }
+    // Jetzt dauerhaft speichern
+    CONFIG.sbUrl = testUrl; CONFIG.sbKey = testKey;
+    try { localStorage.setItem('npch_sb_url', testUrl); localStorage.setItem('npch_sb_key', testKey); } catch(_) {}
+  } else {
+    toast('Verbindung fehlgeschlagen — Details in F12 → Console','red');
+  }
+}
+
+function saveN8nConfig() {
+  const url = document.getElementById('n8n-url').value;
+  const key = document.getElementById('n8n-key').value;
+  try { localStorage.setItem('npch_n8n_url', url); localStorage.setItem('npch_n8n_key', key); } catch(e) {}
+  CONFIG.n8nUrl = url; CONFIG.n8nKey = key;
+  toast('n8n Konfiguration gespeichert ✅','green');
+}
+
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('npch_theme', t); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+// MODALS & HELPERS
+// ═══════════════════════════════════════════════════════
+function showUserModal() { document.getElementById('user-modal').hidden = false; }
+function showAddAgentModal() { toast('Agent-Verwaltung über Git — agents/*.md Dateien bearbeiten','blue'); }
+function showRoleModal() { toast('Rollen-Erstellung via Supabase Migration','blue'); }
+function closeModal(id) { document.getElementById(id).hidden = true; }
+function editUser(id) { toast('Edit User: ' + id,'blue'); }
+function toggleUser(id, cur) { toast((cur?'Deaktiviere':'Aktiviere') + ' User ' + id,'yellow'); }
+function filterUsers(q) {
+  document.querySelectorAll('#users-tbody tr').forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filterUsersByRole(role) {
+  document.querySelectorAll('#users-tbody tr').forEach(r => {
+    r.style.display = !role || r.textContent.includes(role) ? '' : 'none';
+  });
+}
+function createTeamRoom() { toast('Neues Team erstellen — Funktion in Entwicklung','yellow'); }
+function refreshAll() { loadDashboard(); toast('Dashboard aktualisiert','green'); }
+
+function toast(msg, type='blue') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  const colors = {green:'var(--green)',red:'var(--red)',yellow:'var(--yellow)',blue:'var(--accent2)'};
+  t.innerHTML = `<span style="color:${colors[type]||colors.blue}">●</span> ${esc(msg)}`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(()=>t.remove(),300);},3500);
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+}
+function formatDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}); } catch(e) { return d; }
+}
+function now() {
+  return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function roleBadge(r) {
+  return {admin:'red',management:'purple',coordination:'blue',finance:'green',sales:'yellow',recruitment:'blue',system:'grey'}[r]||'grey';
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+(function init() {
+  try {
+    const t = localStorage.getItem('npch_theme');
+    if (t) document.documentElement.setAttribute('data-theme', t);
+    // Korrekte URL + Key ins Formfeld schreiben (CONFIG hat sie bereits bereinigt)
+    const urlEl = document.getElementById('sb-url');
+    const keyEl = document.getElementById('sb-anon-key');
+    if (urlEl) urlEl.value = CONFIG.sbUrl;
+    if (keyEl) keyEl.value = CONFIG.sbKey;
+  } catch(e) {}
+  loadDashboard();
+  // Auto-refresh n8n every 30s
+  setInterval(loadN8nData, 30000);
+  // Auto-refresh agent runs every 30s (live status polling)
+  setInterval(loadAgentRuns, 30000);
+})();
+</script>
+
+</body></html>
