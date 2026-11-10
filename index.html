@@ -906,6 +906,9 @@ body {
               <span style="color:var(--fg3)">Supabase</span><span id="sb-status" class="badge grey">nicht verbunden</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span style="color:var(--fg3)">Backend API</span><span id="api-status" class="badge grey">nicht verbunden</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
               <span style="color:var(--fg3)">n8n</span><span id="n8n-conn-status" class="badge grey">nicht verbunden</span>
             </div>
           </div>
@@ -960,6 +963,7 @@ body {
 // ═══════════════════════════════════════════════════════
 const SB_DEFAULT_URL = 'https://ttziianeoiqlzqwfzsrs.supabase.co';
 const SB_DEFAULT_KEY = 'sb_publishable_8ru5Y_nJ1rAcZBvzQ4nLRA_yEQnSypb';
+const BACKEND_API_URL = 'https://api.processengine.de/api/v1';
 const CONFIG = (() => {
   try {
     // Falsche alte URL korrigieren
@@ -977,11 +981,36 @@ const CONFIG = (() => {
     return {
       sbUrl: validUrl,
       sbKey: validKey,
+      apiUrl: BACKEND_API_URL,
       n8nUrl: localStorage.getItem('npch_n8n_url') || 'http://hpde-serv1.nobleprog.de:8008',
       n8nKey: localStorage.getItem('npch_n8n_key') || ''
     };
-  } catch(e) { return { sbUrl: SB_DEFAULT_URL, sbKey: SB_DEFAULT_KEY, n8nUrl:'http://hpde-serv1.nobleprog.de:8008', n8nKey:'' }; }
+  } catch(e) { return { sbUrl: SB_DEFAULT_URL, sbKey: SB_DEFAULT_KEY, apiUrl: BACKEND_API_URL, n8nUrl:'http://hpde-serv1.nobleprog.de:8008', n8nKey:'' }; }
 })();
+
+// ═══════════════════════════════════════════════════════
+// BACKEND API (FastAPI + PostgreSQL)
+// ═══════════════════════════════════════════════════════
+async function apiFetch(path, opts = {}) {
+  try {
+    const r = await fetch(CONFIG.apiUrl + path, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { console.error('[apiFetch]', e.message); return null; }
+}
+
+async function checkBackendHealth() {
+  try {
+    // health router is at /health in the API prefix
+    const r = await fetch(CONFIG.apiUrl.replace('/api/v1', '') + '/health');
+    if (!r.ok) return false;
+    const d = await r.json();
+    return d.status === 'ok';
+  } catch(e) { return false; }
+}
 
 const STATE = {
   view: 'dashboard',
@@ -1746,10 +1775,23 @@ function roleBadge(r) {
     if (keyEl) keyEl.value = CONFIG.sbKey;
   } catch(e) {}
   loadDashboard();
+  // Check backend API health on load
+  checkBackendHealth().then(ok => {
+    const badge = document.getElementById('api-status');
+    if (badge) {
+      badge.className = ok ? 'badge green' : 'badge red';
+      badge.textContent = ok ? 'verbunden' : 'nicht erreichbar';
+    }
+  });
   // Auto-refresh n8n every 30s
   setInterval(loadN8nData, 30000);
   // Auto-refresh agent runs every 30s (live status polling)
   setInterval(loadAgentRuns, 30000);
+  // Re-check backend every 60s
+  setInterval(() => checkBackendHealth().then(ok => {
+    const badge = document.getElementById('api-status');
+    if (badge) { badge.className = ok ? 'badge green' : 'badge red'; badge.textContent = ok ? 'verbunden' : 'nicht erreichbar'; }
+  }), 60000);
 })();
 </script>
 

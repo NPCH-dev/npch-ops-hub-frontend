@@ -2,7 +2,9 @@
 // NPCH Frontend Deploy Webhook
 // Triggered by GitHub Actions after each push to main
 
-$token = getenv('DEPLOY_TOKEN') ?: ''; 
+// Read token from local file (not from env, easier to configure without SSH)
+$tokenFile = '/etc/npch/deploy.token';
+$token = file_exists($tokenFile) ? trim(file_get_contents($tokenFile)) : (getenv('DEPLOY_TOKEN') ?: '');
 $receivedToken = $_SERVER['HTTP_X_DEPLOY_TOKEN'] ?? '';
 
 if (empty($token) || !hash_equals($token, $receivedToken)) {
