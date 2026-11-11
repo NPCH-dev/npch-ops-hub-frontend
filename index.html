@@ -338,6 +338,37 @@ tr:hover td { background: var(--bg3); }
 </head>
 <body>
 
+<!-- Login Screen -->
+<div id="login-screen" style="position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:380px">
+    <div style="text-align:center;margin-bottom:32px">
+      <img src="nobleprog-logo-square.png" style="width:52px;height:52px;border-radius:12px;margin-bottom:16px">
+      <h1 style="font-size:22px;font-weight:700;margin:0 0 6px">NPCH Ops Hub</h1>
+      <p style="margin:0;color:var(--fg2);font-size:13px">NobleProg DACH — Anmelden</p>
+    </div>
+    <div id="login-error" style="display:none;background:var(--red-bg);border:1px solid var(--red);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--red)"></div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--fg2);margin-bottom:6px">E-Mail</label>
+      <input id="login-email" type="email" placeholder="name@nobleprog.com" autocomplete="email"
+        style="width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:14px;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--fg2);margin-bottom:6px">Passwort</label>
+      <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"
+        style="width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:14px;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg2);margin-bottom:20px;cursor:pointer">
+      <input type="checkbox" id="login-remember" style="accent-color:var(--accent)">
+      Angemeldet bleiben
+    </label>
+    <button id="login-btn" onclick="doLogin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px">
+      Anmelden
+    </button>
+  </div>
+</div>
+
 <!-- Sidebar -->
 <nav id="sidebar">
   <div class="sidebar-logo">
@@ -618,7 +649,55 @@ tr:hover td { background: var(--bg3); }
     <!-- ── Page: Benutzer ─────────────────────────────────────────────────── -->
     <div class="page" id="page-users">
       <div class="page-header"><h1>Benutzer</h1><p>Benutzerverwaltung & Rollen</p></div>
-      <div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">👥</div><p>API coming soon</p></div></div></div>
+      <div class="card">
+        <div class="card-header">
+          Benutzer
+          <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Neuer Benutzer</button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Erstellt</th><th></th></tr></thead>
+              <tbody id="users-tbody"><tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="user-modal" hidden style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:440px;padding:24px">
+        <h3 style="margin:0 0 20px;font-size:16px" id="user-modal-title">Neuer Benutzer</h3>
+        <input type="hidden" id="um-id">
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">Name</label>
+          <input id="um-name" type="text" placeholder="Max Mustermann" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">E-Mail</label>
+          <input id="um-email" type="email" placeholder="max@nobleprog.com" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">Passwort <span id="um-pw-hint" style="color:var(--fg3)">(leer lassen = unverändert)</span></label>
+          <input id="um-password" type="password" placeholder="••••••••" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">Rolle</label>
+          <select id="um-role" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+            <option value="management">management</option>
+            <option value="coordination">coordination</option>
+            <option value="finance">finance</option>
+            <option value="sales">sales</option>
+            <option value="recruitment">recruitment</option>
+            <option value="system">system</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="closeUserModal()">Abbrechen</button>
+          <button class="btn btn-primary btn-sm" onclick="saveUser()">Speichern</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── Page: Einstellungen ────────────────────────────────────────────── -->
@@ -637,12 +716,120 @@ tr:hover td { background: var(--bg3); }
           <div id="settings-status" style="margin-top:10px;font-size:12px;color:var(--fg3)"></div>
         </div>
       </div>
+      <div class="card">
+        <div class="card-header">Mein Profil</div>
+        <div class="card-body">
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">Name</label>
+            <input id="profile-name" type="text" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">Neues Passwort</label>
+            <input id="profile-pw" type="password" placeholder="Leer lassen = unverändert" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveProfile()">Speichern</button>
+          <button class="btn btn-ghost btn-sm" onclick="logout()" style="margin-left:8px">Abmelden</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Verbundene Konten</div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:22px">📧</span>
+              <div><div style="font-weight:500;font-size:13px">Gmail</div><div style="font-size:11px;color:var(--fg3)">E-Mails lesen &amp; senden</div></div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="gmail-btn">Verbinden</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:22px">📅</span>
+              <div><div style="font-weight:500;font-size:13px">Google Calendar</div><div style="font-size:11px;color:var(--fg3)">Termine &amp; Verfügbarkeit</div></div>
+            </div>
+            <button class="btn btn-ghost btn-sm">Verbinden</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:22px">💬</span>
+              <div><div style="font-weight:500;font-size:13px">Google Chat</div><div style="font-size:11px;color:var(--fg3)">NPCH Ops Hub Daily</div></div>
+            </div>
+            <span class="badge badge-green">Verbunden</span>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:var(--fg3)">OAuth-Verbindungen werden über das Backend konfiguriert (n8n Credentials).</div>
+        </div>
+      </div>
     </div>
 
   </div><!-- /content -->
 </div><!-- /main -->
 
 <script>
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function checkAuth() {
+  const token = (() => { try { return localStorage.getItem('npch_token') || sessionStorage.getItem('npch_token') || ''; } catch { return ''; } })();
+  CONFIG.authToken = token;
+  if (token) {
+    document.getElementById('login-screen').style.display = 'none';
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+  return !!token;
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+
+  if (!email || !password) { showLoginError('Bitte E-Mail und Passwort eingeben.'); return; }
+
+  btn.textContent = 'Anmelden…'; btn.disabled = true;
+  errEl.style.display = 'none';
+
+  try {
+    const form = new URLSearchParams();
+    form.append('username', email);
+    form.append('password', password);
+    const res = await fetch(CONFIG.apiBase + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    CONFIG.authToken = data.access_token;
+    try {
+      if (remember) localStorage.setItem('npch_token', data.access_token);
+      else sessionStorage.setItem('npch_token', data.access_token);
+    } catch {}
+    document.getElementById('login-screen').style.display = 'none';
+    loadUser();
+    navigate(hashPage());
+  } catch (e) {
+    showLoginError(e.message === 'HTTP 401' ? 'E-Mail oder Passwort falsch.' : 'Fehler: ' + e.message);
+  } finally {
+    btn.textContent = 'Anmelden'; btn.disabled = false;
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function logout() {
+  try { localStorage.removeItem('npch_token'); sessionStorage.removeItem('npch_token'); } catch {}
+  CONFIG.authToken = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const CONFIG = {
   apiBase: (() => {
@@ -676,7 +863,7 @@ const PAGES = {
   sprint:     { title: 'Sprint Board',        load: loadSprint },
   agents:     { title: 'Agent Status',        load: null },
   approvals:  { title: 'Freigaben',           load: loadApprovals },
-  users:      { title: 'Benutzer',            load: null },
+  users:      { title: 'Benutzer',            load: loadUsers },
   settings:   { title: 'Einstellungen',       load: null },
 };
 
@@ -709,8 +896,10 @@ function hashPage() {
 window.addEventListener('hashchange', () => navigate(hashPage()));
 window.addEventListener('load', () => {
   const saved = hashPage() || (() => { try { return localStorage.getItem('npch_page'); } catch { return null; } })();
-  navigate(saved || 'dashboard');
-  loadUser();
+  if (checkAuth()) {
+    navigate(saved || 'dashboard');
+    loadUser();
+  }
 });
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -735,6 +924,10 @@ async function loadUser() {
     document.getElementById('user-name').textContent = 'Nicht angemeldet';
     document.getElementById('user-role').textContent = '';
   }
+  // Click to logout
+  document.getElementById('user-chip').onclick = () => {
+    if (confirm('Abmelden?')) logout();
+  };
 }
 
 async function loadDashboard() {
@@ -855,6 +1048,85 @@ async function testConnection() {
   } catch (e) { el.style.color = 'var(--red)'; el.textContent = '✗ ' + e.message; }
 }
 function refreshPage() { navigate(hashPage()); }
+
+// ── User Management ───────────────────────────────────────────────────────────
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
+  try {
+    const data = await api('/users');
+    const users = Array.isArray(data) ? data : (data.items || []);
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Keine Benutzer</td></tr>'; return; }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>${u.full_name || '—'}</td>
+        <td>${u.email}</td>
+        <td><span class="badge ${roleBadgeClass(u.role)}">${u.role || '—'}</span></td>
+        <td><span class="badge ${u.is_active ? 'badge-green' : 'badge-gray'}">${u.is_active ? 'Aktiv' : 'Inaktiv'}</span></td>
+        <td>${fmtDate(u.created_at)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="editUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button></td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:32px">Fehler: ${e.message}</td></tr>`;
+  }
+}
+
+function roleBadgeClass(role) {
+  return { management:'badge-purple', coordination:'badge-blue', finance:'badge-green', sales:'badge-yellow', recruitment:'badge-orange', system:'badge-gray' }[role] || 'badge-gray';
+}
+
+function openUserModal() {
+  document.getElementById('um-id').value = '';
+  document.getElementById('um-name').value = '';
+  document.getElementById('um-email').value = '';
+  document.getElementById('um-password').value = '';
+  document.getElementById('um-role').value = 'coordination';
+  document.getElementById('um-pw-hint').style.display = 'none';
+  document.getElementById('user-modal-title').textContent = 'Neuer Benutzer';
+  document.getElementById('user-modal').hidden = false;
+}
+
+function editUser(u) {
+  document.getElementById('um-id').value = u.id;
+  document.getElementById('um-name').value = u.full_name || '';
+  document.getElementById('um-email').value = u.email;
+  document.getElementById('um-password').value = '';
+  document.getElementById('um-role').value = u.role || 'coordination';
+  document.getElementById('um-pw-hint').style.display = 'inline';
+  document.getElementById('user-modal-title').textContent = 'Benutzer bearbeiten';
+  document.getElementById('user-modal').hidden = false;
+}
+
+function closeUserModal() { document.getElementById('user-modal').hidden = true; }
+
+async function saveUser() {
+  const id = document.getElementById('um-id').value;
+  const body = {
+    full_name: document.getElementById('um-name').value,
+    email: document.getElementById('um-email').value,
+    role: document.getElementById('um-role').value,
+  };
+  const pw = document.getElementById('um-password').value;
+  if (pw) body.password = pw;
+  try {
+    if (id) await api(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    else await api('/users', { method: 'POST', body: JSON.stringify(body) });
+    closeUserModal();
+    loadUsers();
+  } catch(e) { alert('Fehler: ' + e.message); }
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+async function saveProfile() {
+  const body = { full_name: document.getElementById('profile-name').value };
+  const pw = document.getElementById('profile-pw').value;
+  if (pw) body.password = pw;
+  try {
+    await api('/users/me', { method: 'PATCH', body: JSON.stringify(body) });
+    alert('Profil gespeichert!');
+    loadUser();
+  } catch(e) { alert('Fehler: ' + e.message); }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUS_MAP = {
