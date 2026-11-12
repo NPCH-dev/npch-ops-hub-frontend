@@ -1132,9 +1132,10 @@ function hashPage() {
 
 window.addEventListener('hashchange', () => navigate(hashPage()));
 window.addEventListener('load', () => {
-  const saved = hashPage() || (() => { try { return localStorage.getItem('npch_page'); } catch { return null; } })();
+  // Use URL hash if set, otherwise always start at dashboard (not localStorage)
+  const page = hashPage() || 'dashboard';
   if (checkAuth()) {
-    navigate(saved || 'dashboard');
+    navigate(page);
     loadUser();
   }
 });
