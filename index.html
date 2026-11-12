@@ -840,7 +840,8 @@ tr:hover td { background: var(--bg3); }
     <!-- User Modal -->
     <div id="user-modal" hidden style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px">
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:440px;padding:24px">
-        <h3 style="margin:0 0 20px;font-size:16px" id="user-modal-title">Neuer Benutzer</h3>
+        <h3 style="margin:0 0 16px;font-size:16px" id="user-modal-title">Neuer Benutzer</h3>
+        <div id="um-error" hidden style="background:rgba(192,57,43,.15);border:1px solid var(--red);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:14px;font-size:13px;color:var(--red)"></div>
         <input type="hidden" id="um-id">
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12px;color:var(--fg2);margin-bottom:5px">Name</label>
@@ -1022,7 +1023,7 @@ async function doLogin() {
     } catch {}
     document.getElementById('login-screen').style.display = 'none';
     loadUser();
-    navigate(hashPage());
+    navigate('dashboard');
   } catch (e) {
     showLoginError(e.message === 'HTTP 401' ? 'E-Mail oder Passwort falsch.' : 'Fehler: ' + e.message);
   } finally {
@@ -1036,7 +1037,7 @@ function showLoginError(msg) {
 }
 
 function logout() {
-  try { localStorage.removeItem('npch_token'); sessionStorage.removeItem('npch_token'); } catch {}
+  try { localStorage.removeItem('npch_token'); sessionStorage.removeItem('npch_token'); localStorage.removeItem('npch_page'); } catch {}
   CONFIG.authToken = '';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-email').value = '';
@@ -1456,9 +1457,19 @@ function editUser(u) {
   document.getElementById('user-modal').hidden = false;
 }
 
-function closeUserModal() { document.getElementById('user-modal').hidden = true; }
+function closeUserModal() { document.getElementById('user-modal').hidden = true; hideModalError(); }
+
+function showModalError(msg) {
+  const el = document.getElementById('um-error');
+  el.textContent = msg;
+  el.hidden = false;
+}
+function hideModalError() {
+  document.getElementById('um-error').hidden = true;
+}
 
 async function saveUser() {
+  hideModalError();
   const id = document.getElementById('um-id').value;
   const body = {
     full_name: document.getElementById('um-name').value,
@@ -1468,11 +1479,18 @@ async function saveUser() {
   const pw = document.getElementById('um-password').value;
   if (pw) body.password = pw;
   try {
-    if (id) await api(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
-    else await api('/users', { method: 'POST', body: JSON.stringify(body) });
+    if (id) {
+      await api(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    } else {
+      const url = CONFIG.apiBase + '/users/';
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${CONFIG.authToken}` };
+      const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+      if (res.status === 409) { showModalError('Diese E-Mail-Adresse ist bereits vergeben.'); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showModalError(d.detail || `Fehler ${res.status}`); return; }
+    }
     closeUserModal();
     loadUsers();
-  } catch(e) { showToast('Fehler: ' + e.message); }
+  } catch(e) { showModalError('Netzwerkfehler: ' + e.message); }
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
