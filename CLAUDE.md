@@ -70,3 +70,87 @@ Tickets: `sprint-1-tickets.md` (16 SP total)
 
 Zugehöriges Backend: `NPCH-dev/npch-ops-hub` (`/home/claude/npch-ops-hub`)  
 Spec: `docs/spec.md` im Backend-Repo
+
+---
+
+## Entwicklungsregeln (IMMER beachten)
+
+### Code-Entwicklung — Grundprinzip
+
+**VOR jeder Implementierung: Bestehenden Code vom Git holen und darauf aufbauen — NIEMALS neu schreiben!**
+
+1. `git pull origin main` ausführen, um aktuellen Stand zu holen
+2. Bestehenden Code lesen und verstehen (`Read` Tool)
+3. Nur gezielte Änderungen vornehmen (`Edit` Tool) — nicht die gesamte Datei neu schreiben
+4. Commit mit aussagekräftiger Message, dann `git push origin main`
+
+**Warum:** Jedes Neu-Schreiben riskiert, bestehende Bugfixes, Auth-Logik und API-Verbindungen zu überschreiben. Immer inkrementell entwickeln.
+
+### Frontend-Architektur-Regeln
+
+- **Single File SPA:** Alles in `index.html` — CSS, HTML, JS in einer Datei
+- **Kein externes Framework:** Kein React, kein Vue — reines Vanilla JS
+- **CSS Custom Properties:** Alle Farben als Tokens in `:root` definieren
+- **Layout:** Fixed Header (`#topbar`, `--header-h: 56px`) + Fixed Sidebar (`#sidebar`, `--sidebar-w: 248px`) + scrollbarer `#main` mit `margin-left + margin-top`
+- **Dark Sidebar immer:** `--sidebar-bg: #111420` wird NICHT im Light Mode überschrieben
+- **Hash-Routing:** `navigate(page)` → setzt Hash, zeigt/versteckt `.page`-Divs
+- **API-Calls:** Ausschließlich über den `api(path, opts)` Helper — niemals `fetch()` direkt
+- **Token-Handling:** `CONFIG.authToken` + `localStorage`/`sessionStorage` — niemals in URL-Parametern
+
+### Sicherheitsregeln (Absolut)
+
+- ⛔ NIEMALS SSH auf `hpde-serv1.nobleprog.de`
+- ⛔ NIEMALS Supabase Secret Key in Frontend-Code
+- ⛔ NIEMALS Backend-Code direkt per Edit ändern (nur über n8n Agent)
+- ⛔ NIEMALS Service Account JSON teilen oder committen
+- ⛔ NIEMALS Supabase MCP für Daten-Schreiboperationen
+- ⛔ NIEMALS direkte DB-Anfragen aus dem Frontend
+- ✅ Alle Datenzugriffe über `api.processengine.de` Endpoints
+- ✅ Bearer Token automatisch vom `api()` Helper mitgesendet
+
+### n8n Developer Agent (Backend-Änderungen)
+
+Backend-Code wird **ausschließlich** über den n8n Developer Agent geändert:
+- **Workflow-ID:** `VlWgEiwV6LItYaVX`
+- **Ablauf:** Ticket anlegen → Agent holt Ticket → LiteLLM → GitHub Commit auf `develop`
+- **API nicht direkt erreichbar** vom Cloud-Container — alle Calls über n8n HTTP-Nodes
+
+### Business-Kontext
+
+**Kernprozess SP-01 → SP-08:**
+```
+SP-01 Anfrage → SP-02 Angebot → SP-03 Buchungsbestätigung → SP-04 Auftrag
+→ SP-05 Trainer-Assignment → SP-06 Training → SP-07 Rechnung → SP-08 Zahlung
+```
+
+**User-Rollen:** `management`, `coordination`, `finance`, `sales`, `recruitment`, `system`, `admin`
+
+**Aktuelle Phase:** Stufe 1 — Manual First (read-only Integrationen, keine Auto-Writes)
+
+**Nummerierungsformate:**
+- Buchungen: `BK-DACH-{YEAR}-{SEQUENCE:04d}`
+- Aufträge: `NP-DACH-{YEAR}-{SEQUENCE:04d}`
+- Rechnungen: `RG-{YEAR}-{SEQUENCE:05d}`
+
+### Infrastruktur
+
+| Komponente | Detail |
+|------------|--------|
+| Frontend-URL | `https://dev.processengine.de` |
+| API-Base | `https://api.processengine.de/api/v1` |
+| Backend-Container | `npch-b3` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) |
+| DB-Container | `npch-postgres` (PostgreSQL — NICHT Supabase) |
+| Server-Zugang | aaPanel Browser-UI (kein SSH!) |
+| LiteLLM | `http://62.238.89.247:4000` (SSH auf `62.238.89.247` erlaubt) |
+
+### Commit-Message-Format
+
+```
+feat(frontend): kurze Beschreibung
+
+Längere Erklärung was und warum geändert wurde.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
+
+Präfixe: `feat` (neu), `fix` (Bugfix), `refactor`, `style` (CSS/Layout), `docs`
