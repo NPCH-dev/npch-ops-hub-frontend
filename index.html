@@ -1064,6 +1064,22 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
+function showToast(msg, type = 'error') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.style.cssText = `background:${type==='success'?'var(--accent)':'#c0392b'};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .2s;max-width:320px;`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 200); }, 3500);
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 const PAGES = {
   dashboard:    { title: 'Management Board',    load: loadDashboard },
@@ -1365,10 +1381,10 @@ async function approve(id) {
   try {
     await api(`/daily-items/${id}`, { method: 'PATCH', body: JSON.stringify({ resolved: true, resolved_by: 'ui' }) });
     loadApprovals();
-  } catch (e) { alert('Fehler: ' + e.message); }
+  } catch (e) { showToast('Fehler: ' + e.message); }
 }
 
-function showDetail(id) { alert('Detail-View kommt — API noch nicht verbunden'); }
+function showDetail(id) { /* Detail-View kommt */ }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function saveSettings() {
@@ -1451,7 +1467,7 @@ async function saveUser() {
     else await api('/users', { method: 'POST', body: JSON.stringify(body) });
     closeUserModal();
     loadUsers();
-  } catch(e) { alert('Fehler: ' + e.message); }
+  } catch(e) { showToast('Fehler: ' + e.message); }
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -1461,9 +1477,9 @@ async function saveProfile() {
   if (pw) body.password = pw;
   try {
     await api('/users/me', { method: 'PATCH', body: JSON.stringify(body) });
-    alert('Profil gespeichert!');
+    showToast('Profil gespeichert!', 'success');
     loadUser();
-  } catch(e) { alert('Fehler: ' + e.message); }
+  } catch(e) { showToast('Fehler: ' + e.message); }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
