@@ -1073,7 +1073,8 @@ function showToast(msg, type = 'error') {
     document.body.appendChild(container);
   }
   const toast = document.createElement('div');
-  toast.style.cssText = `background:${type==='success'?'var(--accent)':'#c0392b'};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .2s;max-width:320px;`;
+  const bg = type==='success' ? 'var(--accent)' : type==='info' ? '#2980b9' : '#c0392b';
+  toast.style.cssText = `background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .2s;max-width:320px;`;
   toast.textContent = msg;
   container.appendChild(toast);
   requestAnimationFrame(() => { toast.style.opacity = '1'; });
@@ -1159,9 +1160,13 @@ async function loadUser() {
     document.getElementById('user-name').textContent = 'Nicht angemeldet';
     document.getElementById('user-role').textContent = '';
   }
-  // Click to logout
+  // Click to logout — 2-step: first click shows toast, second click within 3s logs out
+  let logoutPending = false;
   document.getElementById('user-chip').onclick = () => {
-    if (confirm('Abmelden?')) logout();
+    if (logoutPending) { logout(); return; }
+    logoutPending = true;
+    showToast('Nochmal klicken zum Abmelden', 'info');
+    setTimeout(() => { logoutPending = false; }, 3000);
   };
 }
 
