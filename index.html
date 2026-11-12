@@ -2001,7 +2001,13 @@ function _renderServerCard(srv) {
       { label: 'LiteLLM UI', url: 'http://62.238.89.247:4000/ui/?userID=default_user_id&page=caching', icon: '🧠' },
       { label: 'Netdata',    url: 'http://62.238.89.247:19999/', icon: '📊' },
       { label: 'Grafana',    url: 'http://62.238.89.247:3000/', icon: '📈' },
-    ]
+    ],
+    'hpde-serv1': [
+      { label: 'LiteLLM UI', url: 'https://hpde-serv1.nobleprog.de:4000/ui/', icon: '🧠' },
+      { label: 'n8n',        url: 'https://hpde-serv1.nobleprog.de:8008/', icon: '⚙️' },
+      { label: 'Chat',       url: 'https://hpde-serv1.nobleprog.de:3000/c/new', icon: '💬' },
+      { label: 'Langfuse',   url: 'https://hpde-serv1.nobleprog.de:3002/login', icon: '📡' },
+    ],
   };
   const monLinks = (MONITORING[srv.id] || []).map(l =>
     `<a href="${l.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:2px 7px;opacity:0.85" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.85">${l.icon} ${l.label}</a>`
