@@ -594,6 +594,10 @@ tr:hover td { background: var(--bg3); }
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
         System Status
       </a>
+      <a class="nav-item ni-sub" data-page="admin" href="#admin">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        Tech Status
+      </a>
     </div>
   </div>
 
@@ -1108,6 +1112,134 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
 
+    <!-- ── Page: Admin / Tech Management Board ──────────────────────────── -->
+    <div class="page" id="page-admin">
+      <style>
+        /* Admin Board Styles */
+        .adm-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+        .adm-title-block h1 { margin:0 0 2px; font-size:22px; font-weight:700; }
+        .adm-title-block p { margin:0; color:var(--fg2); font-size:13px; }
+        .adm-refresh-info { font-size:11px; color:var(--fg3); display:flex; align-items:center; gap:6px; }
+        .adm-pulse { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse-anim 2s infinite; }
+        @keyframes pulse-anim { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        /* Section heading */
+        .adm-section { margin-bottom:24px; }
+        .adm-section-title { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--fg3); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+        .adm-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+        /* Deploy cards */
+        .adm-deploy-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+        .adm-deploy-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+        .adm-deploy-label { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--fg3); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+        .adm-deploy-sha { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:var(--accent2); margin-bottom:4px; }
+        .adm-deploy-msg { font-size:12px; color:var(--fg); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .adm-deploy-date { font-size:11px; color:var(--fg3); }
+
+        /* Health cards */
+        .adm-health-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+        .adm-health-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+        .adm-health-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+        .adm-health-name { font-size:14px; font-weight:600; }
+        .adm-progress-row { margin-bottom:10px; }
+        .adm-progress-label { display:flex; justify-content:space-between; font-size:11px; color:var(--fg3); margin-bottom:4px; }
+        .adm-progress-label span:last-child { font-weight:600; color:var(--fg); }
+        .adm-progress-bar { height:6px; background:var(--bg4); border-radius:3px; overflow:hidden; }
+        .adm-progress-fill { height:100%; border-radius:3px; transition:width .4s; }
+        .adm-progress-fill.ok   { background:var(--green); }
+        .adm-progress-fill.warn { background:var(--yellow); }
+        .adm-progress-fill.crit { background:var(--red); }
+        .adm-uptime { font-size:12px; color:var(--fg2); margin-top:4px; }
+
+        /* LiteLLM models list */
+        .adm-models { margin-top:10px; }
+        .adm-model-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--border); font-size:12px; }
+        .adm-model-row:last-child { border-bottom:none; }
+
+        /* n8n Workflow table — clickable rows */
+        .adm-wf-row { cursor:pointer; }
+        .adm-wf-row:hover td { background:var(--bg3) !important; }
+        .adm-wf-row.selected td { background:var(--accent-bg) !important; }
+
+        /* Execution status icons */
+        .exec-success { color:var(--green); }
+        .exec-error   { color:var(--red); }
+        .exec-running { color:var(--accent2); animation:pulse-anim 1.5s infinite; }
+      </style>
+
+      <div class="adm-header">
+        <div class="adm-title-block">
+          <h1>Tech Management Board</h1>
+          <p>Deployments, Server Health, n8n Workflows &amp; Executions</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="adm-refresh-info">
+            <span class="adm-pulse"></span>
+            <span id="adm-last-refresh">—</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="loadAdminBoard(true)">↺ Refresh</button>
+        </div>
+      </div>
+
+      <!-- BEREICH 1: Deploy & Versionen -->
+      <div class="adm-section">
+        <div class="adm-section-title">🚀 Deploy &amp; Versionen</div>
+        <div class="adm-deploy-grid" id="adm-deploy-grid">
+          <div class="adm-deploy-card"><div style="color:var(--fg3);font-size:13px">Laden…</div></div>
+        </div>
+      </div>
+
+      <!-- BEREICH 2: Server Health -->
+      <div class="adm-section">
+        <div class="adm-section-title">🖥️ Server Health</div>
+        <div class="adm-health-grid" id="adm-health-grid">
+          <div class="adm-health-card"><div style="color:var(--fg3);font-size:13px">Laden…</div></div>
+        </div>
+      </div>
+
+      <!-- BEREICH 3: n8n Workflows -->
+      <div class="adm-section">
+        <div class="adm-section-title">⚙️ n8n Workflows</div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-header">
+            Workflows
+            <span id="adm-wf-hint" style="font-size:11px;color:var(--fg3);font-weight:400">Zeile anklicken → Executions</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Aktiv</th><th>Zuletzt geändert</th></tr></thead>
+                <tbody id="adm-wf-tbody"><tr><td colspan="3" style="text-align:center;color:var(--fg3);padding:28px">Laden…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BEREICH 4: Letzte Executions -->
+      <div class="adm-section">
+        <div class="adm-section-title">
+          ⏱️ Letzte Executions
+          <span id="adm-exec-filter-label" style="font-size:11px;color:var(--accent2);font-weight:400;text-transform:none;letter-spacing:0"></span>
+          <button id="adm-exec-clear" class="btn btn-ghost btn-sm" style="display:none;padding:2px 8px;font-size:11px" onclick="clearExecFilter()">× Alle zeigen</button>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-header">
+            Executions
+            <span style="font-size:11px;color:var(--fg3);font-weight:400">Auto-Refresh alle 30 s</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Workflow</th><th>Status</th><th>Start</th><th>Dauer</th></tr></thead>
+                <tbody id="adm-exec-tbody"><tr><td colspan="4" style="text-align:center;color:var(--fg3);padding:28px">Laden…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app-body -->
@@ -1237,6 +1369,7 @@ const PAGES = {
   approvals:    { title: 'Freigaben',           load: loadApprovals },
   users:        { title: 'Benutzer',            load: loadUsers },
   settings:     { title: 'Einstellungen',       load: null },
+  admin:        { title: 'Tech Management Board', load: loadAdminBoard },
 };
 
 function navigate(page) {
@@ -1660,6 +1793,249 @@ async function saveProfile() {
     showToast('Profil gespeichert!', 'success');
     loadUser();
   } catch(e) { showToast('Fehler: ' + e.message); }
+}
+
+// ── Admin / Tech Management Board ────────────────────────────────────────────
+let _adminRefreshTimer = null;
+let _adminExecWorkflowId = null; // filter: show executions for specific workflow
+
+function clearExecFilter() {
+  _adminExecWorkflowId = null;
+  document.getElementById('adm-exec-filter-label').textContent = '';
+  document.getElementById('adm-exec-clear').style.display = 'none';
+  loadAdminExec();
+}
+
+async function loadAdminBoard(manual = false) {
+  // Cancel existing timer when called manually or on navigate
+  if (_adminRefreshTimer) { clearTimeout(_adminRefreshTimer); _adminRefreshTimer = null; }
+
+  const now = new Date();
+  const ts = now.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const tsEl = document.getElementById('adm-last-refresh');
+  if (tsEl) tsEl.textContent = `Zuletzt: ${ts}`;
+
+  // Run all 4 sections in parallel, each catches its own errors
+  await Promise.all([
+    loadAdminDeploy(),
+    loadAdminHealth(),
+    loadAdminWorkflows(),
+    loadAdminExec(),
+  ]);
+
+  // Schedule next auto-refresh in 30 s
+  _adminRefreshTimer = setTimeout(() => {
+    // Only refresh if admin page is still active
+    if (document.getElementById('page-admin')?.classList.contains('active')) {
+      loadAdminBoard();
+    }
+  }, 30000);
+}
+
+async function loadAdminDeploy() {
+  const grid = document.getElementById('adm-deploy-grid');
+  if (!grid) return;
+  try {
+    const d = await api('/admin/deploy');
+    const cards = [];
+
+    // Frontend card
+    if (d.frontend) {
+      const f = d.frontend;
+      cards.push(`
+        <div class="adm-deploy-card">
+          <div class="adm-deploy-label">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="4"/><path d="m9 9 3 3"/></svg>
+            Frontend
+          </div>
+          <div class="adm-deploy-sha">${(f.sha || '').slice(0,8) || '—'}</div>
+          <div class="adm-deploy-msg" title="${f.message || ''}">${f.message || '—'}</div>
+          <div class="adm-deploy-date">${f.date ? fmtDate(f.date) : '—'}</div>
+        </div>`);
+    }
+
+    // Backend card
+    if (d.backend) {
+      const b = d.backend;
+      cards.push(`
+        <div class="adm-deploy-card">
+          <div class="adm-deploy-label">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+            Backend
+          </div>
+          <div class="adm-deploy-sha">${(b.sha || '').slice(0,8) || '—'}</div>
+          <div class="adm-deploy-msg" title="${b.message || ''}">${b.message || '—'}</div>
+          <div class="adm-deploy-date">${b.date ? fmtDate(b.date) : '—'}</div>
+        </div>`);
+    }
+
+    // Container card (optional)
+    if (d.container) {
+      const c = d.container;
+      cards.push(`
+        <div class="adm-deploy-card">
+          <div class="adm-deploy-label">🐳 Container</div>
+          <div class="adm-deploy-sha">${c.name || '—'}</div>
+          <div class="adm-deploy-msg">${c.image || '—'}</div>
+          <div class="adm-deploy-date">${c.started ? fmtDate(c.started) : '—'}</div>
+        </div>`);
+    }
+
+    grid.innerHTML = cards.length ? cards.join('') : '<div class="adm-deploy-card"><div style="color:var(--fg3)">Keine Daten</div></div>';
+  } catch(e) {
+    grid.innerHTML = `<div class="adm-deploy-card"><div style="color:var(--red);font-size:12px">⚠️ Deploy-Daten nicht verfügbar: ${e.message}</div></div>`;
+  }
+}
+
+async function loadAdminHealth() {
+  const grid = document.getElementById('adm-health-grid');
+  if (!grid) return;
+
+  const cards = [];
+
+  // DE Server
+  try {
+    const s = await api('/admin/system/de');
+    const cpuClass = s.cpu_percent > 80 ? 'crit' : s.cpu_percent > 60 ? 'warn' : 'ok';
+    const ramClass = s.ram_percent > 85 ? 'crit' : s.ram_percent > 70 ? 'warn' : 'ok';
+    const dskClass = s.disk_percent > 85 ? 'crit' : s.disk_percent > 70 ? 'warn' : 'ok';
+    cards.push(`
+      <div class="adm-health-card">
+        <div class="adm-health-top">
+          <div class="adm-health-name">🇩🇪 DE Server <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">hpde-serv1</span></div>
+          <span class="badge badge-green">Online</span>
+        </div>
+        <div class="adm-progress-row">
+          <div class="adm-progress-label"><span>CPU</span><span>${s.cpu_percent ?? '—'}%</span></div>
+          <div class="adm-progress-bar"><div class="adm-progress-fill ${cpuClass}" style="width:${s.cpu_percent ?? 0}%"></div></div>
+        </div>
+        <div class="adm-progress-row">
+          <div class="adm-progress-label"><span>RAM</span><span>${s.ram_percent ?? '—'}%</span></div>
+          <div class="adm-progress-bar"><div class="adm-progress-fill ${ramClass}" style="width:${s.ram_percent ?? 0}%"></div></div>
+        </div>
+        <div class="adm-progress-row">
+          <div class="adm-progress-label"><span>Disk</span><span>${s.disk_percent ?? '—'}%</span></div>
+          <div class="adm-progress-bar"><div class="adm-progress-fill ${dskClass}" style="width:${s.disk_percent ?? 0}%"></div></div>
+        </div>
+        ${s.uptime ? `<div class="adm-uptime">Uptime: ${s.uptime}</div>` : ''}
+      </div>`);
+  } catch(e) {
+    cards.push(`<div class="adm-health-card"><div class="adm-health-top"><div class="adm-health-name">🇩🇪 DE Server</div><span class="badge badge-red">Fehler</span></div><div style="font-size:12px;color:var(--red);margin-top:8px">${e.message}</div></div>`);
+  }
+
+  // Helsinki / LiteLLM
+  try {
+    const h = await api('/admin/system/helsinki');
+    const latencyMs = h.latency_ms != null ? h.latency_ms + ' ms' : '—';
+    const models = Array.isArray(h.models) ? h.models : [];
+    const statusOk = h.status === 'ok' || h.status === 'online';
+    cards.push(`
+      <div class="adm-health-card">
+        <div class="adm-health-top">
+          <div class="adm-health-name">🇫🇮 Helsinki <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">LiteLLM</span></div>
+          <span class="badge ${statusOk ? 'badge-green' : 'badge-red'}">${statusOk ? 'Online' : (h.status || 'Offline')}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin-bottom:10px">
+          <span>Latenz</span><strong>${latencyMs}</strong>
+        </div>
+        ${models.length ? `
+        <div class="adm-models">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px">Modelle</div>
+          ${models.slice(0,5).map(m => `
+            <div class="adm-model-row">
+              <span style="font-family:JetBrains Mono,monospace">${typeof m === 'string' ? m : (m.id || m.model_name || JSON.stringify(m))}</span>
+              <span class="badge badge-green" style="font-size:10px">aktiv</span>
+            </div>`).join('')}
+          ${models.length > 5 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${models.length - 5} weitere</div>` : ''}
+        </div>` : '<div style="font-size:12px;color:var(--fg3)">Keine Modelle</div>'}
+      </div>`);
+  } catch(e) {
+    cards.push(`<div class="adm-health-card"><div class="adm-health-top"><div class="adm-health-name">🇫🇮 Helsinki LiteLLM</div><span class="badge badge-red">Fehler</span></div><div style="font-size:12px;color:var(--red);margin-top:8px">${e.message}</div></div>`);
+  }
+
+  grid.innerHTML = cards.join('');
+}
+
+async function loadAdminWorkflows() {
+  const tbody = document.getElementById('adm-wf-tbody');
+  if (!tbody) return;
+  try {
+    const data = await api('/admin/n8n/workflows');
+    const wfs = Array.isArray(data) ? data : (data.workflows || data.items || []);
+    if (!wfs.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--fg3);padding:28px">Keine Workflows</td></tr>';
+      return;
+    }
+    tbody.innerHTML = wfs.map(w => `
+      <tr class="adm-wf-row" data-wf-id="${w.id}" data-wf-name="${(w.name||'').replace(/"/g,'&quot;')}" onclick="filterExecByWorkflow(this)">
+        <td style="font-size:13px">${w.name || '—'}</td>
+        <td>${w.active ? '✅' : '⛔'}</td>
+        <td style="font-size:12px;color:var(--fg3)">${w.updatedAt ? fmtDate(w.updatedAt) : (w.updated_at ? fmtDate(w.updated_at) : '—')}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--red);padding:28px">⚠️ ${e.message}</td></tr>`;
+  }
+}
+
+function filterExecByWorkflow(row) {
+  // Toggle selection
+  const tbody = document.getElementById('adm-wf-tbody');
+  const allRows = tbody?.querySelectorAll('.adm-wf-row');
+  const isSelected = row.classList.contains('selected');
+
+  allRows?.forEach(r => r.classList.remove('selected'));
+
+  if (isSelected) {
+    clearExecFilter();
+    return;
+  }
+
+  row.classList.add('selected');
+  _adminExecWorkflowId = row.dataset.wfId;
+  const name = row.dataset.wfName;
+  const labelEl = document.getElementById('adm-exec-filter-label');
+  const clearBtn = document.getElementById('adm-exec-clear');
+  if (labelEl) labelEl.textContent = `— Gefiltert: ${name}`;
+  if (clearBtn) clearBtn.style.display = '';
+  loadAdminExec();
+}
+
+async function loadAdminExec() {
+  const tbody = document.getElementById('adm-exec-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg3);padding:20px">Laden…</td></tr>';
+  try {
+    const path = _adminExecWorkflowId
+      ? `/admin/n8n/executions?workflow_id=${_adminExecWorkflowId}&limit=20`
+      : '/admin/n8n/executions?limit=20';
+    const data = await api(path);
+    const execs = Array.isArray(data) ? data : (data.executions || data.items || []);
+    if (!execs.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg3);padding:28px">Keine Executions</td></tr>';
+      return;
+    }
+    tbody.innerHTML = execs.map(e => {
+      const st = (e.status || e.finished ? (e.status || 'success') : 'running').toLowerCase();
+      let icon, cls;
+      if (st === 'success' || st === 'succeeded') { icon = '✅'; cls = 'exec-success'; }
+      else if (st === 'error' || st === 'failed')  { icon = '❌'; cls = 'exec-error'; }
+      else                                          { icon = '⏳'; cls = 'exec-running'; }
+
+      const startedAt = e.startedAt || e.started_at;
+      const dur = (e.stoppedAt || e.stopped_at) && startedAt
+        ? Math.round((new Date(e.stoppedAt || e.stopped_at) - new Date(startedAt)) / 1000) + ' s'
+        : (st === 'running' ? '—' : '—');
+
+      return `<tr>
+        <td style="font-size:12px">${e.workflowName || e.workflow_name || e.workflow_id || '—'}</td>
+        <td><span class="${cls}">${icon} ${st}</span></td>
+        <td style="font-size:12px;color:var(--fg3)">${startedAt ? new Date(startedAt).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+        <td style="font-size:12px;color:var(--fg3)">${dur}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--red);padding:28px">⚠️ ${e.message}</td></tr>`;
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
