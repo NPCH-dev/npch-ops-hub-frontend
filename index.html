@@ -1923,23 +1923,32 @@ function _renderServerCard(srv) {
     const cpuVal  = s.cpu_pct  ?? s.cpu_usage  ?? null;
     const ramVal  = s.ram_pct  ?? s.memory_usage ?? null;
     const diskVal = s.disk_pct ?? s.disk_usage  ?? null;
-    const gpuVal  = s.gpu_pct  ?? null;
-    const gpuMem  = s.gpu_mem_pct ?? null;
     const uptime  = s.uptime_seconds ?? null;
+    const gpus    = Array.isArray(s.gpus) ? s.gpus : [];
     const cpuClass  = cpuVal  > 80 ? 'crit' : cpuVal  > 60 ? 'warn' : 'ok';
     const ramClass  = ramVal  > 85 ? 'crit' : ramVal  > 70 ? 'warn' : 'ok';
     const diskClass = diskVal > 85 ? 'crit' : diskVal > 70 ? 'warn' : 'ok';
-    const gpuClass  = gpuVal  > 90 ? 'crit' : gpuVal  > 70 ? 'warn' : 'ok';
     const fmtUptime = uptime != null ? (() => {
       const d = Math.floor(uptime / 86400), h = Math.floor((uptime % 86400) / 3600), m = Math.floor((uptime % 3600) / 60);
       return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
     })() : null;
+    const gpuBars = gpus.map(g => {
+      const gcls = g.gpu_pct > 90 ? 'crit' : g.gpu_pct > 70 ? 'warn' : 'ok';
+      const vcls = g.vram_pct > 90 ? 'crit' : g.vram_pct > 70 ? 'warn' : 'ok';
+      const vramUsedGb = (g.vram_used_mb / 1024).toFixed(1);
+      const vramTotalGb = (g.vram_total_mb / 1024).toFixed(0);
+      const tempStr = g.temp_c != null ? ` · ${g.temp_c}°C` : '';
+      const powerStr = g.power_w != null ? ` · ${g.power_w.toFixed(0)}W` : '';
+      return `
+        <div style="font-size:11px;color:var(--fg3);margin:8px 0 4px;font-weight:600">${g.name}${tempStr}${powerStr}</div>
+        <div class="adm-progress-row"><div class="adm-progress-label"><span>GPU</span><span>${g.gpu_pct.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${gcls}" style="width:${g.gpu_pct}%"></div></div></div>
+        <div class="adm-progress-row"><div class="adm-progress-label"><span>VRAM</span><span>${vramUsedGb} / ${vramTotalGb} GB</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${vcls}" style="width:${g.vram_pct}%"></div></div></div>`;
+    }).join('');
     statsHtml = `
       ${cpuVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>CPU</span><span>${cpuVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${cpuClass}" style="width:${cpuVal}%"></div></div></div>` : ''}
       ${ramVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>RAM</span><span>${ramVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${ramClass}" style="width:${ramVal}%"></div></div></div>` : ''}
       ${diskVal != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>Disk</span><span>${diskVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${diskClass}" style="width:${diskVal}%"></div></div></div>` : ''}
-      ${gpuVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>GPU</span><span>${gpuVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${gpuClass}" style="width:${gpuVal}%"></div></div></div>` : ''}
-      ${gpuMem  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>VRAM</span><span>${gpuMem.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${gpuClass}" style="width:${gpuMem}%"></div></div></div>` : ''}
+      ${gpuBars}
       ${fmtUptime ? `<div class="adm-uptime">Uptime: ${fmtUptime}</div>` : ''}`;
   } else {
     statsHtml = '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">System-Stats nicht verfügbar</div>';
