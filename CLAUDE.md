@@ -143,7 +143,7 @@ SP-01 Anfrage → SP-02 Angebot → SP-03 Buchungsbestätigung → SP-04 Auftrag
 | n8n-Container | `n8n` auf Port `8008` |
 | Server-Zugang | aaPanel Browser-UI (kein SSH auf `hpde-serv1.nobleprog.de`!) |
 | LiteLLM | `http://62.238.89.247:4000` (SSH auf `62.238.89.247` erlaubt) |
-| Env-Variablen Backend | Per `docker inspect npch-b3 --format='{{range .Config.Env}}{{println .}}{{end}}'` prüfen; neue Vars über aaPanel Docker → Container → Env oder `docker run` Neustart mit `--env` setzen |
+| Env-Variablen Backend | Datei: `/www/wwwroot/backend.processengine.de/.env` — dort neue Vars hinzufügen, dann Container neu starten |
 
 **Wichtig:** Der Backend-Container-Name (`npch-b3`, `npch-b4`, ...) erhöht sich bei jedem neu gebauten Deploy. Immer aktuellen Namen per `docker ps` prüfen, nie hartcodieren.
 
