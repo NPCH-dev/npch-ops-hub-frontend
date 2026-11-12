@@ -1997,6 +1997,12 @@ function _renderServerCard(srv) {
       </div>` : '<div style="font-size:12px;color:var(--fg3);margin-top:4px">Keine Modelle</div>'}`;
 
   const MONITORING = {
+    'webserver': [
+      { label: 'aaPanel',    url: 'https://panel.processengine.de/acp26', icon: '🖥️' },
+      { label: 'Frontend',   url: 'https://dev.processengine.de', icon: '🌐' },
+      { label: 'API Health', url: 'https://api.processengine.de/api/v1/health/', icon: '🏥' },
+      { label: 'Netdata',    url: 'http://78.47.130.46:19999/', icon: '📊' },
+    ],
     'gex45-1': [
       { label: 'LiteLLM UI', url: 'http://62.238.89.247:4000/ui/?userID=default_user_id&page=caching', icon: '🧠' },
       { label: 'Netdata',    url: 'http://62.238.89.247:19999/', icon: '📊' },
