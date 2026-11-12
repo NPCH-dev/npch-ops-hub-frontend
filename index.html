@@ -1191,7 +1191,10 @@ tr:hover td { background: var(--bg3); }
 
       <!-- BEREICH 2: Server Health -->
       <div class="adm-section">
-        <div class="adm-section-title">🖥️ Server Health</div>
+        <div class="adm-section-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>🖥️ Server Health</span>
+          <span id="adm-health-ts" style="font-size:11px;font-weight:400;color:var(--fg3)"></span>
+        </div>
         <div class="adm-health-grid" id="adm-health-grid">
           <div class="adm-health-card"><div style="color:var(--fg3);font-size:13px">Laden…</div></div>
         </div>
@@ -1385,6 +1388,9 @@ function navigate(page) {
   if (pageEl) pageEl.classList.add('active');
   document.querySelector(`[data-page="${key}"]`)?.classList.add('active');
   document.getElementById('page-title').textContent = PAGES[key].title;
+
+  // Health-Polling stoppen wenn Admin verlassen wird
+  if (key !== 'admin') stopAdminHealthPolling();
 
   // Load data
   if (PAGES[key].load) PAGES[key].load();
@@ -1819,9 +1825,10 @@ async function loadAdminBoard(manual = false) {
   if (tsEl) tsEl.textContent = `Zuletzt: ${ts}`;
 
   // Run all 4 sections in parallel, each catches its own errors
+  // Health hat eigenes 10s-Polling via startAdminHealthPolling()
+  startAdminHealthPolling();
   await Promise.all([
     loadAdminDeploy(),
-    loadAdminHealth(),
     loadAdminWorkflows(),
     loadAdminExec(),
   ]);
@@ -1890,75 +1897,102 @@ async function loadAdminDeploy() {
   }
 }
 
+// ── Admin Health — Real-time Polling ─────────────────────────────────────────
+let _adminHealthInterval = null;
+
+function stopAdminHealthPolling() {
+  if (_adminHealthInterval) { clearInterval(_adminHealthInterval); _adminHealthInterval = null; }
+}
+
+function startAdminHealthPolling() {
+  stopAdminHealthPolling();
+  loadAdminHealth();
+  _adminHealthInterval = setInterval(loadAdminHealth, 10000);
+}
+
+function _renderServerCard(srv) {
+  const FLAG = { 'hpde-serv1': '🇩🇪', 'gex45-1': '🇫🇮' };
+  const flag = FLAG[srv.id] || '🖥️';
+  const online = srv.litellm_status === 'online';
+  const latencyMs = srv.litellm_latency_ms != null ? srv.litellm_latency_ms + ' ms' : '—';
+  const models = Array.isArray(srv.litellm_models) ? srv.litellm_models : [];
+  const s = srv.stats;
+
+  let statsHtml = '';
+  if (s) {
+    const cpuVal  = s.cpu_pct  ?? s.cpu_usage  ?? null;
+    const ramVal  = s.ram_pct  ?? s.memory_usage ?? null;
+    const diskVal = s.disk_pct ?? s.disk_usage  ?? null;
+    const gpuVal  = s.gpu_pct  ?? null;
+    const gpuMem  = s.gpu_mem_pct ?? null;
+    const uptime  = s.uptime_seconds ?? null;
+    const cpuClass  = cpuVal  > 80 ? 'crit' : cpuVal  > 60 ? 'warn' : 'ok';
+    const ramClass  = ramVal  > 85 ? 'crit' : ramVal  > 70 ? 'warn' : 'ok';
+    const diskClass = diskVal > 85 ? 'crit' : diskVal > 70 ? 'warn' : 'ok';
+    const gpuClass  = gpuVal  > 90 ? 'crit' : gpuVal  > 70 ? 'warn' : 'ok';
+    const fmtUptime = uptime != null ? (() => {
+      const d = Math.floor(uptime / 86400), h = Math.floor((uptime % 86400) / 3600), m = Math.floor((uptime % 3600) / 60);
+      return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
+    })() : null;
+    statsHtml = `
+      ${cpuVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>CPU</span><span>${cpuVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${cpuClass}" style="width:${cpuVal}%"></div></div></div>` : ''}
+      ${ramVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>RAM</span><span>${ramVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${ramClass}" style="width:${ramVal}%"></div></div></div>` : ''}
+      ${diskVal != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>Disk</span><span>${diskVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${diskClass}" style="width:${diskVal}%"></div></div></div>` : ''}
+      ${gpuVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>GPU</span><span>${gpuVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${gpuClass}" style="width:${gpuVal}%"></div></div></div>` : ''}
+      ${gpuMem  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>VRAM</span><span>${gpuMem.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${gpuClass}" style="width:${gpuMem}%"></div></div></div>` : ''}
+      ${fmtUptime ? `<div class="adm-uptime">Uptime: ${fmtUptime}</div>` : ''}`;
+  } else {
+    statsHtml = '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">System-Stats nicht verfügbar</div>';
+  }
+
+  const litellmHtml = `
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin:10px 0 6px">
+      <span>LiteLLM</span>
+      <span><strong>${latencyMs}</strong>&nbsp;<span class="badge ${online ? 'badge-green' : 'badge-red'}" style="font-size:10px">${online ? 'Online' : 'Offline'}</span></span>
+    </div>
+    ${models.length ? `
+      <div class="adm-models">
+        ${models.slice(0,4).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${typeof m==='string'?m:(m.id||m.model_name||JSON.stringify(m))}</span><span class="badge badge-green" style="font-size:10px">aktiv</span></div>`).join('')}
+        ${models.length > 4 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${models.length-4} weitere</div>` : ''}
+      </div>` : '<div style="font-size:12px;color:var(--fg3)">Keine Modelle</div>'}`;
+
+  return `
+    <div class="adm-health-card">
+      <div class="adm-health-top">
+        <div class="adm-health-name">${flag} ${srv.name} <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">${srv.id}</span></div>
+        <span class="badge badge-green" style="font-size:10px">●&nbsp;Live</span>
+      </div>
+      <div style="font-size:11px;color:var(--fg3);margin-bottom:10px">${srv.location} · ${srv.role}</div>
+      ${statsHtml}
+      ${litellmHtml}
+    </div>`;
+}
+
 async function loadAdminHealth() {
   const grid = document.getElementById('adm-health-grid');
   if (!grid) return;
 
-  grid.innerHTML = '<div style="color:var(--fg3);font-size:13px;padding:16px">Laden…</div>';
+  // Erste Ladung: Spinner; bei Updates: in-place refreshen
+  if (!grid.dataset.loaded) {
+    grid.innerHTML = '<div style="color:var(--fg3);font-size:13px;padding:16px">Laden…</div>';
+  }
 
   let servers = [];
   try {
     servers = await api('/admin/system/servers');
   } catch(e) {
-    grid.innerHTML = `<div class="adm-health-card"><span class="badge badge-red">Fehler</span> ${e.message}</div>`;
+    if (!grid.dataset.loaded) {
+      grid.innerHTML = `<div class="adm-health-card"><span class="badge badge-red">Fehler</span> ${e.message}</div>`;
+    }
     return;
   }
 
-  const FLAG = { 'hpde-serv1': '🇩🇪', 'gex45-1': '🇫🇮' };
+  grid.dataset.loaded = '1';
+  grid.innerHTML = servers.map(_renderServerCard).join('');
 
-  const cards = servers.map(srv => {
-    const flag = FLAG[srv.id] || '🖥️';
-    const online = srv.litellm_status === 'online';
-    const latencyMs = srv.litellm_latency_ms != null ? srv.litellm_latency_ms + ' ms' : '—';
-    const models = Array.isArray(srv.litellm_models) ? srv.litellm_models : [];
-    const s = srv.stats;
-
-    let statsHtml = '';
-    if (s) {
-      const cpuVal  = s.cpu_pct  ?? s.cpu_usage  ?? null;
-      const ramVal  = s.ram_pct  ?? s.memory_usage ?? null;
-      const diskVal = s.disk_pct ?? s.disk_usage  ?? null;
-      const uptime  = s.uptime_seconds ?? null;
-      const cpuClass  = cpuVal  > 80 ? 'crit' : cpuVal  > 60 ? 'warn' : 'ok';
-      const ramClass  = ramVal  > 85 ? 'crit' : ramVal  > 70 ? 'warn' : 'ok';
-      const diskClass = diskVal > 85 ? 'crit' : diskVal > 70 ? 'warn' : 'ok';
-      const fmtUptime = uptime != null ? (() => {
-        const d = Math.floor(uptime / 86400), h = Math.floor((uptime % 86400) / 3600), m = Math.floor((uptime % 3600) / 60);
-        return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
-      })() : null;
-      statsHtml = `
-        ${cpuVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>CPU</span><span>${cpuVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${cpuClass}" style="width:${cpuVal}%"></div></div></div>` : ''}
-        ${ramVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>RAM</span><span>${ramVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${ramClass}" style="width:${ramVal}%"></div></div></div>` : ''}
-        ${diskVal != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>Disk</span><span>${diskVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${diskClass}" style="width:${diskVal}%"></div></div></div>` : ''}
-        ${fmtUptime ? `<div class="adm-uptime">Uptime: ${fmtUptime}</div>` : ''}`;
-    } else {
-      statsHtml = '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">Keine System-Stats verfügbar</div>';
-    }
-
-    const litellmHtml = `
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin:10px 0 6px">
-        <span>LiteLLM</span>
-        <span><strong>${latencyMs}</strong>&nbsp;<span class="badge ${online ? 'badge-green' : 'badge-red'}" style="font-size:10px">${online ? 'Online' : 'Offline'}</span></span>
-      </div>
-      ${models.length ? `
-        <div class="adm-models">
-          ${models.slice(0,4).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${typeof m==='string'?m:(m.id||m.model_name||JSON.stringify(m))}</span><span class="badge badge-green" style="font-size:10px">aktiv</span></div>`).join('')}
-          ${models.length > 4 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${models.length-4} weitere</div>` : ''}
-        </div>` : '<div style="font-size:12px;color:var(--fg3)">Keine Modelle</div>'}`;
-
-    return `
-      <div class="adm-health-card">
-        <div class="adm-health-top">
-          <div class="adm-health-name">${flag} ${srv.name} <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">${srv.id}</span></div>
-          <span class="badge badge-green">Online</span>
-        </div>
-        <div style="font-size:11px;color:var(--fg3);margin-bottom:10px">${srv.location} · ${srv.role}</div>
-        ${statsHtml}
-        ${litellmHtml}
-      </div>`;
-  });
-
-  grid.innerHTML = cards.join('');
+  // Live-Timestamp
+  const tsEl = document.getElementById('adm-health-ts');
+  if (tsEl) tsEl.textContent = 'Zuletzt: ' + new Date().toLocaleTimeString('de-DE');
 }
 
 async function loadAdminWorkflows() {
