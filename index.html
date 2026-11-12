@@ -1597,6 +1597,9 @@ async function loadOrders() {
   const tbody = document.getElementById('orders-tbody');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
   try {
+    // /orders endpoint not yet implemented — show placeholder
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Auftragsliste folgt in Sprint 2</td></tr>';
+    return;
     const data = await api('/orders?limit=50');
     const orders = Array.isArray(data) ? data : (data.items || []);
     if (!orders.length) {
@@ -1704,7 +1707,7 @@ async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
   try {
-    const data = await api('/users');
+    const data = await api('/admin/users');
     const users = Array.isArray(data) ? data : (data.items || []);
     if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Keine Benutzer</td></tr>'; return; }
     tbody.innerHTML = users.map(u => `
@@ -1770,9 +1773,9 @@ async function saveUser() {
   if (pw) body.password = pw;
   try {
     if (id) {
-      await api(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      await api(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
-      const url = CONFIG.apiBase + '/users/';
+      const url = CONFIG.apiBase + '/admin/users/';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${CONFIG.authToken}` };
       const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
       if (res.status === 409) { showModalError('Diese E-Mail-Adresse ist bereits vergeben.'); return; }
@@ -1789,7 +1792,7 @@ async function saveProfile() {
   const pw = document.getElementById('profile-pw').value;
   if (pw) body.password = pw;
   try {
-    await api('/users/me', { method: 'PATCH', body: JSON.stringify(body) });
+    await api('/auth/me', { method: 'PATCH', body: JSON.stringify(body) });
     showToast('Profil gespeichert!', 'success');
     loadUser();
   } catch(e) { showToast('Fehler: ' + e.message); }
