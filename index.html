@@ -842,7 +842,9 @@ const CONFIG = {
 
 // ── API helper ────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
-  const url = CONFIG.apiBase + path;
+  // Ensure trailing slash to avoid nginx 307 redirects
+  const normalizedPath = path.endsWith('/') || path.includes('?') ? path : path + '/';
+  const url = CONFIG.apiBase + normalizedPath;
   const headers = { 'Content-Type': 'application/json', ...(CONFIG.authToken ? { Authorization: `Bearer ${CONFIG.authToken}` } : {}), ...opts.headers };
   const res = await fetch(url, { ...opts, headers });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
