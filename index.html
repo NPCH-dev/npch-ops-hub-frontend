@@ -1894,67 +1894,69 @@ async function loadAdminHealth() {
   const grid = document.getElementById('adm-health-grid');
   if (!grid) return;
 
-  const cards = [];
+  grid.innerHTML = '<div style="color:var(--fg3);font-size:13px;padding:16px">Laden…</div>';
 
-  // DE Server
+  let servers = [];
   try {
-    const s = await api('/admin/system/de');
-    const cpuClass = s.cpu_percent > 80 ? 'crit' : s.cpu_percent > 60 ? 'warn' : 'ok';
-    const ramClass = s.ram_percent > 85 ? 'crit' : s.ram_percent > 70 ? 'warn' : 'ok';
-    const dskClass = s.disk_percent > 85 ? 'crit' : s.disk_percent > 70 ? 'warn' : 'ok';
-    cards.push(`
+    servers = await api('/admin/system/servers');
+  } catch(e) {
+    grid.innerHTML = `<div class="adm-health-card"><span class="badge badge-red">Fehler</span> ${e.message}</div>`;
+    return;
+  }
+
+  const FLAG = { 'hpde-serv1': '🇩🇪', 'gex45-1': '🇫🇮' };
+
+  const cards = servers.map(srv => {
+    const flag = FLAG[srv.id] || '🖥️';
+    const online = srv.litellm_status === 'online';
+    const latencyMs = srv.litellm_latency_ms != null ? srv.litellm_latency_ms + ' ms' : '—';
+    const models = Array.isArray(srv.litellm_models) ? srv.litellm_models : [];
+    const s = srv.stats;
+
+    let statsHtml = '';
+    if (s) {
+      const cpuVal  = s.cpu_pct  ?? s.cpu_usage  ?? null;
+      const ramVal  = s.ram_pct  ?? s.memory_usage ?? null;
+      const diskVal = s.disk_pct ?? s.disk_usage  ?? null;
+      const uptime  = s.uptime_seconds ?? null;
+      const cpuClass  = cpuVal  > 80 ? 'crit' : cpuVal  > 60 ? 'warn' : 'ok';
+      const ramClass  = ramVal  > 85 ? 'crit' : ramVal  > 70 ? 'warn' : 'ok';
+      const diskClass = diskVal > 85 ? 'crit' : diskVal > 70 ? 'warn' : 'ok';
+      const fmtUptime = uptime != null ? (() => {
+        const d = Math.floor(uptime / 86400), h = Math.floor((uptime % 86400) / 3600), m = Math.floor((uptime % 3600) / 60);
+        return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
+      })() : null;
+      statsHtml = `
+        ${cpuVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>CPU</span><span>${cpuVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${cpuClass}" style="width:${cpuVal}%"></div></div></div>` : ''}
+        ${ramVal  != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>RAM</span><span>${ramVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${ramClass}" style="width:${ramVal}%"></div></div></div>` : ''}
+        ${diskVal != null ? `<div class="adm-progress-row"><div class="adm-progress-label"><span>Disk</span><span>${diskVal.toFixed(1)}%</span></div><div class="adm-progress-bar"><div class="adm-progress-fill ${diskClass}" style="width:${diskVal}%"></div></div></div>` : ''}
+        ${fmtUptime ? `<div class="adm-uptime">Uptime: ${fmtUptime}</div>` : ''}`;
+    } else {
+      statsHtml = '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">Keine System-Stats verfügbar</div>';
+    }
+
+    const litellmHtml = `
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin:10px 0 6px">
+        <span>LiteLLM</span>
+        <span><strong>${latencyMs}</strong>&nbsp;<span class="badge ${online ? 'badge-green' : 'badge-red'}" style="font-size:10px">${online ? 'Online' : 'Offline'}</span></span>
+      </div>
+      ${models.length ? `
+        <div class="adm-models">
+          ${models.slice(0,4).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${typeof m==='string'?m:(m.id||m.model_name||JSON.stringify(m))}</span><span class="badge badge-green" style="font-size:10px">aktiv</span></div>`).join('')}
+          ${models.length > 4 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${models.length-4} weitere</div>` : ''}
+        </div>` : '<div style="font-size:12px;color:var(--fg3)">Keine Modelle</div>'}`;
+
+    return `
       <div class="adm-health-card">
         <div class="adm-health-top">
-          <div class="adm-health-name">🇩🇪 DE Server <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">hpde-serv1</span></div>
+          <div class="adm-health-name">${flag} ${srv.name} <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">${srv.id}</span></div>
           <span class="badge badge-green">Online</span>
         </div>
-        <div class="adm-progress-row">
-          <div class="adm-progress-label"><span>CPU</span><span>${s.cpu_percent ?? '—'}%</span></div>
-          <div class="adm-progress-bar"><div class="adm-progress-fill ${cpuClass}" style="width:${s.cpu_percent ?? 0}%"></div></div>
-        </div>
-        <div class="adm-progress-row">
-          <div class="adm-progress-label"><span>RAM</span><span>${s.ram_percent ?? '—'}%</span></div>
-          <div class="adm-progress-bar"><div class="adm-progress-fill ${ramClass}" style="width:${s.ram_percent ?? 0}%"></div></div>
-        </div>
-        <div class="adm-progress-row">
-          <div class="adm-progress-label"><span>Disk</span><span>${s.disk_percent ?? '—'}%</span></div>
-          <div class="adm-progress-bar"><div class="adm-progress-fill ${dskClass}" style="width:${s.disk_percent ?? 0}%"></div></div>
-        </div>
-        ${s.uptime ? `<div class="adm-uptime">Uptime: ${s.uptime}</div>` : ''}
-      </div>`);
-  } catch(e) {
-    cards.push(`<div class="adm-health-card"><div class="adm-health-top"><div class="adm-health-name">🇩🇪 DE Server</div><span class="badge badge-red">Fehler</span></div><div style="font-size:12px;color:var(--red);margin-top:8px">${e.message}</div></div>`);
-  }
-
-  // Helsinki / LiteLLM
-  try {
-    const h = await api('/admin/system/helsinki');
-    const latencyMs = h.latency_ms != null ? h.latency_ms + ' ms' : '—';
-    const models = Array.isArray(h.models) ? h.models : [];
-    const statusOk = h.status === 'ok' || h.status === 'online';
-    cards.push(`
-      <div class="adm-health-card">
-        <div class="adm-health-top">
-          <div class="adm-health-name">🇫🇮 Helsinki <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--fg3)">LiteLLM</span></div>
-          <span class="badge ${statusOk ? 'badge-green' : 'badge-red'}">${statusOk ? 'Online' : (h.status || 'Offline')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin-bottom:10px">
-          <span>Latenz</span><strong>${latencyMs}</strong>
-        </div>
-        ${models.length ? `
-        <div class="adm-models">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px">Modelle</div>
-          ${models.slice(0,5).map(m => `
-            <div class="adm-model-row">
-              <span style="font-family:JetBrains Mono,monospace">${typeof m === 'string' ? m : (m.id || m.model_name || JSON.stringify(m))}</span>
-              <span class="badge badge-green" style="font-size:10px">aktiv</span>
-            </div>`).join('')}
-          ${models.length > 5 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${models.length - 5} weitere</div>` : ''}
-        </div>` : '<div style="font-size:12px;color:var(--fg3)">Keine Modelle</div>'}
-      </div>`);
-  } catch(e) {
-    cards.push(`<div class="adm-health-card"><div class="adm-health-top"><div class="adm-health-name">🇫🇮 Helsinki LiteLLM</div><span class="badge badge-red">Fehler</span></div><div style="font-size:12px;color:var(--red);margin-top:8px">${e.message}</div></div>`);
-  }
+        <div style="font-size:11px;color:var(--fg3);margin-bottom:10px">${srv.location} · ${srv.role}</div>
+        ${statsHtml}
+        ${litellmHtml}
+      </div>`;
+  });
 
   grid.innerHTML = cards.join('');
 }
