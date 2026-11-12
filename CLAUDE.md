@@ -138,10 +138,14 @@ SP-01 Anfrage → SP-02 Angebot → SP-03 Buchungsbestätigung → SP-04 Auftrag
 |------------|--------|
 | Frontend-URL | `https://dev.processengine.de` |
 | API-Base | `https://api.processengine.de/api/v1` |
-| Backend-Container | `npch-b3` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) |
+| Backend-Container | `npch-b3` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) — **aktuell: npch-b3, Nummer steigt mit jedem Deploy** |
 | DB-Container | `npch-postgres` (PostgreSQL — NICHT Supabase) |
-| Server-Zugang | aaPanel Browser-UI (kein SSH!) |
+| n8n-Container | `n8n` auf Port `8008` |
+| Server-Zugang | aaPanel Browser-UI (kein SSH auf `hpde-serv1.nobleprog.de`!) |
 | LiteLLM | `http://62.238.89.247:4000` (SSH auf `62.238.89.247` erlaubt) |
+| Env-Variablen Backend | Per `docker inspect npch-b3 --format='{{range .Config.Env}}{{println .}}{{end}}'` prüfen; neue Vars über aaPanel Docker → Container → Env oder `docker run` Neustart mit `--env` setzen |
+
+**Wichtig:** Der Backend-Container-Name (`npch-b3`, `npch-b4`, ...) erhöht sich bei jedem neu gebauten Deploy. Immer aktuellen Namen per `docker ps` prüfen, nie hartcodieren.
 
 ### Commit-Message-Format
 
