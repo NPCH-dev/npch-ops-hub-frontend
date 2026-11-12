@@ -380,66 +380,92 @@ tr:hover td { background: var(--bg3); }
   </div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-label">Übersicht</div>
-    <a class="nav-item" data-page="dashboard" href="#dashboard">
-      <span class="icon">🏠</span> Dashboard
+    <a class="nav-item" data-page="dashboard" href="#dashboard" style="font-weight:600">
+      <span class="icon">⊞</span> Management Board
+      <span class="nav-badge" id="badge-dashboard" style="display:none">0</span>
     </a>
   </div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-label">E2E Prozess</div>
+    <div class="sidebar-section-label">Sales</div>
     <a class="nav-item" data-page="inquiries" href="#inquiries">
-      <span class="icon">📥</span> Anfragen
-      <span class="nav-badge red" id="badge-inquiries">0</span>
-    </a>
-    <a class="nav-item" data-page="proposals" href="#proposals">
-      <span class="icon">📄</span> Angebote
+      <span class="icon">◬</span> Pipeline / Forecast
+      <span class="nav-badge red" id="badge-inquiries" style="display:none">0</span>
     </a>
     <a class="nav-item" data-page="bookings" href="#bookings">
-      <span class="icon">📅</span> Buchungen
+      <span class="icon">⌗</span> Bookings
+      <span class="nav-badge blue" id="badge-bookings" style="display:none">0</span>
     </a>
     <a class="nav-item" data-page="orders" href="#orders">
-      <span class="icon">🗂️</span> Aufträge
+      <span class="icon">⊟</span> Auftragsbuch
+      <span class="nav-badge" id="badge-orders" style="display:none">0</span>
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Coordination</div>
+    <a class="nav-item" data-page="delivery" href="#delivery">
+      <span class="icon">⊕</span> Delivery Planning
+      <span class="nav-badge yellow" id="badge-delivery" style="display:none">0</span>
     </a>
     <a class="nav-item" data-page="trainers" href="#trainers">
-      <span class="icon">👨‍🏫</span> Trainer
-    </a>
-    <a class="nav-item" data-page="invoices" href="#invoices">
-      <span class="icon">🧾</span> Rechnungen
+      <span class="icon">◎</span> Trainer Recruitment
+      <span class="nav-badge blue" id="badge-trainers" style="display:none">0</span>
     </a>
   </div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-label">Finanzen</div>
-    <a class="nav-item" data-page="finance" href="#finance">
-      <span class="icon">💰</span> Finance Dashboard
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-item" data-page="invoices" href="#invoices">
+      <span class="icon">⊞</span> Rechnungen
+      <span class="nav-badge red" id="badge-invoices" style="display:none">0</span>
     </a>
     <a class="nav-item" data-page="payments" href="#payments">
-      <span class="icon">💳</span> Zahlungen
+      <span class="icon">◱</span> Zahlungen / Mahnwesen
+      <span class="nav-badge yellow" id="badge-payments" style="display:none">0</span>
     </a>
   </div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-label">KI Agenten</div>
+    <div class="sidebar-section-label">Marketing</div>
+    <a class="nav-item" data-page="campaigns" href="#campaigns">
+      <span class="icon">◬</span> Kampagnen
+    </a>
+    <a class="nav-item" data-page="leads" href="#leads">
+      <span class="icon">◎</span> Lead-Quellen
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">HR</div>
+    <a class="nav-item" data-page="trainer-db" href="#trainer-db">
+      <span class="icon">◈</span> Trainer-Datenbank
+    </a>
+    <a class="nav-item" data-page="team" href="#team">
+      <span class="icon">◉</span> Team / Intern
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Entwicklung</div>
     <a class="nav-item" data-page="sprint" href="#sprint">
-      <span class="icon">🚀</span> Sprint Board
+      <span class="icon">◷</span> Sprint
+      <span class="nav-badge blue" id="badge-sprint" style="display:none">0</span>
     </a>
     <a class="nav-item" data-page="agents" href="#agents">
-      <span class="icon">🤖</span> Agent Status
+      <span class="icon">◈</span> Backlog
     </a>
-    <a class="nav-item" data-page="approvals" href="#approvals">
-      <span class="icon">✅</span> Freigaben
-      <span class="nav-badge" id="badge-approvals">0</span>
+    <a class="nav-item" data-page="status" href="#status">
+      <span class="icon">◉</span> System Status
     </a>
   </div>
 
-  <div class="sidebar-section">
-    <div class="sidebar-section-label">System</div>
+  <div class="sidebar-section" style="margin-top:auto">
     <a class="nav-item" data-page="users" href="#users">
-      <span class="icon">👥</span> Benutzer
+      <span class="icon">◎</span> Nutzer
     </a>
     <a class="nav-item" data-page="settings" href="#settings">
-      <span class="icon">⚙️</span> Einstellungen
+      <span class="icon">⚙</span> Einstellungen
     </a>
   </div>
 
@@ -471,41 +497,187 @@ tr:hover td { background: var(--bg3); }
 
   <div id="content">
 
-    <!-- ── Page: Dashboard ─────────────────────────────────────────────────── -->
+    <!-- ── Page: Dashboard / Management Board ──────────────────────────────── -->
     <div class="page" id="page-dashboard">
-      <div class="page-header">
-        <h1>Dashboard</h1>
-        <p>Übersicht aller laufenden Prozesse — NobleProg DACH</p>
+      <style>
+        /* Management Board Styles */
+        .mb-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+        .mb-title-block h1 { margin:0 0 2px; font-size:22px; font-weight:700; }
+        .mb-title-block .mb-subtitle { color:var(--fg2); font-size:13px; }
+        .mb-kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; margin-bottom:20px; }
+        .mb-kpi { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+        .mb-kpi-label { font-size:10px; font-weight:600; letter-spacing:.08em; color:var(--fg3); text-transform:uppercase; margin-bottom:6px; }
+        .mb-kpi-value { font-size:28px; font-weight:700; line-height:1; margin-bottom:4px; }
+        .mb-kpi-sub { font-size:12px; color:var(--fg3); }
+        .mb-kpi-sub.green { color:var(--green); }
+        .mb-kpi-sub.red { color:var(--red); }
+        .mb-kpi-sub.yellow { color:var(--yellow); }
+        .mb-kpi.kpi-red .mb-kpi-value { color:var(--red); }
+        .mb-kpi.kpi-yellow .mb-kpi-value { color:var(--yellow); }
+
+        /* State Machine */
+        .mb-sm-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:20px; }
+        .mb-sm-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+        .mb-sm-title { font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+        .mb-sm-hint { font-size:11px; color:var(--fg3); }
+        .mb-sm-scroll { overflow-x:auto; padding-bottom:4px; }
+        .mb-sm-track { display:flex; gap:10px; min-width:max-content; padding-bottom:8px; }
+        .mb-sm-phase { background:var(--bg4); border:1px solid var(--border2); border-radius:var(--radius); padding:12px 14px; min-width:130px; cursor:pointer; transition:border-color .15s; }
+        .mb-sm-phase:hover { border-color:var(--accent); }
+        .mb-sm-phase-sp { font-size:10px; font-weight:600; letter-spacing:.05em; color:var(--fg3); margin-bottom:2px; }
+        .mb-sm-phase-name { font-size:12px; font-weight:600; color:var(--fg2); margin-bottom:10px; line-height:1.3; min-height:32px; }
+        .mb-sm-phase-count { font-size:26px; font-weight:700; line-height:1; margin-bottom:8px; }
+        .mb-sm-phase-count.red { color:var(--red); }
+        .mb-sm-phase-count.yellow { color:var(--yellow); }
+        .mb-sm-sla { font-size:10px; border-radius:4px; padding:3px 7px; display:inline-block; font-weight:500; }
+        .mb-sm-sla.green { background:var(--green-bg); color:var(--green); }
+        .mb-sm-sla.yellow { background:var(--yellow-bg); color:var(--yellow); }
+        .mb-sm-sla.red { background:var(--red-bg); color:var(--red); }
+        .mb-sm-legend { display:flex; gap:16px; margin-top:12px; font-size:11px; color:var(--fg3); }
+        .mb-sm-legend span { display:flex; align-items:center; gap:5px; }
+        .mb-sm-legend-dot { width:8px; height:8px; border-radius:50%; }
+
+        /* Bottom grid */
+        .mb-bottom { display:grid; grid-template-columns:1fr 300px; gap:16px; }
+        @media (max-width:800px) { .mb-bottom { grid-template-columns:1fr; } }
+        .mb-prio-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+        .mb-prio-header { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .mb-prio-title { font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+        .mb-prio-filter { background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-sm); padding:4px 10px; font-size:12px; color:var(--fg); cursor:pointer; }
+        .mb-prio-item { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; gap:12px; cursor:pointer; transition:background .12s; }
+        .mb-prio-item:hover { background:var(--bg4); }
+        .mb-prio-item:last-child { border-bottom:none; }
+        .mb-prio-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+        .mb-prio-dot.red { background:var(--red); box-shadow:0 0 6px var(--red); }
+        .mb-prio-dot.yellow { background:var(--yellow); }
+        .mb-prio-dot.blue { background:var(--accent); }
+        .mb-prio-body { flex:1; min-width:0; }
+        .mb-prio-name { font-size:13px; font-weight:500; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mb-prio-meta { font-size:11px; color:var(--fg3); }
+        .mb-prio-due { font-size:11px; font-weight:600; }
+        .mb-prio-due.today { color:var(--red); }
+        .mb-prio-due.soon { color:var(--yellow); }
+
+        .mb-right { display:flex; flex-direction:column; gap:12px; }
+        .mb-widget { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+        .mb-widget-header { padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+        .mb-widget-title { font-size:12px; font-weight:600; display:flex; align-items:center; gap:7px; }
+        .mb-widget-badge { font-size:10px; color:var(--accent); background:var(--accent-bg); border-radius:10px; padding:2px 7px; }
+        .mb-widget-body { padding:12px 14px; }
+        .mb-widget-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+        .mb-widget-row:last-child { margin-bottom:0; }
+        .mb-widget-key { font-size:11px; color:var(--fg3); }
+        .mb-widget-val { font-size:13px; font-weight:600; }
+        .mb-widget-val.green { color:var(--green); }
+        .mb-widget-val.red { color:var(--red); }
+        .mb-widget-val.yellow { color:var(--yellow); }
+        .mb-at-risk { font-size:10px; color:var(--red); background:var(--red-bg); border-radius:10px; padding:2px 7px; }
+      </style>
+
+      <div class="mb-header">
+        <div class="mb-title-block">
+          <h1>Management Board</h1>
+          <div class="mb-subtitle" id="mb-greeting"></div>
+        </div>
+        <button class="btn btn-primary btn-sm">+ Aufgabe erstellen</button>
       </div>
-      <div class="stats-grid" id="dashboard-stats">
-        <div class="stat-card accent">
-          <div class="stat-label">Offene Anfragen</div>
-          <div class="stat-value" id="stat-inquiries">—</div>
-          <div class="stat-sub">Wartet auf Bearbeitung</div>
+
+      <!-- KPI Row -->
+      <div class="mb-kpi-grid">
+        <div class="mb-kpi">
+          <div class="mb-kpi-label">Aktive Aufträge</div>
+          <div class="mb-kpi-value" id="mb-kpi-orders">—</div>
+          <div class="mb-kpi-sub green" id="mb-kpi-orders-sub">—</div>
         </div>
-        <div class="stat-card yellow">
-          <div class="stat-label">Laufende Aufträge</div>
-          <div class="stat-value" id="stat-orders">—</div>
-          <div class="stat-sub">In Bearbeitung</div>
+        <div class="mb-kpi kpi-red">
+          <div class="mb-kpi-label">Überfällig (SLA)</div>
+          <div class="mb-kpi-value" id="mb-kpi-sla">—</div>
+          <div class="mb-kpi-sub red" id="mb-kpi-sla-sub">Handlungsbedarf</div>
         </div>
-        <div class="stat-card green">
-          <div class="stat-label">Rechnungen offen</div>
-          <div class="stat-value" id="stat-invoices">—</div>
-          <div class="stat-sub">Ausstehende Zahlungen</div>
+        <div class="mb-kpi kpi-yellow">
+          <div class="mb-kpi-label">Offene Todos</div>
+          <div class="mb-kpi-value" id="mb-kpi-todos">—</div>
+          <div class="mb-kpi-sub yellow" id="mb-kpi-todos-sub">—</div>
         </div>
-        <div class="stat-card red">
-          <div class="stat-label">Freigaben</div>
-          <div class="stat-value" id="stat-approvals">—</div>
-          <div class="stat-sub">Warten auf dich</div>
+        <div class="mb-kpi">
+          <div class="mb-kpi-label">Umsatz Nov. (Plan)</div>
+          <div class="mb-kpi-value" id="mb-kpi-revenue">—</div>
+          <div class="mb-kpi-sub green" id="mb-kpi-revenue-sub">—</div>
+        </div>
+        <div class="mb-kpi">
+          <div class="mb-kpi-label">Forecast Q4</div>
+          <div class="mb-kpi-value" id="mb-kpi-forecast">—</div>
+          <div class="mb-kpi-sub" id="mb-kpi-forecast-sub">→ Prognose</div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">Letzte Aktivitäten</div>
-        <div class="card-body">
-          <div class="empty" id="dashboard-activity">
-            <div class="empty-icon">📋</div>
-            <p>Keine Aktivitäten geladen</p>
+      <!-- State Machine Flaschenhälse -->
+      <div class="mb-sm-card">
+        <div class="mb-sm-header">
+          <div class="mb-sm-title">🔎 Prozess-Flaschenhälse — Wo stecken Aufträge?</div>
+          <div class="mb-sm-hint">Klicke eine Phase für Details</div>
+        </div>
+        <div class="mb-sm-scroll">
+          <div class="mb-sm-track" id="mb-sm-track">
+            <!-- filled by JS -->
+          </div>
+        </div>
+        <div class="mb-sm-legend">
+          <span><span class="mb-sm-legend-dot" style="background:var(--green)"></span>Im SLA</span>
+          <span><span class="mb-sm-legend-dot" style="background:var(--yellow)"></span>SLA nähert sich</span>
+          <span><span class="mb-sm-legend-dot" style="background:var(--red)"></span>SLA überschritten</span>
+        </div>
+      </div>
+
+      <!-- Bottom Grid: Prioritäten + Widgets -->
+      <div class="mb-bottom">
+        <div class="mb-prio-card">
+          <div class="mb-prio-header">
+            <div class="mb-prio-title">🎯 Prioritäten — Alle Abteilungen</div>
+            <select class="mb-prio-filter" id="mb-prio-filter" onchange="filterPriorities()">
+              <option value="">Alle Abteilungen</option>
+              <option value="Finance">Finance</option>
+              <option value="Sales">Sales</option>
+              <option value="Coordination">Coordination</option>
+              <option value="Dev">Entwicklung</option>
+            </select>
+          </div>
+          <div id="mb-prio-list"><!-- filled by JS --></div>
+        </div>
+
+        <div class="mb-right">
+          <div class="mb-widget">
+            <div class="mb-widget-header">
+              <div class="mb-widget-title">📊 Sales</div>
+              <div class="mb-widget-badge" id="mb-sales-badge">— offen</div>
+            </div>
+            <div class="mb-widget-body">
+              <div class="mb-widget-row"><span class="mb-widget-key">Pipeline</span><span class="mb-widget-val" id="mb-sales-pipeline">—</span></div>
+              <div class="mb-widget-row"><span class="mb-widget-key">Anfragen</span><span class="mb-widget-val" id="mb-sales-inquiries">—</span></div>
+              <div class="mb-widget-row"><span class="mb-widget-key">Bookings</span><span class="mb-widget-val" id="mb-sales-bookings">—</span></div>
+            </div>
+          </div>
+          <div class="mb-widget">
+            <div class="mb-widget-header">
+              <div class="mb-widget-title">🚦 Coordination</div>
+              <div class="mb-at-risk" id="mb-coord-risk">— at risk</div>
+            </div>
+            <div class="mb-widget-body">
+              <div class="mb-widget-row"><span class="mb-widget-key">Trainer gesucht</span><span class="mb-widget-val yellow" id="mb-coord-trainers">—</span></div>
+              <div class="mb-widget-row"><span class="mb-widget-key">Termine offen</span><span class="mb-widget-val" id="mb-coord-dates">—</span></div>
+              <div class="mb-widget-row"><span class="mb-widget-key">Konflikte</span><span class="mb-widget-val red" id="mb-coord-conflicts">—</span></div>
+            </div>
+          </div>
+          <div class="mb-widget">
+            <div class="mb-widget-header">
+              <div class="mb-widget-title">🤖 Dev Agents</div>
+              <div class="mb-widget-badge" id="mb-dev-badge">— aktiv</div>
+            </div>
+            <div class="mb-widget-body">
+              <div class="mb-widget-row"><span class="mb-widget-key">Backlog</span><span class="mb-widget-val" id="mb-dev-backlog">—</span></div>
+              <div class="mb-widget-row"><span class="mb-widget-key">In Progress</span><span class="mb-widget-val blue" id="mb-dev-inprogress">—</span></div>
+              <div class="mb-widget-row"><span class="mb-widget-key">Done (Sprint)</span><span class="mb-widget-val green" id="mb-dev-done">—</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -700,6 +872,47 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
 
+    <!-- ── Page: System Status ───────────────────────────────────────────── -->
+    <div class="page" id="page-status">
+      <style>
+        .status-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-top:4px; }
+        .status-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+        .status-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .status-icon { font-size:22px; }
+        .status-badge { font-size:11px; font-weight:600; border-radius:6px; padding:3px 9px; }
+        .status-badge.green { background:var(--green-bg); color:var(--green); }
+        .status-badge.red   { background:var(--red-bg);   color:var(--red); }
+        .status-badge.yellow{ background:var(--yellow-bg);color:var(--yellow); }
+        .status-name   { font-size:14px; font-weight:600; margin-bottom:2px; }
+        .status-sub    { font-size:11px; color:var(--fg3); font-family:'JetBrains Mono',monospace; margin-bottom:8px; }
+        .status-detail { font-size:12px; color:var(--fg2); }
+        .status-refresh { font-size:12px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; }
+        .status-refresh:hover { text-decoration:underline; }
+      </style>
+      <div class="page-header">
+        <div>
+          <h1>System Status</h1>
+          <p>Laufende Server, Container, Agenten &amp; Deployments</p>
+        </div>
+        <button class="btn btn-secondary btn-sm status-refresh" onclick="loadStatus()">↺ Aktualisieren</button>
+      </div>
+      <div class="status-grid" id="status-grid">
+        <div style="color:var(--fg3);padding:24px">Klicke ↺ zum Laden…</div>
+      </div>
+
+      <!-- Last Deployment -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header">🚀 Letztes Deployment</div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+            <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Backend (develop)</div><div style="font-size:13px;font-weight:500" id="deploy-backend">GitHub Actions → ghcr.io</div></div>
+            <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Frontend (main)</div><div style="font-size:13px;font-weight:500" id="deploy-frontend">deploy-webhook.php → dev.processengine.de</div></div>
+            <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Container</div><div style="font-size:13px;font-weight:500" id="deploy-container">npch-b3 · Image npch-ops-hub:backend</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Page: Einstellungen ────────────────────────────────────────────── -->
     <div class="page" id="page-settings">
       <div class="page-header"><h1>Einstellungen</h1><p>System-Konfiguration</p></div>
@@ -853,20 +1066,24 @@ async function api(path, opts = {}) {
 
 // ── Router ────────────────────────────────────────────────────────────────────
 const PAGES = {
-  dashboard:  { title: 'Dashboard',          load: loadDashboard },
-  inquiries:  { title: 'Anfragen',            load: null },
-  proposals:  { title: 'Angebote',            load: null },
-  bookings:   { title: 'Buchungen',           load: null },
-  orders:     { title: 'Aufträge',            load: loadOrders },
-  trainers:   { title: 'Trainer',             load: null },
-  invoices:   { title: 'Rechnungen',          load: null },
-  finance:    { title: 'Finance Dashboard',   load: null },
-  payments:   { title: 'Zahlungen',           load: null },
-  sprint:     { title: 'Sprint Board',        load: loadSprint },
-  agents:     { title: 'Agent Status',        load: null },
-  approvals:  { title: 'Freigaben',           load: loadApprovals },
-  users:      { title: 'Benutzer',            load: loadUsers },
-  settings:   { title: 'Einstellungen',       load: null },
+  dashboard:    { title: 'Management Board',    load: loadDashboard },
+  inquiries:    { title: 'Pipeline / Anfragen', load: null },
+  bookings:     { title: 'Buchungen',           load: null },
+  orders:       { title: 'Auftragsbuch',        load: loadOrders },
+  delivery:     { title: 'Delivery Planning',   load: null },
+  trainers:     { title: 'Trainer Recruitment', load: null },
+  invoices:     { title: 'Rechnungen',          load: null },
+  payments:     { title: 'Zahlungen / Mahnwesen', load: null },
+  campaigns:    { title: 'Kampagnen',           load: null },
+  leads:        { title: 'Lead-Quellen',        load: null },
+  'trainer-db': { title: 'Trainer-Datenbank',   load: null },
+  team:         { title: 'Team / Intern',       load: null },
+  sprint:       { title: 'Sprint Board',        load: loadSprint },
+  agents:       { title: 'Backlog / Agenten',   load: null },
+  status:       { title: 'System Status',       load: loadStatus },
+  approvals:    { title: 'Freigaben',           load: loadApprovals },
+  users:        { title: 'Benutzer',            load: loadUsers },
+  settings:     { title: 'Einstellungen',       load: null },
 };
 
 function navigate(page) {
@@ -933,16 +1150,135 @@ async function loadUser() {
 }
 
 async function loadDashboard() {
-  // Load counts in parallel
-  const results = await Promise.allSettled([
-    api('/orders?status=in_progress&limit=1'),
-    api('/daily-items?type=sprint_plan&resolved=false&limit=1'),
-  ]);
-  // Placeholders until API is fully wired
-  document.getElementById('stat-inquiries').textContent = '—';
-  document.getElementById('stat-orders').textContent = results[0].status === 'fulfilled' ? (results[0].value.total ?? '—') : '—';
-  document.getElementById('stat-invoices').textContent = '—';
-  document.getElementById('stat-approvals').textContent = results[1].status === 'fulfilled' ? (results[1].value.total ?? '—') : '—';
+  // Greeting
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Guten Morgen' : hour < 17 ? 'Guten Tag' : 'Guten Abend';
+  const days = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const months = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const dateStr = `${days[now.getDay()]}, ${now.getDate()}. ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const userEl = document.getElementById('user-name');
+  const firstName = (userEl?.textContent || 'Christian').split(' ')[0];
+  const greetEl = document.getElementById('mb-greeting');
+  if (greetEl) greetEl.textContent = `${greeting}, ${firstName} — ${dateStr}`;
+
+  // KPI mock data (until API endpoints exist)
+  const setKpi = (id, val, sub) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+    const subEl = document.getElementById(id + '-sub');
+    if (subEl && sub !== undefined) subEl.textContent = sub;
+  };
+  setKpi('mb-kpi-orders', '14', '↑ 2 diese Woche');
+  setKpi('mb-kpi-sla', '3');
+  setKpi('mb-kpi-todos', '7', 'davon 2 heute fällig');
+  setKpi('mb-kpi-revenue', '€ 48k', '↗ 76 % von Plan');
+  setKpi('mb-kpi-forecast', '€ 142k', '→ Prognose');
+
+  // Widget mocks
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('mb-sales-badge', '5 offen');
+  setEl('mb-sales-pipeline', '€ 220k');
+  setEl('mb-sales-inquiries', '11');
+  setEl('mb-sales-bookings', '6');
+  setEl('mb-coord-risk', '2 at risk');
+  setEl('mb-coord-trainers', '4');
+  setEl('mb-coord-dates', '3');
+  setEl('mb-coord-conflicts', '1');
+  setEl('mb-dev-badge', '1 aktiv');
+  setEl('mb-dev-backlog', '8');
+  setEl('mb-dev-inprogress', '1');
+  setEl('mb-dev-done', '12');
+
+  // State Machine phases
+  const phases = [
+    { sp: 'SP-01', name: 'Booking Received\nSales Confirmed',  count: 4, sla: 'green',  slaText: 'Im SLA' },
+    { sp: 'SP-02', name: 'Trainer Selection\nDelivery Confirmed', count: 6, sla: 'yellow', slaText: 'SLA nähert sich' },
+    { sp: 'SP-03', name: 'Order Confirm.',   count: 3, sla: 'green',  slaText: 'Im SLA' },
+    { sp: 'SP-04', name: 'Pre-Payment',      count: 2, sla: 'red',    slaText: 'SLA überschritten' },
+    { sp: 'SP-05', name: 'In Delivery',      count: 5, sla: 'green',  slaText: 'Im SLA' },
+    { sp: 'SP-06', name: 'Post-Delivery\nDocs',  count: 1, sla: 'yellow', slaText: 'SLA nähert sich' },
+    { sp: 'SP-07', name: 'Invoice',          count: 3, sla: 'red',    slaText: 'Handlungsbedarf' },
+    { sp: 'SP-08', name: 'Payment\nReceived', count: 0, sla: 'green',  slaText: 'Abgeschlossen' },
+  ];
+  const track = document.getElementById('mb-sm-track');
+  if (track) {
+    track.innerHTML = phases.map(p => `
+      <div class="mb-sm-phase" onclick="navigate('orders')">
+        <div class="mb-sm-phase-sp">${p.sp}</div>
+        <div class="mb-sm-phase-name">${p.name.replace('\n','<br>')}</div>
+        <div class="mb-sm-phase-count ${p.count > 3 ? p.sla : ''}">${p.count}</div>
+        <div class="mb-sm-sla ${p.sla}">${p.slaText}</div>
+      </div>`).join('');
+  }
+
+  // Priorities
+  const priorities = [
+    { dot:'red',    name:'Rechnung #2024-089 — Arvato (überfällig)',    meta:'Finance',         due:'Heute',    dueClass:'today' },
+    { dot:'red',    name:'Trainer für "Azure Fundamentals" fehlt',       meta:'Coordination',    due:'Heute',    dueClass:'today' },
+    { dot:'yellow', name:'Angebot für Siemens AG nachfassen',            meta:'Sales',           due:'Morgen',   dueClass:'soon' },
+    { dot:'yellow', name:'Delivery-Plan KW47 finalisieren',              meta:'Coordination',    due:'Fr 15.11', dueClass:'soon' },
+    { dot:'blue',   name:'Sprint Review vorbereiten',                    meta:'Entwicklung',     due:'Fr 15.11', dueClass:'' },
+    { dot:'blue',   name:'API: Order-State-Machine Endpoint',            meta:'Dev Agent',       due:'Sprint',   dueClass:'' },
+  ];
+  const list = document.getElementById('mb-prio-list');
+  if (list) {
+    list.innerHTML = priorities.map(p => `
+      <div class="mb-prio-item" data-dept="${p.meta}">
+        <div class="mb-prio-dot ${p.dot}"></div>
+        <div class="mb-prio-body">
+          <div class="mb-prio-name">${p.name}</div>
+          <div class="mb-prio-meta">${p.meta}</div>
+        </div>
+        <div class="mb-prio-due ${p.dueClass}">${p.due}</div>
+      </div>`).join('');
+  }
+}
+
+function filterPriorities() {
+  const val = document.getElementById('mb-prio-filter')?.value || '';
+  document.querySelectorAll('.mb-prio-item').forEach(el => {
+    el.style.display = (!val || el.dataset.dept === val) ? '' : 'none';
+  });
+}
+
+async function loadStatus() {
+  const container = document.getElementById('status-grid');
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--fg3);padding:24px">Prüfe Systeme…</div>';
+
+  // Check API health
+  let apiOk = false, apiLatency = '—';
+  try {
+    const t0 = Date.now();
+    await api('/health');
+    apiLatency = (Date.now() - t0) + ' ms';
+    apiOk = true;
+  } catch {}
+
+  const systems = [
+    { name: 'Backend API',           sub: 'api.processengine.de',    ok: apiOk,  detail: apiOk ? apiLatency : 'Nicht erreichbar', icon: '⚙️' },
+    { name: 'Frontend',              sub: 'dev.processengine.de',     ok: true,   detail: 'Diese Seite', icon: '🌐' },
+    { name: 'Datenbank',             sub: 'npch-postgres Container',  ok: apiOk,  detail: apiOk ? 'Verbunden' : 'Unbekannt', icon: '🗄️' },
+    { name: 'Developer Agent',       sub: 'n8n Workflow VlWgEiwV6L',  ok: null,   detail: 'Status via n8n', icon: '🤖' },
+    { name: 'Ticket Runner',         sub: 'n8n — alle 3 Min.',        ok: null,   detail: 'Kontinuierlich', icon: '🔁' },
+    { name: 'LiteLLM',              sub: '62.238.89.247:4000',        ok: null,   detail: 'Helsinki GPU', icon: '🧠' },
+  ];
+
+  container.innerHTML = systems.map(s => {
+    const statusClass = s.ok === true ? 'green' : s.ok === false ? 'red' : 'yellow';
+    const statusText  = s.ok === true ? 'Online' : s.ok === false ? 'Offline' : 'Unbekannt';
+    return `
+      <div class="status-card">
+        <div class="status-card-top">
+          <span class="status-icon">${s.icon}</span>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        <div class="status-name">${s.name}</div>
+        <div class="status-sub">${s.sub}</div>
+        <div class="status-detail">${s.detail}</div>
+      </div>`;
+  }).join('');
 }
 
 async function loadOrders() {
