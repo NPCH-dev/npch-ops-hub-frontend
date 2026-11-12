@@ -1954,16 +1954,47 @@ function _renderServerCard(srv) {
     statsHtml = '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">System-Stats nicht verfügbar</div>';
   }
 
+  // Detaillierte LiteLLM-Daten (aus /admin/system/litellm, via srv._litellm)
+  const ll = srv._litellm || {};
+  const llHealth = Array.isArray(ll.model_health) ? ll.model_health : [];
+  const llMetrics = ll.metrics || null;
+  const healthyModels = llHealth.filter(m => m.status === 'healthy');
+  const unhealthyModels = llHealth.filter(m => m.status !== 'healthy');
+
+  // Aktives Default-Modell: erstes healthy oder erstes in models[]
+  const defaultModel = healthyModels[0]?.model_id || models[0] || null;
+
+  // Metriken-Zeile
+  let metricsHtml = '';
+  if (llMetrics) {
+    const rpm = llMetrics.requests_per_model || {};
+    const topModel = Object.entries(rpm).sort((a,b) => b[1]-a[1])[0];
+    const p50 = llMetrics.latency_p50_ms != null ? llMetrics.latency_p50_ms.toFixed(0) + ' ms' : null;
+    const totalReq = llMetrics.total_requests;
+    const parts = [];
+    if (totalReq != null) parts.push(`${totalReq.toLocaleString('de')} Requests`);
+    if (topModel) parts.push(`Top: ${topModel[0].split('/').pop()} (${topModel[1]})`);
+    if (p50) parts.push(`p50 ${p50}`);
+    if (parts.length) metricsHtml = `<div style="font-size:11px;color:var(--fg3);margin-top:4px">${parts.join(' · ')}</div>`;
+  }
+
   const litellmHtml = `
-    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin:10px 0 6px">
-      <span>LiteLLM</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--fg2);margin:10px 0 4px">
+      <span style="font-weight:600">LiteLLM</span>
       <span><strong>${latencyMs}</strong>&nbsp;<span class="badge ${online ? 'badge-green' : 'badge-red'}" style="font-size:10px">${online ? 'Online' : 'Offline'}</span></span>
     </div>
-    ${models.length ? `
-      <div class="adm-models">
-        ${models.slice(0,4).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${typeof m==='string'?m:(m.id||m.model_name||JSON.stringify(m))}</span><span class="badge badge-green" style="font-size:10px">aktiv</span></div>`).join('')}
+    ${defaultModel ? `<div style="font-size:11px;color:var(--fg2);margin-bottom:4px">Default: <span style="font-family:JetBrains Mono,monospace;color:var(--accent)">${defaultModel}</span></div>` : ''}
+    ${metricsHtml}
+    ${llHealth.length ? `
+      <div class="adm-models" style="margin-top:6px">
+        ${healthyModels.slice(0,3).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${m.model_id}</span><span class="badge badge-green" style="font-size:10px">✓ healthy</span></div>`).join('')}
+        ${unhealthyModels.slice(0,2).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${m.model_id}</span><span class="badge badge-red" style="font-size:10px">✗ unhealthy</span></div>`).join('')}
+        ${healthyModels.length + unhealthyModels.length > 5 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${healthyModels.length+unhealthyModels.length-5} weitere</div>` : ''}
+      </div>` : models.length ? `
+      <div class="adm-models" style="margin-top:6px">
+        ${models.slice(0,4).map(m => `<div class="adm-model-row"><span style="font-family:JetBrains Mono,monospace;font-size:11px">${m}</span><span class="badge badge-green" style="font-size:10px">aktiv</span></div>`).join('')}
         ${models.length > 4 ? `<div style="font-size:11px;color:var(--fg3);padding-top:4px">+${models.length-4} weitere</div>` : ''}
-      </div>` : '<div style="font-size:12px;color:var(--fg3)">Keine Modelle</div>'}`;
+      </div>` : '<div style="font-size:12px;color:var(--fg3);margin-top:4px">Keine Modelle</div>'}`;
 
   const MONITORING = {
     'gex45-1': [
@@ -2001,7 +2032,18 @@ async function loadAdminHealth() {
 
   let servers = [];
   try {
-    servers = await api('/admin/system/servers');
+    const [srvData, llData] = await Promise.allSettled([
+      api('/admin/system/servers'),
+      api('/admin/system/litellm'),
+    ]);
+    if (srvData.status === 'rejected') throw srvData.reason;
+    servers = srvData.value;
+    // LiteLLM-Detail-Daten auf den Server mergen
+    if (llData.status === 'fulfilled' && Array.isArray(llData.value)) {
+      const llMap = {};
+      llData.value.forEach(ll => { llMap[ll.server_id] = ll; });
+      servers = servers.map(s => ({ ...s, _litellm: llMap[s.id] || null }));
+    }
   } catch(e) {
     if (!grid.dataset.loaded) {
       grid.innerHTML = `<div class="adm-health-card"><span class="badge badge-red">Fehler</span> ${e.message}</div>`;
