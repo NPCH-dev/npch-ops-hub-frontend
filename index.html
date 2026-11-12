@@ -841,7 +841,7 @@ tr:hover td { background: var(--bg3); }
     </div>
 
     <!-- User Modal -->
-    <div id="user-modal" hidden style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div id="user-modal" hidden style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px">
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:440px;padding:24px">
         <h3 style="margin:0 0 16px;font-size:16px" id="user-modal-title">Neuer Benutzer</h3>
         <div id="um-error" hidden style="background:rgba(192,57,43,.15);border:1px solid var(--red);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:14px;font-size:13px;color:var(--red)"></div>
@@ -1447,7 +1447,7 @@ function openUserModal() {
   document.getElementById('um-role').value = 'coordination';
   document.getElementById('um-pw-hint').style.display = 'none';
   document.getElementById('user-modal-title').textContent = 'Neuer Benutzer';
-  document.getElementById('user-modal').hidden = false;
+  const m = document.getElementById('user-modal'); m.hidden = false; m.style.display = 'flex';
 }
 
 function editUser(u) {
@@ -1458,10 +1458,10 @@ function editUser(u) {
   document.getElementById('um-role').value = u.role || 'coordination';
   document.getElementById('um-pw-hint').style.display = 'inline';
   document.getElementById('user-modal-title').textContent = 'Benutzer bearbeiten';
-  document.getElementById('user-modal').hidden = false;
+  const m = document.getElementById('user-modal'); m.hidden = false; m.style.display = 'flex';
 }
 
-function closeUserModal() { document.getElementById('user-modal').hidden = true; hideModalError(); }
+function closeUserModal() { const m = document.getElementById('user-modal'); m.hidden = true; m.style.display = ''; hideModalError(); }
 
 function showModalError(msg) {
   const el = document.getElementById('um-error');
