@@ -1911,7 +1911,7 @@ function startAdminHealthPolling() {
 }
 
 function _renderServerCard(srv) {
-  const FLAG = { 'hpde-serv1': '🇩🇪', 'gex45-1': '🇫🇮' };
+  const FLAG = { 'webserver': '🇩🇪', 'hpde-serv1': '🇩🇪', 'gex45-1': '🇫🇮' };
   const flag = FLAG[srv.id] || '🖥️';
   const online = srv.litellm_status === 'online';
   const latencyMs = srv.litellm_latency_ms != null ? srv.litellm_latency_ms + ' ms' : '—';
@@ -2028,7 +2028,7 @@ function _renderServerCard(srv) {
       </div>
       <div style="font-size:11px;color:var(--fg3);margin-bottom:10px">${srv.location} · ${srv.role}</div>
       ${statsHtml}
-      ${litellmHtml}
+      ${srv.litellm_status !== 'n/a' ? litellmHtml : ''}
       ${monHtml}
     </div>`;
 }
