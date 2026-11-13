@@ -2360,8 +2360,26 @@ const _DUMMY_SPRINTS = [
 ];
 
 let _sprintIdx = 2; // start on active sprint (index 2 = sprint 3)
+let _loadedSprints = null;      // real API sprint list, null = not yet loaded
+let _currentSprintData = null;  // currently displayed sprint with tickets
 
-function loadSprint() {
+async function loadSprint() {
+  try {
+    const sprints = await api('/sprints');
+    if (sprints && sprints.length) {
+      _loadedSprints = sprints.sort((a, b) => (a.number || 0) - (b.number || 0));
+      let activeIdx = _loadedSprints.findIndex(s => s.status === 'active');
+      if (activeIdx < 0) activeIdx = _loadedSprints.length - 1;
+      _sprintIdx = activeIdx;
+      const sprintData = await api('/sprints/' + _loadedSprints[activeIdx].id);
+      _currentSprintData = sprintData;
+      _renderSprintNav();
+      _renderSprintBoard(sprintData);
+      return;
+    }
+  } catch (e) { /* fallback to dummy data */ }
+  _loadedSprints = null;
+  _currentSprintData = _DUMMY_SPRINTS[_sprintIdx];
   _renderSprintNav();
   _renderSprintBoard(_DUMMY_SPRINTS[_sprintIdx]);
 }
@@ -2369,27 +2387,38 @@ function loadSprint() {
 function _renderSprintNav() {
   const nav = document.getElementById('sprint-nav');
   if (!nav) return;
-  const pills = _DUMMY_SPRINTS.map((s, i) => {
+  const sprints = _loadedSprints || _DUMMY_SPRINTS;
+  const pills = sprints.map((s, i) => {
     const dotColor = s.status === 'active' ? '#22c55e' : s.status === 'completed' ? '#737373' : 'var(--accent)';
     return `<button class="sprint-pill${i === _sprintIdx ? ' active' : ''}" onclick="_sprintGoto(${i})">
       <span class="sp-dot" style="background:${dotColor}"></span>
-      #${s.number} ${s.name.split(' — ')[0] || s.name}
+      #${s.number || i+1} ${s.name.split(' — ')[0] || s.name}
     </button>`;
   }).join('');
   nav.innerHTML = `
     <button class="btn btn-ghost btn-sm" onclick="_sprintStep(-1)" ${_sprintIdx===0?'disabled':''}>← Zurück</button>
     ${pills}
-    <button class="btn btn-ghost btn-sm" onclick="_sprintStep(1)" ${_sprintIdx===_DUMMY_SPRINTS.length-1?'disabled':''}>Weiter →</button>
+    <button class="btn btn-ghost btn-sm" onclick="_sprintStep(1)" ${_sprintIdx===(sprints.length-1)?'disabled':''}>Weiter →</button>
     <button class="btn btn-ghost btn-sm" onclick="showToast('Neuer Sprint — Backend ausstehend','info')" style="margin-left:auto">+ Neuer Sprint</button>
   `;
 }
 
 function _sprintStep(d) { _sprintGoto(_sprintIdx + d); }
-function _sprintGoto(i) {
-  if (i < 0 || i >= _DUMMY_SPRINTS.length) return;
+async function _sprintGoto(i) {
+  const sprints = _loadedSprints || _DUMMY_SPRINTS;
+  if (i < 0 || i >= sprints.length) return;
   _sprintIdx = i;
   _renderSprintNav();
-  _renderSprintBoard(_DUMMY_SPRINTS[i]);
+  if (_loadedSprints) {
+    try {
+      const sprintData = await api('/sprints/' + _loadedSprints[i].id);
+      _currentSprintData = sprintData;
+      _renderSprintBoard(sprintData);
+      return;
+    } catch (e) { /* fallback */ }
+  }
+  _currentSprintData = _DUMMY_SPRINTS[i] || _DUMMY_SPRINTS[0];
+  _renderSprintBoard(_currentSprintData);
 }
 
 function _renderSprintBoard(sprint) {
@@ -2597,7 +2626,7 @@ function toggleAiPanel() {
   }
 }
 
-function aiSend() {
+async function aiSend() {
   const input = document.getElementById('ai-input');
   const text = (input.value || '').trim();
   if (!text) return;
@@ -2605,12 +2634,25 @@ function aiSend() {
   _aiAddMsg('user', text);
   _aiHistory.push({ role: 'user', content: text });
   _aiShowTyping();
-  setTimeout(() => {
+  try {
+    const page = window.location.hash.replace('#', '') || 'dashboard';
+    const ctx = { page };
+    if (_currentSprintData?.id) ctx.sprint_id = _currentSprintData.id;
+    const res = await api('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: text, context: ctx, history: _aiHistory.slice(-10) })
+    });
     _aiHideTyping();
+    const reply = res.reply || res.message || '(Keine Antwort vom Backend)';
+    _aiAddMsg('ai', reply);
+    _aiHistory.push({ role: 'assistant', content: reply });
+  } catch (e) {
+    _aiHideTyping();
+    // Fallback: lokale Mock-Antwort solange Backend noch nicht deployed
     const reply = _aiRespond(text);
     _aiAddMsg('ai', reply);
-    _aiHistory.push({ role: 'ai', content: reply });
-  }, 600 + Math.random() * 400);
+    _aiHistory.push({ role: 'assistant', content: reply });
+  }
 }
 
 function _aiAddMsg(role, text) {
@@ -2640,7 +2682,7 @@ function _aiRespond(text) {
   const page = window.location.hash.replace('#','') || 'dashboard';
   // Context from current state
   const tickets = _blAllTickets || [];
-  const sprint = _DUMMY_SPRINTS[_sprintIdx];
+  const sprint = _currentSprintData || _DUMMY_SPRINTS[_sprintIdx];
 
   if (t.includes('erstell') && t.includes('ticket') || t.includes('neues ticket') || t.includes('ticket anlegen')) {
     setTimeout(() => openTicketModal(null, 'backlog'), 300);
@@ -2675,9 +2717,9 @@ function _aiRespond(text) {
   }
   // Fallback
   const fallbacks = [
-    `Verstanden! Das KI-Backend ist noch nicht angebunden — kommt in Sprint 4. Ich kann dir schon jetzt mit Backlog-Info, Sprint-Status und Ticket-Erstellung helfen.`,
-    `Gute Frage! Sobald das Backend angebunden ist, kann ich dir viel mehr beantworten. Für jetzt: frag mich nach Tickets, Sprints oder lass mich ein Ticket erstellen.`,
-    `Das Backend-Endpoint /ai/chat ist noch nicht implementiert. Ticket ist in Sprint 3 geplant. Ich bin vorerst offline-mäßig unterwegs! 😄`,
+    `Verstanden! Ich kann dir schon jetzt mit Backlog-Info, Sprint-Status und Ticket-Erstellung helfen. Frag mich z.B. "Zeig kritische Tickets" oder "Sprint Status".`,
+    `Gute Frage! Für jetzt: frag mich nach Tickets, Sprints oder lass mich ein Ticket anlegen.`,
+    `Das Backend-KI-Endpoint wird gerade implementiert (BE-033). Für lokale Fragen bin ich schon da! 😄`,
   ];
   return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 }
