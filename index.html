@@ -2482,6 +2482,7 @@ async function loadAdminDeploy() {
 
 // ── Admin Health — Real-time Polling ─────────────────────────────────────────
 let _adminHealthInterval = null;
+let _adminHealthPending = false;  // Guard: kein Doppel-Request
 
 function stopAdminHealthPolling() {
   if (_adminHealthInterval) { clearInterval(_adminHealthInterval); _adminHealthInterval = null; }
@@ -2490,7 +2491,7 @@ function stopAdminHealthPolling() {
 function startAdminHealthPolling() {
   stopAdminHealthPolling();
   loadAdminHealth();
-  _adminHealthInterval = setInterval(loadAdminHealth, 10000);
+  _adminHealthInterval = setInterval(loadAdminHealth, 30000);  // 10s→30s
 }
 
 function _renderServerCard(srv) {
@@ -2619,6 +2620,8 @@ function _renderServerCard(srv) {
 async function loadAdminHealth() {
   const grid = document.getElementById('adm-health-grid');
   if (!grid) return;
+  if (_adminHealthPending) return;  // Vorheriger Request noch aktiv → überspringen
+  _adminHealthPending = true;
 
   // Erste Ladung: Spinner; bei Updates: in-place refreshen
   if (!grid.dataset.loaded) {
@@ -2640,12 +2643,14 @@ async function loadAdminHealth() {
       servers = servers.map(s => ({ ...s, _litellm: llMap[s.id] || null }));
     }
   } catch(e) {
+    _adminHealthPending = false;
     if (!grid.dataset.loaded) {
       grid.innerHTML = `<div class="adm-health-card"><span class="badge badge-red">Fehler</span> ${e.message}</div>`;
     }
     return;
   }
 
+  _adminHealthPending = false;
   grid.dataset.loaded = '1';
   grid.innerHTML = servers.map(_renderServerCard).join('');
 
