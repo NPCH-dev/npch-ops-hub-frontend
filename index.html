@@ -389,6 +389,46 @@ body {
 }
 .card-body { padding: 18px; }
 
+/* ── Component: Kanban ─────────────────────────────────────────────────────── */
+.kanban-col {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); min-height: 200px; display: flex; flex-direction: column;
+}
+.kanban-col-header {
+  padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--fg2);
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.kc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.kc-count { margin-left: auto; background: var(--bg3); color: var(--fg3); font-size: 11px; padding: 2px 7px; border-radius: 10px; }
+.kanban-cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.kanban-card {
+  background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 10px 12px; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.kanban-card:hover { border-color: var(--border2); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.kanban-card.prio-critical { border-left-color: #ef4444; }
+.kanban-card.prio-high     { border-left-color: #f97316; }
+.kanban-card.prio-normal   { border-left-color: var(--border2); }
+.kanban-card.prio-low      { border-left-color: #374151; }
+.kc-id { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--fg3); margin-bottom: 5px; }
+.kc-title { font-size: 13px; color: var(--fg); line-height: 1.4; margin-bottom: 8px; }
+.kc-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.kc-sp { font-size: 11px; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; color: var(--fg2); }
+.kc-actions { margin-left: auto; display: flex; gap: 4px; }
+.kc-btn { background: var(--bg2); border: 1px solid var(--border); color: var(--fg3); border-radius: 4px; font-size: 11px; padding: 3px 7px; cursor: pointer; transition: color .1s, background .1s; white-space: nowrap; }
+.kc-btn:hover { background: var(--bg); color: var(--fg); }
+.kc-btn.red:hover { color: var(--red); border-color: var(--red); }
+.kc-btn.green:hover { color: #22c55e; border-color: #22c55e; }
+/* responsive kanban */
+@media (max-width: 900px) {
+  #sprint-kanban { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  #sprint-kanban { grid-template-columns: 1fr; }
+}
+
 /* ── Component: Table ──────────────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -641,9 +681,14 @@ tr:hover td { background: var(--bg3); }
         Sprint
         <span class="nav-badge blue" id="badge-sprint" style="display:none">0</span>
       </a>
+      <a class="nav-item" data-page="backlog" href="#backlog">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+        Backlog
+        <span class="nav-badge" id="badge-backlog" style="display:none">0</span>
+      </a>
       <a class="nav-item" data-page="agents" href="#agents">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>
-        Backlog
+        Agenten
       </a>
       <a class="nav-item" data-page="status" href="#status">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
@@ -987,23 +1032,168 @@ tr:hover td { background: var(--bg3); }
 
     <!-- ── Page: Sprint Board ─────────────────────────────────────────────── -->
     <div class="page" id="page-sprint">
-      <div class="page-header">
-        <h1>Sprint Board</h1>
-        <p>Aktueller Entwicklungs-Sprint — KI-Agenten Team</p>
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <h1 id="sprint-name-h1">Sprint Board</h1>
+          <p id="sprint-goal-p">Aktueller Entwicklungs-Sprint — KI-Agenten Team</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="openTicketModal(null,'sprint')" title="Ticket in Sprint anlegen">+ Ticket</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadSprint()" title="Neu laden">↺</button>
+        </div>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card accent"><div class="stat-label">Sprint</div><div class="stat-value" id="sprint-name">—</div><div class="stat-sub" id="sprint-dates">—</div></div>
-        <div class="stat-card green"><div class="stat-label">Erledigt</div><div class="stat-value" id="sprint-done">—</div><div class="stat-sub">Story Points</div></div>
-        <div class="stat-card yellow"><div class="stat-label">Verbleibend</div><div class="stat-value" id="sprint-remaining">—</div><div class="stat-sub">Story Points</div></div>
+      <!-- Sprint Progress Bar -->
+      <div style="margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--fg3)">Zeitraum: <span id="sprint-dates" style="color:var(--fg2)">—</span></span>
+            <span style="font-size:12px;color:var(--fg3)">Kapazität: <span id="sprint-cap" style="color:var(--fg2)">—</span> SP</span>
+          </div>
+          <div style="display:flex;gap:12px">
+            <span style="font-size:12px"><span style="color:var(--accent)" id="sprint-done">0</span> <span style="color:var(--fg3)">erledigt</span></span>
+            <span style="font-size:12px"><span style="color:var(--fg2)" id="sprint-remaining">0</span> <span style="color:var(--fg3)">offen SP</span></span>
+          </div>
+        </div>
+        <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden">
+          <div id="sprint-progress-bar" style="height:100%;background:var(--accent);border-radius:4px;transition:width .3s;width:0%"></div>
+        </div>
+      </div>
+      <!-- Kanban Board -->
+      <div id="sprint-kanban" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start">
+        <div class="kanban-col" id="col-todo">
+          <div class="kanban-col-header"><span class="kc-dot" style="background:#737373"></span>Todo <span class="kc-count" id="cnt-todo">0</span></div>
+          <div class="kanban-cards" id="cards-todo"></div>
+        </div>
+        <div class="kanban-col" id="col-in_progress">
+          <div class="kanban-col-header"><span class="kc-dot" style="background:#3b82f6"></span>In Progress <span class="kc-count" id="cnt-in_progress">0</span></div>
+          <div class="kanban-cards" id="cards-in_progress"></div>
+        </div>
+        <div class="kanban-col" id="col-review">
+          <div class="kanban-col-header"><span class="kc-dot" style="background:#f59e0b"></span>Review <span class="kc-count" id="cnt-review">0</span></div>
+          <div class="kanban-cards" id="cards-review"></div>
+        </div>
+        <div class="kanban-col" id="col-done">
+          <div class="kanban-col-header"><span class="kc-dot" style="background:#22c55e"></span>Done <span class="kc-count" id="cnt-done">0</span></div>
+          <div class="kanban-cards" id="cards-done"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Page: Backlog ──────────────────────────────────────────────────────── -->
+    <div class="page" id="page-backlog">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <h1>Backlog</h1>
+          <p>Alle offenen Tickets — priorisieren, anlegen, in Sprint verschieben</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="bl-filter-status" onchange="loadBacklog()" style="padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+            <option value="">Alle Status</option>
+            <option value="backlog">Backlog</option>
+            <option value="todo">Todo</option>
+            <option value="in_progress">In Progress</option>
+            <option value="review">Review</option>
+            <option value="done">Done</option>
+          </select>
+          <select id="bl-filter-prio" onchange="loadBacklog()" style="padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+            <option value="">Alle Prios</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="normal">🟡 Normal</option>
+            <option value="low">⚪ Low</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openTicketModal(null,'backlog')">+ Neues Ticket</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadBacklog()">↺</button>
+        </div>
       </div>
       <div class="card">
-        <div class="card-header">Tickets</div>
-        <div class="card-body">
+        <div class="card-body" style="padding:0">
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>Titel</th><th>SP</th><th>Status</th><th>Assigned</th></tr></thead>
-              <tbody id="sprint-tickets"><tr><td colspan="5" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr></tbody>
+              <thead><tr>
+                <th style="width:120px">ID</th>
+                <th>Titel</th>
+                <th style="width:80px">Prio</th>
+                <th style="width:50px">SP</th>
+                <th style="width:120px">Status</th>
+                <th style="width:120px">Sprint</th>
+                <th style="width:110px"></th>
+              </tr></thead>
+              <tbody id="backlog-tbody"><tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Ticket Modal (Create / Edit) ──────────────────────────────────────── -->
+    <div id="ticket-modal" hidden style="position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:560px;max-height:90vh;overflow-y:auto">
+        <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0;font-size:15px;font-weight:600" id="tm-title">Ticket</h3>
+          <button onclick="closeTicketModal()" style="background:none;border:none;color:var(--fg3);cursor:pointer;font-size:18px;line-height:1;padding:0">✕</button>
+        </div>
+        <div style="padding:20px 24px">
+          <div id="tm-error" hidden style="background:rgba(192,57,43,.15);border:1px solid var(--red);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:14px;font-size:13px;color:var(--red)"></div>
+          <input type="hidden" id="tm-orig-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Ticket-ID *</label>
+              <input id="tm-id" type="text" placeholder="NPCH-011" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box;font-family:monospace">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Story Points</label>
+              <input id="tm-sp" type="number" min="1" max="99" placeholder="3" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Titel *</label>
+            <input id="tm-title-input" type="text" placeholder="Ticket-Titel" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Status</label>
+              <select id="tm-status" style="width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+                <option value="backlog">backlog</option>
+                <option value="todo">todo</option>
+                <option value="in_progress">in_progress</option>
+                <option value="review">review</option>
+                <option value="done">done</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Priorität</label>
+              <select id="tm-priority" style="width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+                <option value="critical">🔴 critical</option>
+                <option value="high">🟠 high</option>
+                <option value="normal" selected>🟡 normal</option>
+                <option value="low">⚪ low</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Assigned Agent</label>
+              <input id="tm-agent" type="text" placeholder="developer" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Beschreibung</label>
+            <textarea id="tm-desc" rows="4" placeholder="Vollständige Implementierungsanleitung…" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Acceptance Criteria</label>
+            <textarea id="tm-ac" rows="3" placeholder="Given / When / Then…" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Abhängigkeiten (blocked by)</label>
+            <input id="tm-blocked-by" type="text" placeholder="NPCH-001, NPCH-002" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box">
+            <div style="font-size:11px;color:var(--fg3);margin-top:4px">Kommagetrennte Ticket-IDs (wird in AC gespeichert)</div>
+          </div>
+        </div>
+        <div style="padding:12px 24px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <button id="tm-delete-btn" onclick="deleteTicketConfirm()" class="btn btn-ghost btn-sm" style="color:var(--red)" hidden>Löschen</button>
+          <div style="display:flex;gap:8px;margin-left:auto">
+            <button onclick="closeTicketModal()" class="btn btn-ghost btn-sm">Abbrechen</button>
+            <button onclick="saveTicket()" class="btn btn-primary btn-sm">Speichern</button>
           </div>
         </div>
       </div>
@@ -1458,7 +1648,8 @@ const PAGES = {
   'trainer-db': { title: 'Trainer-Datenbank',   load: null },
   team:         { title: 'Team / Intern',       load: null },
   sprint:       { title: 'Sprint Board',        load: loadSprint },
-  agents:       { title: 'Backlog / Agenten',   load: null },
+  backlog:      { title: 'Backlog',             load: loadBacklog },
+  agents:       { title: 'Agenten',             load: null },
   status:       { title: 'System Status',       load: loadStatus },
   approvals:    { title: 'Freigaben',           load: loadApprovals },
   users:        { title: 'Benutzer',            load: loadUsers },
@@ -1521,7 +1712,7 @@ const PAGE_TAB = {
   invoices:'finance', payments:'finance', finance:'finance',
   campaigns:'marketing', leads:'marketing',
   'trainer-db':'hr', team:'hr',
-  sprint:'dev', agents:'dev', status:'dev', admin:'dev',
+  sprint:'dev', backlog:'dev', agents:'dev', status:'dev', admin:'dev',
   tasks:'personal', todos:'personal', notes:'personal', prompts:'personal',
   users:'personal', settings:'personal',
 };
@@ -1734,31 +1925,291 @@ async function loadOrders() {
   }
 }
 
+// ── Sprint & Backlog State ────────────────────────────────────────────────────
+let _activeSprint = null;
+
 async function loadSprint() {
+  // Show loading state in all columns
+  ['todo','in_progress','review','done'].forEach(s => {
+    const el = document.getElementById('cards-' + s);
+    if (el) el.innerHTML = '<div style="color:var(--fg3);font-size:12px;text-align:center;padding:20px">Laden…</div>';
+    const cnt = document.getElementById('cnt-' + s);
+    if (cnt) cnt.textContent = '0';
+  });
   try {
     const sprint = await api('/sprints/active');
-    document.getElementById('sprint-name').textContent = sprint.name || '—';
+    _activeSprint = sprint;
+    document.getElementById('sprint-name-h1').textContent = sprint.name || 'Sprint Board';
+    document.getElementById('sprint-goal-p').textContent = sprint.goal || 'Aktueller Entwicklungs-Sprint';
     document.getElementById('sprint-dates').textContent =
       sprint.start_date && sprint.end_date
-        ? `${fmtDate(sprint.start_date)} – ${fmtDate(sprint.end_date)}`
-        : '—';
+        ? `${fmtDate(sprint.start_date)} – ${fmtDate(sprint.end_date)}` : '—';
+    document.getElementById('sprint-cap').textContent = sprint.capacity_sp || '—';
+
     const tickets = sprint.tickets || [];
-    const done = tickets.filter(t => t.status === 'done').reduce((s, t) => s + (t.story_points || 0), 0);
-    const rem  = tickets.filter(t => t.status !== 'done').reduce((s, t) => s + (t.story_points || 0), 0);
-    document.getElementById('sprint-done').textContent = done;
-    document.getElementById('sprint-remaining').textContent = rem;
-    document.getElementById('sprint-tickets').innerHTML = tickets.map(t => `
-      <tr>
-        <td><code style="font-family:JetBrains Mono,monospace;font-size:11px">${t.ticket_id}</code></td>
-        <td>${t.title}</td>
-        <td>${t.story_points || '—'}</td>
-        <td>${statusBadge(t.status)}</td>
-        <td>${t.assigned_agent || '—'}</td>
-      </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--fg3);padding:24px">Keine Tickets</td></tr>';
+    const totalSP = tickets.reduce((s, t) => s + (t.story_points || 0), 0);
+    const doneSP  = tickets.filter(t => t.status === 'done').reduce((s, t) => s + (t.story_points || 0), 0);
+    const remSP   = totalSP - doneSP;
+    document.getElementById('sprint-done').textContent = doneSP;
+    document.getElementById('sprint-remaining').textContent = remSP;
+    const pct = totalSP ? Math.round(doneSP / totalSP * 100) : 0;
+    document.getElementById('sprint-progress-bar').style.width = pct + '%';
+
+    // Render Kanban columns
+    const cols = { todo: [], in_progress: [], review: [], done: [] };
+    tickets.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+    Object.entries(cols).forEach(([status, list]) => {
+      document.getElementById('cnt-' + status).textContent = list.length;
+      const el = document.getElementById('cards-' + status);
+      el.innerHTML = list.map(t => kanbanCard(t)).join('') ||
+        `<div style="color:var(--fg3);font-size:12px;text-align:center;padding:16px 8px;border:1px dashed var(--border);border-radius:var(--radius-sm)">Leer</div>`;
+    });
   } catch (e) {
-    document.getElementById('sprint-tickets').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;color:var(--red);padding:24px">Fehler: ${e.message}</td></tr>`;
+    ['todo','in_progress','review','done'].forEach(s => {
+      const el = document.getElementById('cards-' + s);
+      if (el && s === 'todo') el.innerHTML = `<div style="color:var(--red);font-size:12px;padding:12px">Fehler: ${e.message}</div>`;
+    });
   }
+}
+
+function kanbanCard(t) {
+  const nextStatusLabel = { todo:'▶ Start', in_progress:'→ Review', review:'✓ Done' }[t.status] || '';
+  const nextStatus      = { todo:'in_progress', in_progress:'review', review:'done' }[t.status] || '';
+  const blockedBy = parseBlockedBy(t.acceptance_criteria);
+  return `<div class="kanban-card prio-${t.priority}" onclick="openTicketModal('${t.ticket_id}','sprint')" title="${escHtml(t.title)}">
+    <div class="kc-id">${escHtml(t.ticket_id)}</div>
+    <div class="kc-title">${escHtml(t.title)}</div>
+    <div class="kc-footer">
+      ${t.story_points ? `<span class="kc-sp">${t.story_points}SP</span>` : ''}
+      ${prioBadge(t.priority)}
+      ${blockedBy ? `<span style="font-size:10px;color:var(--red)">🔗 ${escHtml(blockedBy)}</span>` : ''}
+      <div class="kc-actions" onclick="event.stopPropagation()">
+        ${nextStatus ? `<button class="kc-btn green" onclick="quickStatus('${t.ticket_id}','${nextStatus}')">${nextStatusLabel}</button>` : ''}
+        ${t.status === 'in_progress' ? `<button class="kc-btn" onclick="quickStatus('${t.ticket_id}','todo')" title="Pause">⏸</button>` : ''}
+        <button class="kc-btn red" onclick="confirmDeleteTicket('${t.ticket_id}')" title="Löschen">✕</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function prioBadge(p) {
+  const map = { critical:'🔴', high:'🟠', normal:'🟡', low:'⚪' };
+  return `<span style="font-size:11px">${map[p] || '🟡'}</span>`;
+}
+
+function parseBlockedBy(ac) {
+  if (!ac) return '';
+  const m = ac.match(/^BLOCKED_BY:\s*([^\n]+)/);
+  return m ? m[1].trim() : '';
+}
+
+function cleanAC(ac) {
+  if (!ac) return '';
+  return ac.replace(/^BLOCKED_BY:[^\n]*\n?/, '').trim();
+}
+
+function buildACField(acText, blockedBy) {
+  const clean = cleanAC(acText);
+  if (blockedBy && blockedBy.trim()) return `BLOCKED_BY: ${blockedBy.trim()}\n${clean}`;
+  return clean;
+}
+
+async function quickStatus(ticketId, newStatus) {
+  try {
+    await api(`/tickets/${ticketId}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
+    loadSprint();
+  } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+}
+
+// ── Backlog ───────────────────────────────────────────────────────────────────
+async function loadBacklog() {
+  const tbody = document.getElementById('backlog-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
+  try {
+    const statusFilter = document.getElementById('bl-filter-status')?.value || '';
+    const prioFilter   = document.getElementById('bl-filter-prio')?.value || '';
+    let url = '/tickets?limit=100';
+    if (statusFilter) url += '&status=' + encodeURIComponent(statusFilter);
+    if (prioFilter)   url += '&priority=' + encodeURIComponent(prioFilter);
+    const tickets = await api(url);
+    if (!tickets.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Keine Tickets gefunden</td></tr>';
+      return;
+    }
+    // Update backlog badge (backlog status count)
+    const blCount = tickets.filter(t => t.status === 'backlog').length;
+    const badge = document.getElementById('badge-backlog');
+    if (badge) { badge.textContent = blCount; badge.style.display = blCount ? '' : 'none'; }
+
+    tbody.innerHTML = tickets.map(t => {
+      const blockedBy = parseBlockedBy(t.acceptance_criteria);
+      const prioMap = { critical:'🔴', high:'🟠', normal:'🟡', low:'⚪' };
+      return `<tr>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px">${escHtml(t.ticket_id)}</code></td>
+        <td>
+          <div style="font-size:13px">${escHtml(t.title)}</div>
+          ${blockedBy ? `<div style="font-size:11px;color:var(--red);margin-top:2px">🔗 blocked by: ${escHtml(blockedBy)}</div>` : ''}
+        </td>
+        <td><span title="${t.priority}">${prioMap[t.priority] || '🟡'} ${t.priority}</span></td>
+        <td style="text-align:center">${t.story_points || '—'}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td style="font-size:12px;color:var(--fg3)">${t.sprint_id ? '✅ Im Sprint' : '—'}</td>
+        <td style="white-space:nowrap">
+          <div style="display:flex;gap:4px;justify-content:flex-end">
+            <button class="kc-btn" onclick="openTicketModal('${escHtml(t.ticket_id)}','backlog')" title="Bearbeiten">✏️</button>
+            ${t.status === 'backlog' ? `<button class="kc-btn green" onclick="quickStatus('${escHtml(t.ticket_id)}','todo')" title="→ Todo">▶</button>` : ''}
+            ${!t.sprint_id && _activeSprint ? `<button class="kc-btn" onclick="addToSprint('${escHtml(t.ticket_id)}')" title="In Sprint aufnehmen">📋</button>` : ''}
+            <button class="kc-btn red" onclick="confirmDeleteTicket('${escHtml(t.ticket_id)}')" title="Löschen">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:32px">Fehler: ${e.message}</td></tr>`;
+  }
+}
+
+async function addToSprint(ticketId) {
+  if (!_activeSprint) {
+    showToast('Kein aktiver Sprint gefunden', true); return;
+  }
+  try {
+    await api(`/tickets/${ticketId}`, { method: 'PATCH', body: JSON.stringify({ sprint_id: _activeSprint.id, status: 'todo' }) });
+    showToast('Ticket in Sprint aufgenommen ✓', 'success');
+    loadBacklog();
+  } catch (e) { showToast('Fehler: ' + e.message, true); }
+}
+
+// ── Ticket Modal ──────────────────────────────────────────────────────────────
+let _tmContext = 'sprint'; // 'sprint' or 'backlog'
+
+async function openTicketModal(ticketId, context) {
+  _tmContext = context || 'sprint';
+  const modal = document.getElementById('ticket-modal');
+  const err = document.getElementById('tm-error');
+  err.hidden = true;
+
+  // Load active sprint if needed
+  if (!_activeSprint) {
+    try { _activeSprint = await api('/sprints/active'); } catch {}
+  }
+
+  if (ticketId) {
+    // Edit mode
+    document.getElementById('tm-title').textContent = 'Ticket bearbeiten';
+    document.getElementById('tm-delete-btn').hidden = false;
+    try {
+      const t = await api(`/tickets/${ticketId}`);
+      document.getElementById('tm-orig-id').value = t.ticket_id;
+      document.getElementById('tm-id').value = t.ticket_id;
+      document.getElementById('tm-id').disabled = true;
+      document.getElementById('tm-title-input').value = t.title || '';
+      document.getElementById('tm-status').value = t.status || 'backlog';
+      document.getElementById('tm-priority').value = t.priority || 'normal';
+      document.getElementById('tm-sp').value = t.story_points || '';
+      document.getElementById('tm-agent').value = t.assigned_agent || '';
+      document.getElementById('tm-desc').value = t.description || '';
+      document.getElementById('tm-ac').value = cleanAC(t.acceptance_criteria);
+      document.getElementById('tm-blocked-by').value = parseBlockedBy(t.acceptance_criteria);
+    } catch (e) {
+      showToast('Fehler beim Laden: ' + e.message, true); return;
+    }
+  } else {
+    // Create mode
+    document.getElementById('tm-title').textContent = 'Neues Ticket';
+    document.getElementById('tm-delete-btn').hidden = true;
+    document.getElementById('tm-orig-id').value = '';
+    document.getElementById('tm-id').value = '';
+    document.getElementById('tm-id').disabled = false;
+    document.getElementById('tm-title-input').value = '';
+    document.getElementById('tm-status').value = context === 'sprint' ? 'todo' : 'backlog';
+    document.getElementById('tm-priority').value = 'normal';
+    document.getElementById('tm-sp').value = '';
+    document.getElementById('tm-agent').value = '';
+    document.getElementById('tm-desc').value = '';
+    document.getElementById('tm-ac').value = '';
+    document.getElementById('tm-blocked-by').value = '';
+  }
+  modal.hidden = false;
+  modal.style.display = 'flex';
+}
+
+function closeTicketModal() {
+  const modal = document.getElementById('ticket-modal');
+  modal.hidden = true;
+  modal.style.display = 'none';
+}
+
+async function saveTicket() {
+  const err = document.getElementById('tm-error');
+  err.hidden = true;
+
+  const origId   = document.getElementById('tm-orig-id').value;
+  const ticketId = document.getElementById('tm-id').value.trim();
+  const title    = document.getElementById('tm-title-input').value.trim();
+  const status   = document.getElementById('tm-status').value;
+  const priority = document.getElementById('tm-priority').value;
+  const sp       = document.getElementById('tm-sp').value;
+  const agent    = document.getElementById('tm-agent').value.trim();
+  const desc     = document.getElementById('tm-desc').value.trim();
+  const acRaw    = document.getElementById('tm-ac').value.trim();
+  const blocked  = document.getElementById('tm-blocked-by').value.trim();
+  if (!ticketId) { showFormErr(err, 'Ticket-ID ist erforderlich'); return; }
+  if (!title)    { showFormErr(err, 'Titel ist erforderlich'); return; }
+
+  const body = {
+    title, status, priority,
+    description: desc || null,
+    acceptance_criteria: buildACField(acRaw, blocked) || null,
+    story_points: sp ? parseInt(sp) : null,
+    assigned_agent: agent || null,
+  };
+
+  try {
+    if (origId) {
+      // Update
+      await api(`/tickets/${origId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      showToast('Ticket gespeichert ✓', 'success');
+    } else {
+      // Create — if sprint context add sprint_id
+      if (_tmContext === 'sprint' && _activeSprint) body.sprint_id = _activeSprint.id;
+      await api('/tickets', { method: 'POST', body: JSON.stringify({ ticket_id: ticketId, ...body }) });
+      showToast('Ticket angelegt ✓', 'success');
+    }
+    closeTicketModal();
+    if (_tmContext === 'sprint') loadSprint(); else loadBacklog();
+  } catch (e) {
+    showFormErr(err, e.message || 'Fehler beim Speichern');
+  }
+}
+
+function showFormErr(el, msg) { el.textContent = msg; el.hidden = false; }
+
+function confirmDeleteTicket(ticketId) {
+  if (!confirm(`Ticket ${ticketId} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+  deleteTicketNow(ticketId);
+}
+
+async function deleteTicketConfirm() {
+  const origId = document.getElementById('tm-orig-id').value;
+  if (!origId) return;
+  if (!confirm(`Ticket ${origId} wirklich löschen?`)) return;
+  await deleteTicketNow(origId);
+  closeTicketModal();
+}
+
+async function deleteTicketNow(ticketId) {
+  try {
+    await api(`/tickets/${ticketId}`, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled' }) });
+    showToast(`Ticket ${ticketId} archiviert`, 'success');
+    if (_tmContext === 'sprint') loadSprint(); else loadBacklog();
+  } catch (e) { showToast('Fehler: ' + e.message, true); }
+}
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 async function loadApprovals() {
