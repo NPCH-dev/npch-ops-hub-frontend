@@ -46,6 +46,7 @@
   --radius-sm:5px;
   --sidebar-w:240px;
   --header-h: 52px;
+  --topnav-h: 44px;
   /* Sidebar — always dark */
   --sidebar-bg:     #141414;
   --sidebar-fg:     #737373;
@@ -171,17 +172,60 @@ body {
 }
 .hbtn:hover { background: var(--border); }
 
+/* ── Top Nav Tabs ──────────────────────────────────────────────────────────── */
+#topnav {
+  position: fixed;
+  top: var(--header-h);
+  left: 0; right: 0;
+  height: var(--topnav-h);
+  background: var(--header-bg);
+  background-image: none;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  padding: 0 max(16px, env(safe-area-inset-left,0px));
+  gap: 2px;
+  z-index: 95;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#topnav::-webkit-scrollbar { display: none; }
+.tn-tab {
+  display: flex; align-items: center;
+  padding: 0 14px;
+  font-size: 13px; font-weight: 500;
+  color: var(--fg3);
+  border-bottom: 2px solid transparent;
+  cursor: pointer; white-space: nowrap;
+  text-decoration: none;
+  transition: color .15s, border-color .15s;
+  user-select: none;
+}
+.tn-tab:hover { color: var(--fg2); }
+.tn-tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+
+/* ── Tab groups in sidebar ─────────────────────────────────────────────────── */
+.tab-group { display: none; flex-direction: column; flex: 1; }
+.tab-group.active { display: flex; }
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fg3); }
+* { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
 /* ── App Body Wrapper ──────────────────────────────────────────────────────── */
 .app-body {
   display: flex;
-  margin-top: var(--header-h);
-  min-height: calc(100dvh - var(--header-h));
+  margin-top: calc(var(--header-h) + var(--topnav-h));
+  min-height: calc(100dvh - var(--header-h) - var(--topnav-h));
 }
 
 /* ── Sidebar ───────────────────────────────────────────────────────────────── */
 #sidebar {
   position: fixed;
-  top: var(--header-h);
+  top: calc(var(--header-h) + var(--topnav-h));
   left: 0;
   bottom: 0;
   width: var(--sidebar-w);
@@ -468,6 +512,18 @@ tr:hover td { background: var(--bg3); }
   </div>
 </header>
 
+<!-- Top Nav Tabs -->
+<nav id="topnav">
+  <a class="tn-tab active" data-tab="reporting" onclick="switchTab('reporting')">Reporting</a>
+  <a class="tn-tab" data-tab="sales" onclick="switchTab('sales')">Sales</a>
+  <a class="tn-tab" data-tab="coordination" onclick="switchTab('coordination')">Coordination</a>
+  <a class="tn-tab" data-tab="finance" onclick="switchTab('finance')">Finance</a>
+  <a class="tn-tab" data-tab="marketing" onclick="switchTab('marketing')">Marketing</a>
+  <a class="tn-tab" data-tab="hr" onclick="switchTab('hr')">HR</a>
+  <a class="tn-tab" data-tab="dev" onclick="switchTab('dev')">Entwicklung</a>
+  <a class="tn-tab" data-tab="personal" onclick="switchTab('personal')">Personal</a>
+</nav>
+
 <!-- App Body -->
 <div class="app-body">
 
@@ -477,35 +533,31 @@ tr:hover td { background: var(--bg3); }
 <!-- Sidebar -->
 <nav id="sidebar">
 
-  <!-- Management Board -->
-  <div class="sb-section">
-    <a class="nav-item" data-page="dashboard" href="#dashboard">
-      <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="13" y="3" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="13" y="13" width="6" height="6" rx="1"/></svg></span>
-      Management Board
-      <span class="nav-badge warn" id="badge-dashboard" style="display:none">0</span>
-    </a>
+  <!-- TAB: Reporting -->
+  <div class="tab-group active" data-tab-content="reporting">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="dashboard" href="#dashboard">
+        <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="13" y="3" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="13" y="13" width="6" height="6" rx="1"/></svg></span>
+        Management Board
+        <span class="nav-badge warn" id="badge-dashboard" style="display:none">0</span>
+      </a>
+    </div>
   </div>
 
-  <div class="sb-div"></div>
-
-  <!-- Sales -->
-  <div class="sb-section">
-    <div class="sb-label" data-group="sales">
-      <span>Sales</span>
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="4 6 8 10 12 6"/></svg>
-    </div>
-    <div class="sb-group-items" id="grp-sales">
-      <a class="nav-item ni-sub" data-page="inquiries" href="#inquiries">
+  <!-- TAB: Sales -->
+  <div class="tab-group" data-tab-content="sales">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="inquiries" href="#inquiries">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
         Pipeline / Forecast
         <span class="nav-badge red" id="badge-inquiries" style="display:none">0</span>
       </a>
-      <a class="nav-item ni-sub" data-page="bookings" href="#bookings">
+      <a class="nav-item" data-page="bookings" href="#bookings">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         Bookings
         <span class="nav-badge blue" id="badge-bookings" style="display:none">0</span>
       </a>
-      <a class="nav-item ni-sub" data-page="orders" href="#orders">
+      <a class="nav-item" data-page="orders" href="#orders">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
         Auftragsbuch
         <span class="nav-badge" id="badge-orders" style="display:none">0</span>
@@ -513,124 +565,126 @@ tr:hover td { background: var(--bg3); }
     </div>
   </div>
 
-  <!-- Coordination -->
-  <div class="sb-section">
-    <div class="sb-label" data-group="coord">
-      <span>Coordination</span>
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="4 6 8 10 12 6"/></svg>
-    </div>
-    <div class="sb-group-items" id="grp-coord">
-      <a class="nav-item ni-sub" data-page="delivery" href="#delivery">
+  <!-- TAB: Coordination -->
+  <div class="tab-group" data-tab-content="coordination">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="delivery" href="#delivery">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
         Delivery Planning
         <span class="nav-badge warn" id="badge-delivery" style="display:none">0</span>
       </a>
-      <a class="nav-item ni-sub" data-page="trainers" href="#trainers">
+      <a class="nav-item" data-page="trainers" href="#trainers">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         Trainer Recruitment
         <span class="nav-badge blue" id="badge-trainers" style="display:none">0</span>
       </a>
+      <a class="nav-item" data-page="approvals" href="#approvals">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        Freigaben
+      </a>
     </div>
   </div>
 
-  <!-- Finance -->
-  <div class="sb-section">
-    <div class="sb-label" data-group="finance">
-      <span>Finance</span>
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="4 6 8 10 12 6"/></svg>
-    </div>
-    <div class="sb-group-items" id="grp-finance">
-      <a class="nav-item ni-sub" data-page="invoices" href="#invoices">
+  <!-- TAB: Finance -->
+  <div class="tab-group" data-tab-content="finance">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="invoices" href="#invoices">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>
         Rechnungen
         <span class="nav-badge red" id="badge-invoices" style="display:none">0</span>
       </a>
-      <a class="nav-item ni-sub" data-page="payments" href="#payments">
+      <a class="nav-item" data-page="payments" href="#payments">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></span>
         Zahlungen / Mahnwesen
         <span class="nav-badge warn" id="badge-payments" style="display:none">0</span>
       </a>
-      <a class="nav-item ni-sub" data-page="finance" href="#finance">
+      <a class="nav-item" data-page="finance" href="#finance">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
         Finance Overview
       </a>
     </div>
   </div>
 
-  <!-- Marketing -->
-  <div class="sb-section">
-    <div class="sb-label" data-group="marketing">
-      <span>Marketing</span>
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="4 6 8 10 12 6"/></svg>
-    </div>
-    <div class="sb-group-items" id="grp-marketing">
-      <a class="nav-item ni-sub" data-page="campaigns" href="#campaigns">
+  <!-- TAB: Marketing -->
+  <div class="tab-group" data-tab-content="marketing">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="campaigns" href="#campaigns">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
         Kampagnen
       </a>
-      <a class="nav-item ni-sub" data-page="leads" href="#leads">
+      <a class="nav-item" data-page="leads" href="#leads">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
         Lead-Quellen
       </a>
     </div>
   </div>
 
-  <!-- HR -->
-  <div class="sb-section">
-    <div class="sb-label" data-group="hr">
-      <span>HR</span>
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="4 6 8 10 12 6"/></svg>
-    </div>
-    <div class="sb-group-items" id="grp-hr">
-      <a class="nav-item ni-sub" data-page="trainer-db" href="#trainer-db">
+  <!-- TAB: HR -->
+  <div class="tab-group" data-tab-content="hr">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="trainer-db" href="#trainer-db">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg></span>
         Trainer-Datenbank
       </a>
-      <a class="nav-item ni-sub" data-page="team" href="#team">
+      <a class="nav-item" data-page="team" href="#team">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         Team / Intern
       </a>
     </div>
   </div>
 
-  <!-- Entwicklung -->
-  <div class="sb-section">
-    <div class="sb-label" data-group="dev">
-      <span>Entwicklung</span>
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="4 6 8 10 12 6"/></svg>
-    </div>
-    <div class="sb-group-items" id="grp-dev">
-      <a class="nav-item ni-sub" data-page="sprint" href="#sprint">
+  <!-- TAB: Entwicklung -->
+  <div class="tab-group" data-tab-content="dev">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="sprint" href="#sprint">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
         Sprint
         <span class="nav-badge blue" id="badge-sprint" style="display:none">0</span>
       </a>
-      <a class="nav-item ni-sub" data-page="agents" href="#agents">
+      <a class="nav-item" data-page="agents" href="#agents">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>
         Backlog
       </a>
-      <a class="nav-item ni-sub" data-page="status" href="#status">
+      <a class="nav-item" data-page="status" href="#status">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
         System Status
       </a>
-      <a class="nav-item ni-sub" data-page="admin" href="#admin">
+      <a class="nav-item" data-page="admin" href="#admin">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
         Cloud Cockpit
       </a>
     </div>
   </div>
 
-  <div class="sb-div"></div>
-
-  <div class="sb-section">
-    <a class="nav-item" data-page="users" href="#users">
-      <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-      Nutzer
-    </a>
-    <a class="nav-item" data-page="settings" href="#settings">
-      <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-      Einstellungen
-    </a>
+  <!-- TAB: Personal -->
+  <div class="tab-group" data-tab-content="personal">
+    <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="tasks" href="#tasks">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+        Meine Aufgaben
+      </a>
+      <a class="nav-item" data-page="todos" href="#todos">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        Todos
+      </a>
+      <a class="nav-item" data-page="notes" href="#notes">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
+        Notizen
+      </a>
+      <a class="nav-item" data-page="prompts" href="#prompts">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        Prompts / KI
+      </a>
+      <div class="sb-div" style="margin-top:8px"></div>
+      <a class="nav-item" data-page="users" href="#users">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        Nutzerverwaltung
+      </a>
+      <a class="nav-item" data-page="settings" href="#settings">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        Einstellungen
+      </a>
+    </div>
   </div>
 
   <div class="sidebar-footer">
@@ -1132,6 +1186,24 @@ tr:hover td { background: var(--bg3); }
     </div>
 
     <!-- ── Page: Admin / Tech Management Board ──────────────────────────── -->
+    <!-- Personal Pages -->
+    <div class="page" id="page-tasks">
+      <div class="page-header"><h1>Meine Aufgaben</h1><p>Persönliche Aufgaben & To-Dos</p></div>
+      <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Aufgaben werden geladen…</p></div>
+    </div>
+    <div class="page" id="page-todos">
+      <div class="page-header"><h1>Todos</h1><p>Checklisten & offene Punkte</p></div>
+      <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Todos werden geladen…</p></div>
+    </div>
+    <div class="page" id="page-notes">
+      <div class="page-header"><h1>Notizen</h1><p>Persönliche Notizen & Mitschriften</p></div>
+      <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Notizen werden geladen…</p></div>
+    </div>
+    <div class="page" id="page-prompts">
+      <div class="page-header"><h1>Prompts / KI-Assistenten</h1><p>Gespeicherte Prompts & KI-Workflows</p></div>
+      <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Prompt-Bibliothek wird geladen…</p></div>
+    </div>
+
     <div class="page" id="page-admin">
       <style>
         /* Admin Board Styles */
@@ -1392,6 +1464,10 @@ const PAGES = {
   users:        { title: 'Benutzer',            load: loadUsers },
   settings:     { title: 'Einstellungen',       load: null },
   admin:        { title: 'Cloud Cockpit', load: loadAdminBoard },
+  tasks:        { title: 'Meine Aufgaben',  load: null },
+  todos:        { title: 'Todos',           load: null },
+  notes:        { title: 'Notizen',         load: null },
+  prompts:      { title: 'Prompts / KI',    load: null },
 };
 
 function navigate(page) {
@@ -1407,6 +1483,10 @@ function navigate(page) {
   if (pageEl) pageEl.classList.add('active');
   document.querySelector(`[data-page="${key}"]`)?.classList.add('active');
   document.getElementById('page-title').textContent = PAGES[key].title;
+
+  // Sync top nav tab
+  const tab = PAGE_TAB[key] || 'reporting';
+  switchTab(tab);
 
   // Health-Polling stoppen wenn Admin verlassen wird
   if (key !== 'admin') stopAdminHealthPolling();
@@ -1432,6 +1512,25 @@ window.addEventListener('load', () => {
     loadUser();
   }
 });
+
+// ── Top Nav Tabs ──────────────────────────────────────────────────────────────
+const PAGE_TAB = {
+  dashboard:'reporting',
+  inquiries:'sales', bookings:'sales', orders:'sales', proposals:'sales',
+  delivery:'coordination', trainers:'coordination', approvals:'coordination',
+  invoices:'finance', payments:'finance', finance:'finance',
+  campaigns:'marketing', leads:'marketing',
+  'trainer-db':'hr', team:'hr',
+  sprint:'dev', agents:'dev', status:'dev', admin:'dev',
+  tasks:'personal', todos:'personal', notes:'personal', prompts:'personal',
+  users:'personal', settings:'personal',
+};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tn-tab').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+  document.querySelectorAll('.tab-group').forEach(el => el.classList.toggle('active', el.dataset.tabContent === tab));
+  try { localStorage.setItem('npch_tab', tab); } catch {}
+}
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function toggleSidebar() {
@@ -1474,17 +1573,7 @@ async function loadUser() {
 }
 
 // ── Sidebar group toggles ─────────────────────────────────────────────────────
-document.querySelectorAll('.sb-label[data-group]').forEach(label => {
-  const groupId = label.dataset.group;
-  const items = document.getElementById('grp-' + groupId);
-  if (!items) return;
-  items.style.maxHeight = items.scrollHeight + 'px';
-  label.addEventListener('click', () => {
-    const collapsed = label.classList.toggle('collapsed');
-    items.style.maxHeight = collapsed ? '0' : items.scrollHeight + 'px';
-    items.classList.toggle('hidden', collapsed);
-  });
-});
+// sb-label collapse no longer used (replaced by top-nav tabs)
 
 async function loadDashboard() {
   // Greeting
