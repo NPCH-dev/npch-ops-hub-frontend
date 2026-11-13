@@ -1518,6 +1518,44 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
 
+    <!-- ── Neuer Sprint Modal ───────────────────────────────────────────────── -->
+    <div id="new-sprint-modal" hidden style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:16px">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:460px">
+        <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:14px;font-weight:600">Neuer Sprint</div>
+          <button onclick="closeNewSprintModal()" style="background:none;border:none;color:var(--fg3);cursor:pointer;font-size:18px;line-height:1;padding:0">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+          <div>
+            <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Name *</label>
+            <input id="nsm-name" type="text" placeholder="Sprint 5 — Feature X" style="width:100%;box-sizing:border-box;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Ziel</label>
+            <input id="nsm-goal" type="text" placeholder="Was wird in diesem Sprint erreicht?" style="width:100%;box-sizing:border-box;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Start</label>
+              <input id="nsm-start" type="date" style="width:100%;box-sizing:border-box;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Ende</label>
+              <input id="nsm-end" type="date" style="width:100%;box-sizing:border-box;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Kapazität (SP)</label>
+            <input id="nsm-capacity" type="number" value="40" min="1" max="200" style="width:100%;box-sizing:border-box;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+            <button onclick="closeNewSprintModal()" class="btn btn-ghost btn-sm">Abbrechen</button>
+            <button onclick="confirmNewSprint()" class="btn btn-primary btn-sm">Sprint erstellen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Sprint Assign Modal ────────────────────────────────────────────────── -->
     <div id="sprint-assign-modal" hidden style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:16px">
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:400px">
@@ -2399,7 +2437,7 @@ function _renderSprintNav() {
     <button class="btn btn-ghost btn-sm" onclick="_sprintStep(-1)" ${_sprintIdx===0?'disabled':''}>← Zurück</button>
     ${pills}
     <button class="btn btn-ghost btn-sm" onclick="_sprintStep(1)" ${_sprintIdx===(sprints.length-1)?'disabled':''}>Weiter →</button>
-    <button class="btn btn-ghost btn-sm" onclick="showToast('Neuer Sprint — Backend ausstehend','info')" style="margin-left:auto">+ Neuer Sprint</button>
+    <button class="btn btn-ghost btn-sm" onclick="openNewSprintModal()" style="margin-left:auto">+ Neuer Sprint</button>
   `;
 }
 
@@ -2436,9 +2474,9 @@ function _renderSprintBoard(sprint) {
   if (sprint.status === 'active') {
     acts.innerHTML = `
       <button class="btn btn-ghost btn-sm" onclick="openTicketModal(null,'sprint')">+ Ticket</button>
-      <button class="btn btn-ghost btn-sm" onclick="showToast('Sprint abschließen — Backend ausstehend','info')">Sprint abschließen</button>`;
+      <button class="btn btn-ghost btn-sm" onclick="closeSprint()">Sprint abschließen</button>`;
   } else if (sprint.status === 'planned') {
-    acts.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showToast('Sprint starten — Backend ausstehend','info')">▶ Sprint starten</button>`;
+    acts.innerHTML = `<button class="btn btn-primary btn-sm" onclick="startSprint()">▶ Sprint starten</button>`;
   } else {
     acts.innerHTML = '';
   }
@@ -2738,6 +2776,74 @@ function buildACField(acText, blockedBy) {
 async function quickStatus(ticketId, newStatus) {
   try {
     await api(`/tickets/${ticketId}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
+    loadSprint();
+  } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+}
+
+// ── Sprint Actions ────────────────────────────────────────────────────────────
+async function startSprint() {
+  const sprint = _currentSprintData;
+  if (!sprint) return;
+  if (!confirm(`Sprint "${sprint.name}" jetzt starten?`)) return;
+  try {
+    await api(`/sprints/${sprint.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'active' }) });
+    showToast('Sprint gestartet ✓', 'success');
+    loadSprint();
+  } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+}
+
+async function closeSprint() {
+  const sprint = _currentSprintData;
+  if (!sprint) return;
+  const open = (sprint.tickets || []).filter(t => !['done','cancelled'].includes(t.status)).length;
+  const msg = open > 0
+    ? `Sprint abschließen? Es sind noch ${open} Ticket(s) nicht erledigt.`
+    : `Sprint "${sprint.name}" abschließen?`;
+  if (!confirm(msg)) return;
+  try {
+    await api(`/sprints/${sprint.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'completed' }) });
+    showToast('Sprint abgeschlossen ✓', 'success');
+    loadSprint();
+  } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+}
+
+function openNewSprintModal() {
+  // Vorschlag für nächste Sprint-Nummer und Datum
+  const sprints = _loadedSprints || [];
+  const nextNum = sprints.length > 0 ? Math.max(...sprints.map(s => s.number || 0)) + 1 : 1;
+  document.getElementById('nsm-name').value = `Sprint ${nextNum}`;
+  document.getElementById('nsm-goal').value = '';
+  // Startdatum = heute, Ende = +2 Wochen
+  const today = new Date();
+  const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14);
+  const fmt = d => d.toISOString().slice(0, 10);
+  document.getElementById('nsm-start').value = fmt(today);
+  document.getElementById('nsm-end').value = fmt(twoWeeks);
+  document.getElementById('nsm-capacity').value = '40';
+  const modal = document.getElementById('new-sprint-modal');
+  modal.hidden = false; modal.style.display = 'flex';
+}
+
+function closeNewSprintModal() {
+  const modal = document.getElementById('new-sprint-modal');
+  modal.hidden = true; modal.style.display = 'none';
+}
+
+async function confirmNewSprint() {
+  const name = document.getElementById('nsm-name').value.trim();
+  if (!name) { showToast('Name ist Pflichtfeld', 'error'); return; }
+  const body = {
+    name,
+    status: 'planned',
+    goal: document.getElementById('nsm-goal').value.trim() || null,
+    start_date: document.getElementById('nsm-start').value || null,
+    end_date: document.getElementById('nsm-end').value || null,
+    capacity_sp: parseInt(document.getElementById('nsm-capacity').value) || 40,
+  };
+  try {
+    await api('/sprints', { method: 'POST', body: JSON.stringify(body) });
+    closeNewSprintModal();
+    showToast(`Sprint "${name}" erstellt ✓`, 'success');
     loadSprint();
   } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
 }
