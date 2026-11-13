@@ -15,7 +15,7 @@
 set -euo pipefail
 
 GHCR_IMAGE="ghcr.io/npch-dev/npch-ops-hub:backend"
-ENV_FILE="/www/wwwroot/backend.processengine.de/.env"
+ENV_FILE="/root/npch-backend.env"
 NETWORK="npch-net"
 PORT="8000:8000"
 HEALTH_URL="http://127.0.0.1:8000/api/v1/health"
@@ -48,10 +48,15 @@ docker pull "$GHCR_IMAGE"
 
 # ── Neuen Container starten ────────────────────────────────────────────────────
 echo "[2/4] Starte $NEW_NAME ..."
+STARTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 docker run -d \
   --name "$NEW_NAME" \
   --network "$NETWORK" \
   --env-file "$ENV_FILE" \
+  -e "CONTAINER_NAME=$NEW_NAME" \
+  -e "CONTAINER_IMAGE=$GHCR_IMAGE" \
+  -e "CONTAINER_STARTED=$STARTED_AT" \
+  -v /var/run/docker.sock:/var/run/docker.sock \
   -p $PORT \
   --restart unless-stopped \
   "$GHCR_IMAGE"
