@@ -2402,15 +2402,11 @@ async function loadBacklog() {
     const badge = document.getElementById('badge-backlog');
     if (badge) { badge.textContent = blCount; badge.style.display = blCount ? '' : 'none'; }
 
-    // Sprint-Optionen laden für Inline-Selects
+    // Sprint-Optionen laden
     if (!_activeSprint) {
       try { _activeSprint = await api('/sprints/active'); } catch {}
     }
-    _blSprintOptions = [];
-    if (_activeSprint) _blSprintOptions.push({ id: _activeSprint.id, name: _activeSprint.name || _activeSprint.id });
-    // Weitere bekannte Sprints aus den Tickets sammeln
-    const sprintIds = [...new Set(_blAllTickets.map(t => t.sprint_id).filter(Boolean))];
-    sprintIds.forEach(id => { if (!_blSprintOptions.find(s => s.id === id)) _blSprintOptions.push({ id, name: id }); });
+    await loadAllSprints();
 
     renderBacklogTable();
     // Nach Render: Sprint-Dropdowns befüllen
@@ -2482,13 +2478,47 @@ function restoreTicketFromModal() {
 }
 
 // ── Inline Sprint-Zuweisung ───────────────────────────────────────────────────
-let _blSprintOptions = []; // { id, name } — aus _activeSprint + bekannte Sprints
+let _blSprintOptions = []; // { id, name, number } — aus /sprints API
+let _allSprintsLoaded = false;
+
+// Lesbare Sprint-Bezeichnung: "#1 Sprint Name" oder "#1"
+function sprintLabel(s) {
+  if (!s) return '—';
+  const num = s.number ?? extractSprintNum(s.name || s.id);
+  const label = num ? `#${num}` : '';
+  const name = s.name && s.name !== s.id ? s.name : '';
+  if (label && name) return `${label} ${name}`;
+  return label || name || s.id;
+}
+
+function extractSprintNum(str) {
+  if (!str) return null;
+  const m = String(str).match(/(\d+)/);
+  return m ? parseInt(m[1]) : null;
+}
+
+async function loadAllSprints() {
+  if (_allSprintsLoaded) return;
+  try {
+    const sprints = await api('/sprints?limit=50');
+    if (Array.isArray(sprints) && sprints.length) {
+      _blSprintOptions = sprints
+        .sort((a, b) => (extractSprintNum(a.name||a.id)||99) - (extractSprintNum(b.name||b.id)||99))
+        .map(s => ({ id: s.id, name: s.name, number: s.number }));
+      _allSprintsLoaded = true;
+    }
+  } catch {
+    // Fallback: aktiver Sprint
+    if (_activeSprint && !_blSprintOptions.find(s => s.id === _activeSprint.id)) {
+      _blSprintOptions = [{ id: _activeSprint.id, name: _activeSprint.name, number: _activeSprint.number }];
+    }
+  }
+}
 
 function _populateSprintSelects() {
-  // Alle Sprint-Selects in der Tabelle + Bulk-Bar befüllen
   const opts = _blSprintOptions;
   if (!opts.length) return;
-  const optHtml = opts.map(s => `<option value="${escHtml(s.id)}">${escHtml(s.name || s.id)}</option>`).join('');
+  const optHtml = opts.map(s => `<option value="${escHtml(s.id)}">${escHtml(sprintLabel(s))}</option>`).join('');
 
   // Tabellen-Selects
   document.querySelectorAll('.bl-sprint-sel').forEach(sel => {
@@ -2651,20 +2681,13 @@ function openSprintAssignModal(ticketId, currentSprintId) {
   const modal = document.getElementById('sprint-assign-modal');
   document.getElementById('sam-ticket-id').textContent = ticketId;
 
-  // Sprint-Liste: aktiven Sprint + bekannte Sprints befüllen
+  // Sprint-Liste aus zentralem _blSprintOptions
   const sel = document.getElementById('sam-sprint-select');
-  sel.innerHTML = '<option value="">— Kein Sprint —</option>';
-  const sprints = [];
-  if (_activeSprint) sprints.push({ id: _activeSprint.id, name: _activeSprint.name || _activeSprint.id });
-  // Fallback: manueller Eintrag wenn kein Sprint geladen
-  if (!sprints.length) sprints.push({ id: 'sprint-1', name: 'Sprint 1' });
-  sprints.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.name;
-    if (s.id === currentSprintId) opt.selected = true;
-    sel.appendChild(opt);
-  });
+  const sprints = _blSprintOptions.length
+    ? _blSprintOptions
+    : (_activeSprint ? [{ id: _activeSprint.id, name: _activeSprint.name, number: _activeSprint.number }] : [{ id: 'sprint-1', name: 'Sprint 1', number: 1 }]);
+  sel.innerHTML = '<option value="">— Kein Sprint —</option>' +
+    sprints.map(s => `<option value="${escHtml(s.id)}" ${s.id === currentSprintId ? 'selected' : ''}>${escHtml(sprintLabel(s))}</option>`).join('');
 
   modal.hidden = false;
   modal.style.display = 'flex';
