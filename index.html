@@ -13,14 +13,14 @@
 
 /* ── Design Tokens — Langfuse Dark ─────────────────────────────────────────── */
 :root {
-  /* Backgrounds — pure near-black, no blue tint */
-  --bg:       #0a0a0a;
-  --bg2:      #111111;
-  --bg3:      #171717;
-  --bg4:      #222222;
-  /* Borders — neutral dark */
-  --border:   #1e1e1e;
-  --border2:  #2d2d2d;
+  /* Backgrounds — Langfuse dark gray */
+  --bg:       #141414;
+  --bg2:      #1c1c1c;
+  --bg3:      #222222;
+  --bg4:      #2a2a2a;
+  /* Borders */
+  --border:   #2a2a2a;
+  --border2:  #383838;
   /* Text */
   --fg:       #fafafa;
   --fg2:      #a3a3a3;
@@ -47,13 +47,14 @@
   --sidebar-w:240px;
   --header-h: 52px;
   /* Sidebar — always dark */
-  --sidebar-bg:     #0a0a0a;
+  --sidebar-bg:     #141414;
   --sidebar-fg:     #737373;
   --sidebar-act:    #fafafa;
   --sidebar-act-bg: rgba(255,255,255,.08);
   --sidebar-hover:  rgba(255,255,255,.04);
   --sidebar-div:    rgba(255,255,255,.06);
-  --header-bg:      #0a0a0a;
+  --header-bg:      #141414;
+  --pattern-dot:    rgba(255,255,255,.045);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
@@ -83,9 +84,9 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg:#0a0a0a;--bg2:#111111;--bg3:#171717;--bg4:#222222;
-  --border:#1e1e1e;--border2:#2d2d2d;--fg:#fafafa;--fg2:#a3a3a3;--fg3:#737373;
-  --header-bg:#0a0a0a;--sidebar-bg:#0a0a0a;
+  --bg:#141414;--bg2:#1c1c1c;--bg3:#222222;--bg4:#2a2a2a;
+  --border:#2a2a2a;--border2:#383838;--fg:#fafafa;--fg2:#a3a3a3;--fg3:#737373;
+  --header-bg:#141414;--sidebar-bg:#141414;
   color-scheme:dark;
 }
 
@@ -96,7 +97,9 @@ body {
   font-family: 'Geist', 'Inter', -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--pattern-dot, rgba(255,255,255,.04)) 1px, transparent 1px);
+  background-size: 20px 20px;
   color: var(--fg);
 }
 
@@ -106,6 +109,7 @@ body {
   top: 0; left: 0; right: 0;
   height: var(--header-h);
   background: var(--header-bg);
+  background-image: none;   /* no dot pattern on header */
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -182,6 +186,7 @@ body {
   bottom: 0;
   width: var(--sidebar-w);
   background: var(--sidebar-bg);
+  background-image: none;   /* no dot pattern on sidebar */
   display: flex;
   flex-direction: column;
   overflow-y: auto;
