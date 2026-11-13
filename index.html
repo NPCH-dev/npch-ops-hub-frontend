@@ -1886,7 +1886,7 @@ async function loadStatus() {
     { name: 'Backend API',           sub: 'api.processengine.de',    ok: apiOk,  detail: apiOk ? apiLatency : 'Nicht erreichbar', icon: '⚙️' },
     { name: 'Frontend',              sub: 'dev.processengine.de',     ok: true,   detail: 'Diese Seite', icon: '🌐' },
     { name: 'Datenbank',             sub: 'npch-postgres Container',  ok: apiOk,  detail: apiOk ? 'Verbunden' : 'Unbekannt', icon: '🗄️' },
-    { name: 'Developer Agent',       sub: 'n8n Workflow VlWgEiwV6L',  ok: null,   detail: 'Status via n8n', icon: '🤖' },
+    { name: 'Developer Agent',       sub: 'n8n Workflow VlWgEiwV6L',  ok: null,   detail: 'Status via n8n', icon: '🤖', trigger: true },
     { name: 'Ticket Runner',         sub: 'n8n — alle 3 Min.',        ok: null,   detail: 'Kontinuierlich', icon: '🔁' },
     { name: 'LiteLLM',              sub: '62.238.89.247:4000',        ok: null,   detail: 'Helsinki GPU', icon: '🧠' },
   ];
@@ -1903,8 +1903,23 @@ async function loadStatus() {
         <div class="status-name">${s.name}</div>
         <div class="status-sub">${s.sub}</div>
         <div class="status-detail">${s.detail}</div>
+        ${s.trigger ? `<button class="btn btn-sm" style="margin-top:10px;width:100%;font-size:11px" onclick="triggerDevAgent(this)">▶ Agent triggern</button>` : ''}
       </div>`;
   }).join('');
+}
+
+async function triggerDevAgent(btn) {
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Wird gestartet…';
+  try {
+    await api('/admin/n8n/workflows/VlWgEiwV6LItYaVX/execute', { method: 'POST' });
+    btn.textContent = '✅ Gestartet';
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 3000);
+  } catch (e) {
+    btn.textContent = '❌ Fehler: ' + e.message;
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 4000);
+  }
 }
 
 async function loadOrders() {
