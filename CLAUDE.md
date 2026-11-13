@@ -138,7 +138,7 @@ SP-01 Anfrage → SP-02 Angebot → SP-03 Buchungsbestätigung → SP-04 Auftrag
 |------------|--------|
 | Frontend-URL | `https://dev.processengine.de` |
 | API-Base | `https://api.processengine.de/api/v1` |
-| Backend-Container | `npch-b3` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) — **aktuell: npch-b3, Nummer steigt mit jedem Deploy** |
+| Backend-Container | `npch-b7` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) — **aktuell: npch-b7, Nummer steigt mit jedem Deploy** |
 | DB-Container | `npch-postgres` (PostgreSQL — NICHT Supabase) |
 | n8n-Container | `n8n` auf Port `8008` |
 | Server-Zugang | aaPanel Browser-UI (kein SSH auf `hpde-serv1.nobleprog.de`!) |
