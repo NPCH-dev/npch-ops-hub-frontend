@@ -45,6 +45,7 @@
   --radius:   8px;
   --radius-sm:5px;
   --sidebar-w:240px;
+  --ai-panel-w: 320px;
   --header-h: 52px;
   --topnav-h: 44px;
   /* Sidebar — always dark */
@@ -429,6 +430,189 @@ body {
   #sprint-kanban { grid-template-columns: 1fr; }
 }
 
+/* ── AI Chat Panel ─────────────────────────────────────────────────────────── */
+#ai-panel {
+  position: fixed;
+  top: calc(var(--header-h) + var(--topnav-h));
+  right: 0;
+  bottom: 0;
+  width: var(--ai-panel-w);
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 110;
+  transform: translateX(100%);
+  transition: transform .22s cubic-bezier(.4,0,.2,1);
+}
+#ai-panel.open { transform: translateX(0); }
+#main.ai-open { margin-right: var(--ai-panel-w); }
+.ai-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.ai-hdr-icon {
+  width: 26px; height: 26px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--accent-fg); font-weight: 700; flex-shrink: 0;
+}
+.ai-hdr-title { font-size: 13px; font-weight: 600; flex: 1; }
+.ai-hdr-btn {
+  background: none; border: none; color: var(--fg3); cursor: pointer;
+  padding: 4px; border-radius: 4px; font-size: 14px; line-height: 1;
+  transition: color .12s, background .12s;
+}
+.ai-hdr-btn:hover { color: var(--fg); background: var(--bg3); }
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-msg { display: flex; gap: 8px; max-width: 100%; }
+.ai-msg.user { flex-direction: row-reverse; }
+.ai-bubble {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 86%;
+  word-break: break-word;
+}
+.ai-msg.user .ai-bubble {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  border-radius: 10px 10px 2px 10px;
+}
+.ai-msg.ai .ai-bubble {
+  border-radius: 10px 10px 10px 2px;
+}
+.ai-typing { display: flex; gap: 4px; padding: 10px 12px; }
+.ai-typing span {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--fg3);
+  animation: ai-bounce .9s infinite;
+}
+.ai-typing span:nth-child(2) { animation-delay: .15s; }
+.ai-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes ai-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+.ai-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+#ai-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
+  resize: none;
+  font-family: inherit;
+}
+#ai-input:focus { border-color: var(--accent); }
+.ai-send-btn {
+  width: 34px; height: 34px;
+  background: var(--accent); color: var(--accent-fg);
+  border: none; border-radius: 8px;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity .12s;
+}
+.ai-send-btn:hover { opacity: .85; }
+
+/* ── Sprint Navigator ──────────────────────────────────────────────────────── */
+.sprint-nav {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.sprint-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--fg2); transition: all .12s; white-space: nowrap;
+}
+.sprint-pill:hover { border-color: var(--border2); color: var(--fg); }
+.sprint-pill.active { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.sprint-pill .sp-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.sprint-status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 20px; margin-bottom: 6px;
+}
+.sprint-status-badge.active  { background: rgba(34,197,94,.12); color: #22c55e; }
+.sprint-status-badge.past    { background: var(--bg3); color: var(--fg3); }
+.sprint-status-badge.planned { background: rgba(0,87,184,.12); color: var(--accent); }
+.sprint-hdr-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.sprint-prog-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+}
+.sprint-prog-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+}
+.sprint-prog-bar-bg { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; }
+.sprint-prog-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; }
+
+/* Past sprint view */
+.sprint-stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;
+}
+.sprint-stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.sprint-stat-label { font-size: 11px; color: var(--fg3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.sprint-stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+.sprint-stat-value.green { color: #22c55e; }
+.sprint-stat-value.red   { color: var(--red); }
+.sprint-stat-value.blue  { color: var(--accent); }
+.sprint-retro-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-top: 16px;
+}
+.sprint-retro-hdr {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 600;
+}
+.sprint-retro-body { padding: 14px 16px; }
+
+/* Future sprint planning */
+.sprint-plan-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.sprint-plan-row:last-child { border-bottom: none; }
+.sprint-plan-id { font-family: monospace; font-size: 11px; color: var(--fg3); min-width: 100px; }
+.sprint-plan-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sprint-plan-sp { font-size: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; color: var(--fg2); flex-shrink: 0; }
+
 /* ── Component: Table ──────────────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -548,6 +732,9 @@ tr:hover td { background: var(--bg3); }
       <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="badge-dot"></span>
     </button>
+    <button class="hdr-icon-btn" id="ai-toggle-hdr-btn" onclick="toggleAiPanel()" title="KI-Assistent" style="position:relative">
+      <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
+    </button>
     <div class="hdr-avatar" id="user-avatar" title="Profil">CH</div>
   </div>
 </header>
@@ -566,6 +753,24 @@ tr:hover td { background: var(--bg3); }
 
 <!-- App Body -->
 <div class="app-body">
+
+<!-- ── AI Chat Panel (global, right) ──────────────────────────────────────── -->
+<div id="ai-panel">
+  <div class="ai-hdr">
+    <div class="ai-hdr-icon">✦</div>
+    <span class="ai-hdr-title">KI-Assistent</span>
+    <button class="ai-hdr-btn" onclick="toggleAiPanel()" title="Schließen">✕</button>
+  </div>
+  <div class="ai-messages" id="ai-messages">
+    <div class="ai-msg ai">
+      <div class="ai-bubble">Hallo! 👋 Ich bin dein KI-Assistent für das NPCH Ops Hub.<br><br>Ich kenne den aktuellen Kontext — welche Seite offen ist, Tickets, Sprints. Frag mich einfach!</div>
+    </div>
+  </div>
+  <div class="ai-footer">
+    <input id="ai-input" type="text" placeholder="Frag mich etwas…" onkeydown="if(event.key==='Enter'){aiSend()}">
+    <button class="ai-send-btn" onclick="aiSend()">↑</button>
+  </div>
+</div>
 
 <!-- Mobile overlay -->
 <div id="overlay" onclick="closeSidebar()"></div>
@@ -1032,51 +1237,26 @@ tr:hover td { background: var(--bg3); }
 
     <!-- ── Page: Sprint Board ─────────────────────────────────────────────── -->
     <div class="page" id="page-sprint">
-      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <!-- Sprint Navigator -->
+      <div class="sprint-nav" id="sprint-nav"></div>
+      <!-- Sprint Header Card -->
+      <div class="sprint-hdr-card" id="sprint-hdr-card">
         <div>
-          <h1 id="sprint-name-h1">Sprint Board</h1>
-          <p id="sprint-goal-p">Aktueller Entwicklungs-Sprint — KI-Agenten Team</p>
+          <div class="sprint-status-badge" id="sprint-status-badge"></div>
+          <h1 id="sprint-name-h1" style="margin:4px 0 6px;font-size:20px">Sprint Board</h1>
+          <p id="sprint-goal-p" style="margin:0;color:var(--fg2);font-size:13px"></p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-ghost btn-sm" onclick="openTicketModal(null,'sprint')" title="Ticket in Sprint anlegen">+ Ticket</button>
-          <button class="btn btn-ghost btn-sm" onclick="loadSprint()" title="Neu laden">↺</button>
+        <div id="sprint-hdr-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start"></div>
+      </div>
+      <!-- Progress Bar -->
+      <div class="sprint-prog-card" id="sprint-prog-card" hidden>
+        <div class="sprint-prog-meta" id="sprint-prog-meta"></div>
+        <div class="sprint-prog-bar-bg">
+          <div class="sprint-prog-bar-fill" id="sprint-prog-bar" style="width:0%"></div>
         </div>
       </div>
-      <!-- Sprint Progress Bar -->
-      <div style="margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div style="display:flex;gap:20px;flex-wrap:wrap">
-            <span style="font-size:12px;color:var(--fg3)">Zeitraum: <span id="sprint-dates" style="color:var(--fg2)">—</span></span>
-            <span style="font-size:12px;color:var(--fg3)">Kapazität: <span id="sprint-cap" style="color:var(--fg2)">—</span> SP</span>
-          </div>
-          <div style="display:flex;gap:12px">
-            <span style="font-size:12px"><span style="color:var(--accent)" id="sprint-done">0</span> <span style="color:var(--fg3)">erledigt</span></span>
-            <span style="font-size:12px"><span style="color:var(--fg2)" id="sprint-remaining">0</span> <span style="color:var(--fg3)">offen SP</span></span>
-          </div>
-        </div>
-        <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden">
-          <div id="sprint-progress-bar" style="height:100%;background:var(--accent);border-radius:4px;transition:width .3s;width:0%"></div>
-        </div>
-      </div>
-      <!-- Kanban Board -->
-      <div id="sprint-kanban" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start">
-        <div class="kanban-col" id="col-todo">
-          <div class="kanban-col-header"><span class="kc-dot" style="background:#737373"></span>Todo <span class="kc-count" id="cnt-todo">0</span></div>
-          <div class="kanban-cards" id="cards-todo"></div>
-        </div>
-        <div class="kanban-col" id="col-in_progress">
-          <div class="kanban-col-header"><span class="kc-dot" style="background:#3b82f6"></span>In Progress <span class="kc-count" id="cnt-in_progress">0</span></div>
-          <div class="kanban-cards" id="cards-in_progress"></div>
-        </div>
-        <div class="kanban-col" id="col-review">
-          <div class="kanban-col-header"><span class="kc-dot" style="background:#f59e0b"></span>Review <span class="kc-count" id="cnt-review">0</span></div>
-          <div class="kanban-cards" id="cards-review"></div>
-        </div>
-        <div class="kanban-col" id="col-done">
-          <div class="kanban-col-header"><span class="kc-dot" style="background:#22c55e"></span>Done <span class="kc-count" id="cnt-done">0</span></div>
-          <div class="kanban-cards" id="cards-done"></div>
-        </div>
-      </div>
+      <!-- Dynamic content (kanban / past stats / planning) -->
+      <div id="sprint-content"></div>
     </div>
 
     <!-- ── Page: Backlog ──────────────────────────────────────────────────────── -->
@@ -2115,48 +2295,257 @@ async function loadOrders() {
 // ── Sprint & Backlog State ────────────────────────────────────────────────────
 let _activeSprint = null;
 
-async function loadSprint() {
-  // Show loading state in all columns
-  ['todo','in_progress','review','done'].forEach(s => {
-    const el = document.getElementById('cards-' + s);
-    if (el) el.innerHTML = '<div style="color:var(--fg3);font-size:12px;text-align:center;padding:20px">Laden…</div>';
-    const cnt = document.getElementById('cnt-' + s);
-    if (cnt) cnt.textContent = '0';
-  });
-  try {
-    const sprint = await api('/sprints/active');
-    _activeSprint = sprint;
-    document.getElementById('sprint-name-h1').textContent = sprint.name || 'Sprint Board';
-    document.getElementById('sprint-goal-p').textContent = sprint.goal || 'Aktueller Entwicklungs-Sprint';
-    document.getElementById('sprint-dates').textContent =
-      sprint.start_date && sprint.end_date
-        ? `${fmtDate(sprint.start_date)} – ${fmtDate(sprint.end_date)}` : '—';
-    document.getElementById('sprint-cap').textContent = sprint.capacity_sp || '—';
-
-    const tickets = sprint.tickets || [];
-    const totalSP = tickets.reduce((s, t) => s + (t.story_points || 0), 0);
-    const doneSP  = tickets.filter(t => t.status === 'done').reduce((s, t) => s + (t.story_points || 0), 0);
-    const remSP   = totalSP - doneSP;
-    document.getElementById('sprint-done').textContent = doneSP;
-    document.getElementById('sprint-remaining').textContent = remSP;
-    const pct = totalSP ? Math.round(doneSP / totalSP * 100) : 0;
-    document.getElementById('sprint-progress-bar').style.width = pct + '%';
-
-    // Render Kanban columns
-    const cols = { todo: [], in_progress: [], review: [], done: [] };
-    tickets.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
-    Object.entries(cols).forEach(([status, list]) => {
-      document.getElementById('cnt-' + status).textContent = list.length;
-      const el = document.getElementById('cards-' + status);
-      el.innerHTML = list.map(t => kanbanCard(t)).join('') ||
-        `<div style="color:var(--fg3);font-size:12px;text-align:center;padding:16px 8px;border:1px dashed var(--border);border-radius:var(--radius-sm)">Leer</div>`;
-    });
-  } catch (e) {
-    ['todo','in_progress','review','done'].forEach(s => {
-      const el = document.getElementById('cards-' + s);
-      if (el && s === 'todo') el.innerHTML = `<div style="color:var(--red);font-size:12px;padding:12px">Fehler: ${e.message}</div>`;
-    });
+// ── Sprint Board (3-Modi: past / active / planned) ───────────────────────────
+const _DUMMY_SPRINTS = [
+  {
+    id: 'sprint-1', number: 1, name: 'Sprint 1 — Auth & Grundstruktur',
+    status: 'completed', goal: 'Login, Token-Management, Benutzerverwaltung aufbauen',
+    start_date: '2026-10-01', end_date: '2026-10-14', capacity_sp: 20,
+    tickets: [
+      { ticket_id:'FE-001', title:'Login Screen', status:'done', priority:'high', story_points:3 },
+      { ticket_id:'FE-002', title:'Auth-Guard + Token-Management', status:'done', priority:'high', story_points:2 },
+      { ticket_id:'FE-003', title:'Benutzerliste', status:'done', priority:'normal', story_points:3 },
+      { ticket_id:'FE-004', title:'Benutzer erstellen/bearbeiten', status:'done', priority:'normal', story_points:3 },
+      { ticket_id:'FE-005', title:'Rollenverwaltung', status:'done', priority:'normal', story_points:2 },
+      { ticket_id:'FE-006', title:'Benutzereinstellungen', status:'done', priority:'normal', story_points:3 },
+      { ticket_id:'BE-001', title:'JWT Auth Endpoint', status:'done', priority:'critical', story_points:2 },
+      { ticket_id:'BE-002', title:'User CRUD API', status:'done', priority:'high', story_points:2 },
+    ],
+    retro: 'Guter Sprint-Start. Auth-Flow stabil. Rollenverwaltung braucht noch API-Anbindung.'
+  },
+  {
+    id: 'sprint-2', number: 2, name: 'Sprint 2 — Backlog & Sprint Board',
+    status: 'completed', goal: 'Backlog-Verwaltung mit Filtern, Archiv, Bulk-Aktionen',
+    start_date: '2026-10-15', end_date: '2026-10-28', capacity_sp: 24,
+    tickets: [
+      { ticket_id:'FE-010', title:'Backlog-Tabelle mit Sortierung', status:'done', priority:'high', story_points:3 },
+      { ticket_id:'FE-011', title:'Filter: Status, Prio, Kategorie', status:'done', priority:'normal', story_points:2 },
+      { ticket_id:'FE-012', title:'Archiv & Papierkorb', status:'done', priority:'normal', story_points:3 },
+      { ticket_id:'FE-013', title:'Bulk-Aktionen', status:'done', priority:'normal', story_points:3 },
+      { ticket_id:'FE-014', title:'Inline Sprint-Zuweisung', status:'done', priority:'high', story_points:2 },
+      { ticket_id:'FE-015', title:'Sprint-Navigator', status:'done', priority:'normal', story_points:3 },
+      { ticket_id:'BE-010', title:'component Feld DB-Migration', status:'done', priority:'normal', story_points:2 },
+      { ticket_id:'BE-011', title:'archived/trash Status-Werte', status:'done', priority:'normal', story_points:2 },
+      { ticket_id:'BE-012', title:'ticket_events Logging-Tabelle', status:'cancelled', priority:'low', story_points:2 },
+    ],
+    retro: 'Backlog vollständig. ticket_events auf Sprint 3 verschoben. Farbe auf NobleProg Blau geändert.'
+  },
+  {
+    id: 'sprint-3', number: 3, name: 'Sprint 3 — API-Anbindung & KI',
+    status: 'active', goal: 'Backend-APIs anbinden, KI-Chat-Panel, Sprint Board live schalten',
+    start_date: '2026-11-01', end_date: '2026-11-14', capacity_sp: 20,
+    tickets: [
+      { ticket_id:'FE-020', title:'Sprint Board 3-Modi UI', status:'review', priority:'high', story_points:5 },
+      { ticket_id:'FE-021', title:'KI-Chat-Panel (global)', status:'in_progress', priority:'high', story_points:3 },
+      { ticket_id:'FE-022', title:'Dashboard KPI-Anbindung', status:'todo', priority:'normal', story_points:3 },
+      { ticket_id:'BE-020', title:'ticket_events Logging', status:'done', priority:'normal', story_points:2 },
+      { ticket_id:'BE-021', title:'created_by / updated_by Felder', status:'done', priority:'normal', story_points:2 },
+      { ticket_id:'BE-022', title:'Sprint Management API (POST/PATCH)', status:'in_progress', priority:'high', story_points:3 },
+      { ticket_id:'BE-023', title:'KI-Chat Endpoint /ai/chat', status:'todo', priority:'normal', story_points:2 },
+    ]
+  },
+  {
+    id: 'sprint-4', number: 4, name: 'Sprint 4 — Orders & Finance',
+    status: 'planned', goal: 'Auftragsübersicht, Rechnungsmodul, Zahlungsstatus',
+    start_date: '2026-11-15', end_date: '2026-11-28', capacity_sp: 20,
+    tickets: [
+      { ticket_id:'FE-030', title:'Auftragsübersicht (Orders-Seite)', status:'backlog', priority:'high', story_points:5 },
+      { ticket_id:'FE-031', title:'Rechnungsmodul', status:'backlog', priority:'high', story_points:5 },
+      { ticket_id:'FE-032', title:'Zahlungsstatus-Tracking', status:'backlog', priority:'normal', story_points:3 },
+      { ticket_id:'BE-030', title:'Orders API Endpoints', status:'backlog', priority:'high', story_points:3 },
+      { ticket_id:'BE-031', title:'Invoice CRUD', status:'backlog', priority:'normal', story_points:2 },
+      { ticket_id:'BE-032', title:'Statemachine SP-01..SP-08 API', status:'backlog', priority:'critical', story_points:5 },
+    ]
   }
+];
+
+let _sprintIdx = 2; // start on active sprint (index 2 = sprint 3)
+
+function loadSprint() {
+  _renderSprintNav();
+  _renderSprintBoard(_DUMMY_SPRINTS[_sprintIdx]);
+}
+
+function _renderSprintNav() {
+  const nav = document.getElementById('sprint-nav');
+  if (!nav) return;
+  const pills = _DUMMY_SPRINTS.map((s, i) => {
+    const dotColor = s.status === 'active' ? '#22c55e' : s.status === 'completed' ? '#737373' : 'var(--accent)';
+    return `<button class="sprint-pill${i === _sprintIdx ? ' active' : ''}" onclick="_sprintGoto(${i})">
+      <span class="sp-dot" style="background:${dotColor}"></span>
+      #${s.number} ${s.name.split(' — ')[0] || s.name}
+    </button>`;
+  }).join('');
+  nav.innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="_sprintStep(-1)" ${_sprintIdx===0?'disabled':''}>← Zurück</button>
+    ${pills}
+    <button class="btn btn-ghost btn-sm" onclick="_sprintStep(1)" ${_sprintIdx===_DUMMY_SPRINTS.length-1?'disabled':''}>Weiter →</button>
+    <button class="btn btn-ghost btn-sm" onclick="showToast('Neuer Sprint — Backend ausstehend','info')" style="margin-left:auto">+ Neuer Sprint</button>
+  `;
+}
+
+function _sprintStep(d) { _sprintGoto(_sprintIdx + d); }
+function _sprintGoto(i) {
+  if (i < 0 || i >= _DUMMY_SPRINTS.length) return;
+  _sprintIdx = i;
+  _renderSprintNav();
+  _renderSprintBoard(_DUMMY_SPRINTS[i]);
+}
+
+function _renderSprintBoard(sprint) {
+  // Status badge
+  const badge = document.getElementById('sprint-status-badge');
+  const badgeMap = { active:'● Aktiv', completed:'✓ Abgeschlossen', planned:'◎ Geplant' };
+  badge.className = 'sprint-status-badge ' + (sprint.status === 'active' ? 'active' : sprint.status === 'completed' ? 'past' : 'planned');
+  badge.textContent = badgeMap[sprint.status] || sprint.status;
+
+  document.getElementById('sprint-name-h1').textContent = sprint.name;
+  document.getElementById('sprint-goal-p').textContent = sprint.goal || '';
+
+  // Header actions
+  const acts = document.getElementById('sprint-hdr-actions');
+  if (sprint.status === 'active') {
+    acts.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="openTicketModal(null,'sprint')">+ Ticket</button>
+      <button class="btn btn-ghost btn-sm" onclick="showToast('Sprint abschließen — Backend ausstehend','info')">Sprint abschließen</button>`;
+  } else if (sprint.status === 'planned') {
+    acts.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showToast('Sprint starten — Backend ausstehend','info')">▶ Sprint starten</button>`;
+  } else {
+    acts.innerHTML = '';
+  }
+
+  // Progress bar
+  const tickets = sprint.tickets || [];
+  const totalSP = tickets.reduce((s, t) => s + (t.story_points || 0), 0);
+  const doneSP  = tickets.filter(t => t.status === 'done').reduce((s, t) => s + (t.story_points || 0), 0);
+  const progCard = document.getElementById('sprint-prog-card');
+  const progBar  = document.getElementById('sprint-prog-bar');
+  const progMeta = document.getElementById('sprint-prog-meta');
+  if (sprint.status !== 'planned') {
+    progCard.hidden = false;
+    const pct = totalSP ? Math.round(doneSP / totalSP * 100) : 0;
+    progBar.style.width = pct + '%';
+    const startD = sprint.start_date ? fmtDate(sprint.start_date) : '—';
+    const endD   = sprint.end_date   ? fmtDate(sprint.end_date)   : '—';
+    progMeta.innerHTML = `
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--fg3)">📅 ${startD} – ${endD}</span>
+        <span style="font-size:12px;color:var(--fg3)">Kapazität: <strong style="color:var(--fg2)">${sprint.capacity_sp} SP</strong></span>
+      </div>
+      <div style="display:flex;gap:12px">
+        <span style="font-size:12px"><strong style="color:#22c55e">${doneSP} SP</strong> <span style="color:var(--fg3)">erledigt</span></span>
+        <span style="font-size:12px"><strong style="color:var(--fg2)">${totalSP - doneSP} SP</strong> <span style="color:var(--fg3)">offen</span></span>
+        <span style="font-size:12px;color:var(--fg3)">${pct}%</span>
+      </div>`;
+  } else {
+    progCard.hidden = true;
+  }
+
+  // Content by mode
+  const content = document.getElementById('sprint-content');
+  if (sprint.status === 'active') {
+    content.innerHTML = _renderKanban(tickets);
+  } else if (sprint.status === 'completed') {
+    content.innerHTML = _renderPastSprint(sprint, tickets, totalSP, doneSP);
+  } else {
+    content.innerHTML = _renderPlannedSprint(sprint, tickets, totalSP);
+  }
+}
+
+function _renderKanban(tickets) {
+  const cols = { todo:[], in_progress:[], review:[], done:[] };
+  tickets.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+  const colDefs = [
+    { key:'todo',        label:'Todo',        dot:'#737373' },
+    { key:'in_progress', label:'In Progress', dot:'#3b82f6' },
+    { key:'review',      label:'Review',      dot:'#f59e0b' },
+    { key:'done',        label:'Done',        dot:'#22c55e' },
+  ];
+  return `<div id="sprint-kanban" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start">
+    ${colDefs.map(c => `
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span class="kc-dot" style="background:${c.dot}"></span>${c.label}
+          <span class="kc-count">${cols[c.key].length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${cols[c.key].map(t => kanbanCard(t)).join('') ||
+            '<div style="color:var(--fg3);font-size:12px;text-align:center;padding:16px 8px;border:1px dashed var(--border);border-radius:var(--radius-sm)">Leer</div>'}
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function _renderPastSprint(sprint, tickets, totalSP, doneSP) {
+  const notDone = tickets.filter(t => t.status !== 'done' && t.status !== 'cancelled');
+  const cancelled = tickets.filter(t => t.status === 'cancelled');
+  const velocity = doneSP;
+  return `
+    <div class="sprint-stats-grid">
+      <div class="sprint-stat-card">
+        <div class="sprint-stat-label">Velocity</div>
+        <div class="sprint-stat-value blue">${velocity} SP</div>
+      </div>
+      <div class="sprint-stat-card">
+        <div class="sprint-stat-label">Erledigt</div>
+        <div class="sprint-stat-value green">${tickets.filter(t=>t.status==='done').length}</div>
+      </div>
+      <div class="sprint-stat-card">
+        <div class="sprint-stat-label">Nicht erledigt</div>
+        <div class="sprint-stat-value ${notDone.length?'red':'green'}">${notDone.length}</div>
+      </div>
+      <div class="sprint-stat-card">
+        <div class="sprint-stat-label">Kapazität genutzt</div>
+        <div class="sprint-stat-value">${totalSP ? Math.round(doneSP/totalSP*100) : 0}%</div>
+      </div>
+    </div>
+    ${notDone.length ? `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--yellow)">
+          ⚠ Nicht abgeschlossen (${notDone.length})
+        </div>
+        ${notDone.map(t => `<div class="sprint-plan-row">
+          <span class="sprint-plan-id">${escHtml(t.ticket_id)}</span>
+          <span class="sprint-plan-title">${escHtml(t.title)}</span>
+          <span class="sprint-plan-sp">${t.story_points||0} SP</span>
+        </div>`).join('')}
+      </div>` : ''}
+    ${sprint.retro ? `
+      <div class="sprint-retro-card">
+        <div class="sprint-retro-hdr">📝 Retrospektive</div>
+        <div class="sprint-retro-body" style="color:var(--fg2);font-size:13px">${escHtml(sprint.retro)}</div>
+      </div>` : ''}`;
+}
+
+function _renderPlannedSprint(sprint, tickets, totalSP) {
+  const startD = sprint.start_date ? fmtDate(sprint.start_date) : '—';
+  const endD   = sprint.end_date   ? fmtDate(sprint.end_date)   : '—';
+  const pct = sprint.capacity_sp ? Math.round(totalSP / sprint.capacity_sp * 100) : 0;
+  return `
+    <div class="sprint-prog-card" style="margin-bottom:16px">
+      <div class="sprint-prog-meta">
+        <div style="font-size:13px;font-weight:600">Sprint-Kapazität</div>
+        <div style="font-size:12px;color:var(--fg3)">${totalSP} / ${sprint.capacity_sp} SP geplant (${pct}%)</div>
+      </div>
+      <div style="margin-bottom:8px">
+        <div class="sprint-prog-bar-bg" style="margin-top:8px">
+          <div class="sprint-prog-bar-fill" style="width:${Math.min(pct,100)}%;background:${pct>100?'var(--red)':'var(--accent)'}"></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--fg3)">📅 Geplant: ${startD} – ${endD}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+        <span>Geplante Tickets (${tickets.length})</span>
+        <button class="btn btn-ghost btn-sm" onclick="openTicketModal(null,'sprint')">+ Ticket hinzufügen</button>
+      </div>
+      ${tickets.length ? tickets.map(t => `<div class="sprint-plan-row">
+        <span class="sprint-plan-id">${escHtml(t.ticket_id)}</span>
+        <span class="sprint-plan-title">${escHtml(t.title)}</span>
+        ${prioBadge(t.priority)}
+        <span class="sprint-plan-sp">${t.story_points||0} SP</span>
+      </div>`).join('') : '<div style="padding:24px;text-align:center;color:var(--fg3);font-size:13px">Noch keine Tickets geplant</div>'}
+    </div>`;
 }
 
 function kanbanCard(t) {
@@ -2188,6 +2577,109 @@ function parseBlockedBy(ac) {
   if (!ac) return '';
   const m = ac.match(/^BLOCKED_BY:\s*([^\n]+)/);
   return m ? m[1].trim() : '';
+}
+
+// ── KI Chat Panel ─────────────────────────────────────────────────────────────
+let _aiOpen = false;
+let _aiHistory = [];
+
+function toggleAiPanel() {
+  _aiOpen = !_aiOpen;
+  const panel = document.getElementById('ai-panel');
+  const main  = document.getElementById('main');
+  if (_aiOpen) {
+    panel.classList.add('open');
+    main.classList.add('ai-open');
+    setTimeout(() => document.getElementById('ai-input')?.focus(), 250);
+  } else {
+    panel.classList.remove('open');
+    main.classList.remove('ai-open');
+  }
+}
+
+function aiSend() {
+  const input = document.getElementById('ai-input');
+  const text = (input.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  _aiAddMsg('user', text);
+  _aiHistory.push({ role: 'user', content: text });
+  _aiShowTyping();
+  setTimeout(() => {
+    _aiHideTyping();
+    const reply = _aiRespond(text);
+    _aiAddMsg('ai', reply);
+    _aiHistory.push({ role: 'ai', content: reply });
+  }, 600 + Math.random() * 400);
+}
+
+function _aiAddMsg(role, text) {
+  const msgs = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + role;
+  div.innerHTML = `<div class="ai-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+let _aiTypingEl = null;
+function _aiShowTyping() {
+  const msgs = document.getElementById('ai-messages');
+  _aiTypingEl = document.createElement('div');
+  _aiTypingEl.className = 'ai-msg ai';
+  _aiTypingEl.innerHTML = '<div class="ai-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(_aiTypingEl);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function _aiHideTyping() {
+  if (_aiTypingEl) { _aiTypingEl.remove(); _aiTypingEl = null; }
+}
+
+function _aiRespond(text) {
+  const t = text.toLowerCase();
+  const page = window.location.hash.replace('#','') || 'dashboard';
+  // Context from current state
+  const tickets = _blAllTickets || [];
+  const sprint = _DUMMY_SPRINTS[_sprintIdx];
+
+  if (t.includes('erstell') && t.includes('ticket') || t.includes('neues ticket') || t.includes('ticket anlegen')) {
+    setTimeout(() => openTicketModal(null, 'backlog'), 300);
+    return 'Ich öffne das Ticket-Modal für dich! 🎫';
+  }
+  if (t.includes('kritisch') || t.includes('critical')) {
+    const crit = tickets.filter(x => x.priority === 'critical' && !['archived','trash','cancelled'].includes(x.status));
+    if (!crit.length) return 'Aktuell gibt es keine kritischen Tickets im Backlog. 👍';
+    return `🔴 ${crit.length} kritische Tickets:\n${crit.slice(0,5).map(x => `• ${x.ticket_id}: ${x.title}`).join('\n')}${crit.length>5?`\n… und ${crit.length-5} weitere`:''}`;
+  }
+  if (t.includes('backlog') || t.includes('tickets')) {
+    if (!tickets.length) return 'Der Backlog ist leer oder noch nicht geladen. Geh auf #backlog um ihn zu laden.';
+    const active = tickets.filter(x => !['archived','trash'].includes(x.status));
+    const prios = { critical:0, high:0, normal:0, low:0 };
+    active.forEach(x => { if (prios[x.priority]!==undefined) prios[x.priority]++; });
+    return `📋 Backlog: ${active.length} aktive Tickets\n🔴 ${prios.critical} kritisch  🟠 ${prios.high} hoch  🟡 ${prios.normal} normal  ⚪ ${prios.low} niedrig`;
+  }
+  if (t.includes('sprint')) {
+    if (!sprint) return 'Keine Sprint-Daten verfügbar.';
+    const done = sprint.tickets.filter(x=>x.status==='done').length;
+    const total = sprint.tickets.length;
+    return `🏃 ${sprint.name}\nStatus: ${sprint.status === 'active' ? '● Aktiv' : sprint.status}\n${done}/${total} Tickets erledigt\nGoal: ${sprint.goal}`;
+  }
+  if (t.includes('dashboard') || t.includes('navigate') || t.includes('geh') || t.includes('öffne seite')) {
+    return 'Du kannst über die Seitenleiste links navigieren, oder direkt die URL-Hash verwenden (z.B. #backlog, #sprint, #dashboard).';
+  }
+  if (t.includes('hallo') || t.includes('hi') || t.includes('hey')) {
+    return `Hallo! 👋 Du bist gerade auf "${page}". Was kann ich für dich tun?`;
+  }
+  if (t.includes('hilfe') || t.includes('help') || t.includes('was kannst')) {
+    return `Ich kann dir helfen mit:\n• 📋 Backlog-Info ("Zeig kritische Tickets")\n• 🏃 Sprint-Status ("Sprint Status?")\n• 🎫 Ticket anlegen ("Erstell ein Ticket")\n• 🧭 Navigation ("Geh zu Backlog")\n\nBackend-Anbindung folgt — dann auch echte Datenabfragen!`;
+  }
+  // Fallback
+  const fallbacks = [
+    `Verstanden! Das KI-Backend ist noch nicht angebunden — kommt in Sprint 4. Ich kann dir schon jetzt mit Backlog-Info, Sprint-Status und Ticket-Erstellung helfen.`,
+    `Gute Frage! Sobald das Backend angebunden ist, kann ich dir viel mehr beantworten. Für jetzt: frag mich nach Tickets, Sprints oder lass mich ein Ticket erstellen.`,
+    `Das Backend-Endpoint /ai/chat ist noch nicht implementiert. Ticket ist in Sprint 3 geplant. Ich bin vorerst offline-mäßig unterwegs! 😄`,
+  ];
+  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 }
 
 function cleanAC(ac) {
