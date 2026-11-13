@@ -5,74 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>NPCH Ops Hub</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 
 <style>
 /* ── Base reset ─────────────────────────────────────────────────────────────── */
 [hidden] { display: none !important; }
 
-/* ── Design Tokens ─────────────────────────────────────────────────────────── */
+/* ── Design Tokens — Langfuse Dark ─────────────────────────────────────────── */
 :root {
-  --bg:       #0a0d14;
-  --bg2:      #0f1420;
-  --bg3:      #141927;
-  --bg4:      #1a2035;
-  --border:   #1e2a3d;
-  --border2:  #2a3a55;
-  --fg:       #e2e8f0;
-  --fg2:      #94a3b8;
-  --fg3:      #64748b;
-  --accent:   #3b82f6;
-  --accent2:  #60a5fa;
-  --accent-bg: rgba(59,130,246,.12);
-  --green:    #10b981;
-  --green-bg: rgba(16,185,129,.12);
-  --yellow:   #f59e0b;
-  --yellow-bg:rgba(245,158,11,.12);
+  /* Backgrounds — pure near-black, no blue tint */
+  --bg:       #0a0a0a;
+  --bg2:      #111111;
+  --bg3:      #171717;
+  --bg4:      #222222;
+  /* Borders — neutral dark */
+  --border:   #1e1e1e;
+  --border2:  #2d2d2d;
+  /* Text */
+  --fg:       #fafafa;
+  --fg2:      #a3a3a3;
+  --fg3:      #737373;
+  /* Accent — Langfuse Lime Yellow */
+  --accent:   #c8f04b;
+  --accent2:  #d4f055;
+  --accent-fg:#0a0a0a;    /* text on lime bg: always black */
+  --accent-bg: rgba(200,240,75,.12);
+  /* Status colors */
+  --green:    #22c55e;
+  --green-bg: rgba(34,197,94,.12);
+  --yellow:   #eab308;
+  --yellow-bg:rgba(234,179,8,.12);
   --red:      #ef4444;
   --red-bg:   rgba(239,68,68,.12);
-  --purple:   #8b5cf6;
-  --purple-bg:rgba(139,92,246,.12);
+  --purple:   #a855f7;
+  --purple-bg:rgba(168,85,247,.12);
   --orange:   #f97316;
   --cyan:     #06b6d4;
-  --radius:   10px;
-  --radius-sm:6px;
-  --sidebar-w:248px;
-  --header-h: 56px;
-  /* Sidebar always dark */
-  --sidebar-bg:     #111420;
-  --sidebar-fg:     #8A96B0;
-  --sidebar-act:    #fff;
-  --sidebar-act-bg: rgba(255,255,255,.12);
-  --sidebar-hover:  rgba(255,255,255,.05);
-  --sidebar-div:    rgba(255,255,255,.07);
-  --header-bg:      #1C1F2B;
+  /* Layout */
+  --radius:   8px;
+  --radius-sm:5px;
+  --sidebar-w:240px;
+  --header-h: 52px;
+  /* Sidebar — always dark */
+  --sidebar-bg:     #0a0a0a;
+  --sidebar-fg:     #737373;
+  --sidebar-act:    #fafafa;
+  --sidebar-act-bg: rgba(255,255,255,.08);
+  --sidebar-hover:  rgba(255,255,255,.04);
+  --sidebar-div:    rgba(255,255,255,.06);
+  --header-bg:      #0a0a0a;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg:      #F1F3F7;
+    --bg:      #fafafa;
     --bg2:     #ffffff;
-    --bg3:     #f8fafc;
-    --bg4:     #e2e8f0;
-    --border:  #E5E7EB;
-    --border2: #94a3b8;
-    --fg:      #111827;
-    --fg2:     #374151;
-    --fg3:     #6B7280;
-    --accent-bg: rgba(59,130,246,.08);
-    --green-bg:  rgba(16,185,129,.08);
-    --yellow-bg: rgba(245,158,11,.08);
-    --red-bg:    rgba(239,68,68,.08);
-    --purple-bg: rgba(139,92,246,.08);
+    --bg3:     #f5f5f5;
+    --bg4:     #e5e5e5;
+    --border:  #e5e5e5;
+    --border2: #d4d4d4;
+    --fg:      #0a0a0a;
+    --fg2:     #404040;
+    --fg3:     #737373;
+    --accent-bg: rgba(200,240,75,.15);
+    --green-bg:  rgba(34,197,94,.10);
+    --yellow-bg: rgba(234,179,8,.10);
+    --red-bg:    rgba(239,68,68,.10);
+    --purple-bg: rgba(168,85,247,.10);
     --header-bg: #ffffff;
+    --sidebar-bg:     #fafafa;
+    --sidebar-fg:     #737373;
+    --sidebar-act:    #0a0a0a;
+    --sidebar-act-bg: rgba(0,0,0,.06);
+    --sidebar-hover:  rgba(0,0,0,.03);
+    --sidebar-div:    rgba(0,0,0,.08);
     color-scheme: light;
   }
 }
 :root[data-theme="dark"] {
-  --bg:#0a0d14;--bg2:#0f1420;--bg3:#141927;--bg4:#1a2035;
-  --border:#1e2a3d;--border2:#2a3a55;--fg:#e2e8f0;--fg2:#94a3b8;--fg3:#64748b;
-  --header-bg:#1C1F2B;
+  --bg:#0a0a0a;--bg2:#111111;--bg3:#171717;--bg4:#222222;
+  --border:#1e1e1e;--border2:#2d2d2d;--fg:#fafafa;--fg2:#a3a3a3;--fg3:#737373;
+  --header-bg:#0a0a0a;--sidebar-bg:#0a0a0a;
   color-scheme:dark;
 }
 
@@ -80,7 +93,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Geist', 'Inter', -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   background: var(--bg);
@@ -111,9 +124,9 @@ body {
 .logo-mark {
   width: 28px; height: 28px;
   background: var(--accent);
-  border-radius: 7px;
+  border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 11px;
+  color: var(--accent-fg); font-weight: 800; font-size: 11px;
   flex-shrink: 0;
 }
 .logo-name { font-weight: 700; font-size: 15px; color: var(--fg); }
@@ -144,7 +157,7 @@ body {
   width: 30px; height: 30px;
   background: var(--accent); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 600; font-size: 11px;
+  color: var(--accent-fg); font-weight: 600; font-size: 11px;
   cursor: pointer; flex-shrink: 0;
 }
 .hbtn {
@@ -203,15 +216,15 @@ body {
 .nav-item.active { background: var(--sidebar-act-bg); color: var(--sidebar-act); }
 .nav-item.active::before {
   content: ''; position: absolute;
-  left: 0; top: 6px; bottom: 6px;
-  width: 3px; background: var(--accent);
-  border-radius: 0 3px 3px 0;
+  left: 0; top: 8px; bottom: 8px;
+  width: 2px; background: var(--accent);
+  border-radius: 0 2px 2px 0;
 }
 .nav-item.ni-sub { padding-left: 28px; font-size: 12.5px; }
 .nav-item .icon { flex-shrink: 0; display: flex; align-items: center; }
 .nav-badge {
   margin-left: auto;
-  background: var(--accent); color: #fff;
+  background: var(--accent); color: var(--accent-fg);
   font-size: 10px; font-weight: 700;
   padding: 1px 6px; border-radius: 10px;
 }
@@ -235,7 +248,7 @@ body {
 .user-avatar {
   width: 30px; height: 30px; border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-fg);
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 12px; flex-shrink: 0;
 }
@@ -307,10 +320,10 @@ body {
 .stat-card .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fg3); margin-bottom: 8px; }
 .stat-card .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
 .stat-card .stat-sub   { font-size: 11px; color: var(--fg3); margin-top: 4px; }
-.stat-card.accent  { border-color: rgba(59,130,246,.3); }
-.stat-card.green   { border-color: rgba(16,185,129,.3); }
-.stat-card.yellow  { border-color: rgba(245,158,11,.3); }
-.stat-card.red     { border-color: rgba(239,68,68,.3); }
+.stat-card.accent  { border-color: rgba(200,240,75,.25); }
+.stat-card.green   { border-color: rgba(34,197,94,.25); }
+.stat-card.yellow  { border-color: rgba(234,179,8,.25); }
+.stat-card.red     { border-color: rgba(239,68,68,.25); }
 
 /* ── Component: Card / Panel ───────────────────────────────────────────────── */
 .card {
@@ -346,6 +359,7 @@ tr:hover td { background: var(--bg3); }
   font-size: 11px; font-weight: 600;
   padding: 2px 8px; border-radius: 10px;
 }
+.badge-lime   { background: var(--accent-bg);  color: var(--accent); }
 .badge-blue   { background: var(--accent-bg);  color: var(--accent2); }
 .badge-green  { background: var(--green-bg);   color: var(--green); }
 .badge-yellow { background: var(--yellow-bg);  color: var(--yellow); }
@@ -361,8 +375,8 @@ tr:hover td { background: var(--bg3); }
   border: 1px solid transparent; transition: opacity .15s;
 }
 .btn:hover { opacity: .85; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-ghost   { background: none; border-color: var(--border); color: var(--fg2); }
+.btn-primary { background: var(--accent); color: var(--accent-fg); font-weight: 500; }
+.btn-ghost   { background: none; border-color: var(--border2); color: var(--fg2); }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 
 /* ── Component: Empty state ────────────────────────────────────────────────── */
