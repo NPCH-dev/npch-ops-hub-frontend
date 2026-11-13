@@ -1099,6 +1099,57 @@ tr:hover td { background: var(--bg3); }
         <button id="bl-tab-trash"    onclick="setBacklogView('trash')"    style="padding:8px 18px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--fg3);border-bottom:2px solid transparent;margin-bottom:-2px">🗑 Papierkorb</button>
       </div>
 
+      <!-- Bulk-Action-Bar (erscheint wenn Tickets markiert sind) -->
+      <div id="bl-bulk-bar" hidden style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:var(--radius);margin-bottom:12px">
+        <span id="bl-bulk-count" style="font-size:13px;font-weight:600;color:var(--accent2);min-width:90px"></span>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+        <!-- Prio ändern -->
+        <select id="bl-bulk-prio" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+          <option value="">Prio setzen…</option>
+          <option value="critical">🔴 Critical</option>
+          <option value="high">🟠 High</option>
+          <option value="normal">🟡 Normal</option>
+          <option value="low">⚪ Low</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="blBulkApply('priority')" style="font-size:12px">✓ Prio</button>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+        <!-- Status ändern -->
+        <select id="bl-bulk-status" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+          <option value="">Status setzen…</option>
+          <option value="backlog">backlog</option>
+          <option value="todo">todo</option>
+          <option value="in_progress">in_progress</option>
+          <option value="review">review</option>
+          <option value="done">done</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="blBulkApply('status')" style="font-size:12px">✓ Status</button>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+        <!-- Kategorie -->
+        <select id="bl-bulk-component" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+          <option value="">Kategorie setzen…</option>
+          <option value="frontend">🖥 Frontend</option>
+          <option value="backend">⚙️ Backend</option>
+          <option value="infrastructure">🏗 Infrastructure</option>
+          <option value="database">🗄 Database</option>
+          <option value="n8n">🔄 n8n</option>
+          <option value="general">📌 General</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="blBulkApply('component')" style="font-size:12px">✓ Kategorie</button>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+        <!-- Sprint zuweisen -->
+        <select id="bl-bulk-sprint" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+          <option value="">Sprint zuweisen…</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="blBulkApply('sprint')" style="font-size:12px">✓ Sprint</button>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+        <!-- Archivieren / Papierkorb -->
+        <button class="btn btn-ghost btn-sm" onclick="blBulkArchive()" style="font-size:12px;color:var(--fg3)">🗂 Archivieren</button>
+        <button class="btn btn-ghost btn-sm" onclick="blBulkTrash()" style="font-size:12px;color:var(--red)">🗑 Papierkorb</button>
+        <div style="margin-left:auto">
+          <button class="btn btn-ghost btn-sm" onclick="blClearSelection()" style="font-size:12px">✕ Auswahl aufheben</button>
+        </div>
+      </div>
+
       <!-- Filter-Leiste -->
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
         <input id="bl-search" type="text" placeholder="🔍 Suche ID, Titel…" oninput="renderBacklogTable()" style="padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px;min-width:180px">
@@ -1134,6 +1185,7 @@ tr:hover td { background: var(--bg3); }
           <div class="table-wrap">
             <table>
               <thead><tr>
+                <th style="width:36px;padding:8px 6px 8px 14px"><input type="checkbox" id="bl-select-all" onchange="blSelectAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
                 <th style="width:120px;cursor:pointer;user-select:none" onclick="blSort('ticket_id')"><span>ID</span><span id="bl-sort-ticket_id" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
                 <th style="cursor:pointer;user-select:none" onclick="blSort('title')"><span>Titel</span><span id="bl-sort-title" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
                 <th style="width:110px;cursor:pointer;user-select:none" onclick="blSort('component')"><span>Kategorie</span><span id="bl-sort-component" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
@@ -1143,7 +1195,7 @@ tr:hover td { background: var(--bg3); }
                 <th style="width:160px">Sprint</th>
                 <th style="width:150px"></th>
               </tr></thead>
-              <tbody id="backlog-tbody"><tr><td colspan="8" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr></tbody>
+              <tbody id="backlog-tbody"><tr><td colspan="9" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -2277,18 +2329,27 @@ function renderBacklogTable() {
   if (countEl) countEl.textContent = tickets.length + ' Tickets';
 
   if (!tickets.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--fg3);padding:32px">Keine Tickets gefunden</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--fg3);padding:32px">Keine Tickets gefunden</td></tr>`;
     return;
   }
 
   const prioMap = { critical:'🔴', high:'🟠', normal:'🟡', low:'⚪' };
+
+  // "Select all" Checkbox-State aktualisieren
+  const allCb = document.getElementById('bl-select-all');
+  if (allCb) allCb.checked = false;
+
+  // Sprint-Selects nach Render befüllen
+  setTimeout(_populateSprintSelects, 20);
 
   tbody.innerHTML = tickets.map(t => {
     const blockedBy = parseBlockedBy(t.acceptance_criteria);
     const comp = t.component || getComponent(t.ticket_id);
     const isTrash    = t.status === 'trash';
     const isArchived = t.status === 'archived';
-    return `<tr>
+    const isSel      = _blSelected.has(t.ticket_id);
+    return `<tr style="${isSel ? 'background:rgba(99,102,241,.08)' : ''}">
+      <td style="padding:8px 6px 8px 14px"><input type="checkbox" class="bl-row-cb" data-tid="${escHtml(t.ticket_id)}" ${isSel?'checked':''} onchange="blRowCheck(this,'${escHtml(t.ticket_id)}')" style="cursor:pointer;width:14px;height:14px"></td>
       <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px">${escHtml(t.ticket_id)}</code></td>
       <td>
         <div style="font-size:13px">${escHtml(t.title)}</div>
@@ -2300,9 +2361,9 @@ function renderBacklogTable() {
       <td>${statusBadge(t.status)}</td>
       <td>
         ${!isTrash && !isArchived
-          ? (t.sprint_id
-              ? `<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:var(--accent2);font-weight:500">✅ ${escHtml(t.sprint_id)}</span><button class="kc-btn" onclick="openSprintAssignModal('${escHtml(t.ticket_id)}','${escHtml(t.sprint_id)}')" title="Sprint ändern" style="font-size:10px;padding:2px 5px">✎</button></div>`
-              : `<button class="kc-btn" onclick="openSprintAssignModal('${escHtml(t.ticket_id)}','')" title="Sprint zuweisen" style="font-size:11px;padding:3px 8px;white-space:nowrap">+ Sprint</button>`)
+          ? `<select class="bl-sprint-sel" data-tid="${escHtml(t.ticket_id)}" onchange="inlineSprintChange(this)" style="padding:4px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:${t.sprint_id ? 'var(--accent2)' : 'var(--fg3)'};font-size:11px;max-width:140px">
+              <option value="">— kein Sprint —</option>
+            </select>`
           : '—'}
       </td>
       <td style="white-space:nowrap">
@@ -2341,10 +2402,22 @@ async function loadBacklog() {
     const badge = document.getElementById('badge-backlog');
     if (badge) { badge.textContent = blCount; badge.style.display = blCount ? '' : 'none'; }
 
+    // Sprint-Optionen laden für Inline-Selects
+    if (!_activeSprint) {
+      try { _activeSprint = await api('/sprints/active'); } catch {}
+    }
+    _blSprintOptions = [];
+    if (_activeSprint) _blSprintOptions.push({ id: _activeSprint.id, name: _activeSprint.name || _activeSprint.id });
+    // Weitere bekannte Sprints aus den Tickets sammeln
+    const sprintIds = [...new Set(_blAllTickets.map(t => t.sprint_id).filter(Boolean))];
+    sprintIds.forEach(id => { if (!_blSprintOptions.find(s => s.id === id)) _blSprintOptions.push({ id, name: id }); });
+
     renderBacklogTable();
+    // Nach Render: Sprint-Dropdowns befüllen
+    setTimeout(_populateSprintSelects, 50);
   } catch (e) {
     _blAllTickets = [];
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);padding:32px">Fehler: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:32px">Fehler: ${e.message}</td></tr>`;
   }
 }
 
@@ -2406,6 +2479,157 @@ function restoreTicketFromModal() {
   if (!id) return;
   closeTicketModal();
   restoreTicket(id);
+}
+
+// ── Inline Sprint-Zuweisung ───────────────────────────────────────────────────
+let _blSprintOptions = []; // { id, name } — aus _activeSprint + bekannte Sprints
+
+function _populateSprintSelects() {
+  // Alle Sprint-Selects in der Tabelle + Bulk-Bar befüllen
+  const opts = _blSprintOptions;
+  if (!opts.length) return;
+  const optHtml = opts.map(s => `<option value="${escHtml(s.id)}">${escHtml(s.name || s.id)}</option>`).join('');
+
+  // Tabellen-Selects
+  document.querySelectorAll('.bl-sprint-sel').forEach(sel => {
+    const tid = sel.dataset.tid;
+    const ticket = _blAllTickets.find(t => t.ticket_id === tid);
+    sel.innerHTML = `<option value="">— kein Sprint —</option>${optHtml}`;
+    if (ticket?.sprint_id) sel.value = ticket.sprint_id;
+  });
+
+  // Bulk-Bar Sprint-Select
+  const bulkSel = document.getElementById('bl-bulk-sprint');
+  if (bulkSel) bulkSel.innerHTML = `<option value="">Sprint zuweisen…</option>${optHtml}`;
+}
+
+async function inlineSprintChange(sel) {
+  const ticketId = sel.dataset.tid;
+  const sprintId = sel.value;
+  sel.disabled = true;
+  try {
+    await api(`/tickets/${ticketId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sprint_id: sprintId || null, status: sprintId ? 'todo' : 'backlog' })
+    });
+    sel.style.color = sprintId ? 'var(--accent2)' : 'var(--fg3)';
+    const t = _blAllTickets.find(x => x.ticket_id === ticketId);
+    if (t) { t.sprint_id = sprintId || null; if (!sprintId) t.status = 'backlog'; }
+    showToast(sprintId ? `Sprint zugewiesen ✓` : 'Aus Sprint entfernt', 'success');
+  } catch (e) {
+    showToast('Fehler: ' + e.message, true);
+  }
+  sel.disabled = false;
+}
+
+// ── Bulk-Selection ────────────────────────────────────────────────────────────
+let _blSelected = new Set(); // ticket_ids
+
+function blRowCheck(cb, ticketId) {
+  if (cb.checked) _blSelected.add(ticketId);
+  else _blSelected.delete(ticketId);
+  blUpdateBulkBar();
+}
+
+function blSelectAll(checked) {
+  document.querySelectorAll('.bl-row-cb').forEach(cb => {
+    cb.checked = checked;
+    const tid = cb.dataset.tid;
+    if (checked) _blSelected.add(tid); else _blSelected.delete(tid);
+  });
+  blUpdateBulkBar();
+}
+
+function blClearSelection() {
+  _blSelected.clear();
+  document.querySelectorAll('.bl-row-cb').forEach(cb => cb.checked = false);
+  const all = document.getElementById('bl-select-all');
+  if (all) all.checked = false;
+  blUpdateBulkBar();
+}
+
+function blUpdateBulkBar() {
+  const bar = document.getElementById('bl-bulk-bar');
+  const cnt = document.getElementById('bl-bulk-count');
+  if (!bar) return;
+  if (_blSelected.size > 0) {
+    bar.hidden = false; bar.style.display = 'flex';
+    cnt.textContent = _blSelected.size + ' markiert';
+  } else {
+    bar.hidden = true; bar.style.display = 'none';
+  }
+}
+
+async function blBulkApply(field) {
+  if (!_blSelected.size) return;
+  let val, selId;
+  if (field === 'priority')  { selId = 'bl-bulk-prio';      }
+  if (field === 'status')    { selId = 'bl-bulk-status';     }
+  if (field === 'component') { selId = 'bl-bulk-component';  }
+  if (field === 'sprint')    { selId = 'bl-bulk-sprint';     }
+
+  val = document.getElementById(selId)?.value;
+  if (!val) { showToast('Bitte einen Wert wählen', true); return; }
+
+  const ids = [..._blSelected];
+  let ok = 0, fail = 0;
+
+  for (const id of ids) {
+    try {
+      if (field === 'component') {
+        setComponent(id, val);
+        const t = _blAllTickets.find(x => x.ticket_id === id);
+        if (t) t.component = val;
+        ok++;
+      } else if (field === 'sprint') {
+        await api(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ sprint_id: val, status: 'todo' }) });
+        const t = _blAllTickets.find(x => x.ticket_id === id);
+        if (t) { t.sprint_id = val; t.status = 'todo'; }
+        ok++;
+      } else {
+        await api(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ [field]: val }) });
+        const t = _blAllTickets.find(x => x.ticket_id === id);
+        if (t) t[field] = val;
+        ok++;
+      }
+    } catch { fail++; }
+  }
+
+  showToast(`${ok} Ticket(s) aktualisiert${fail ? ', ' + fail + ' Fehler' : ''} ✓`, fail ? true : 'success');
+  blClearSelection();
+  renderBacklogTable();
+  // Sprint-Selects neu befüllen
+  setTimeout(_populateSprintSelects, 100);
+}
+
+async function blBulkArchive() {
+  if (!_blSelected.size) return;
+  if (!confirm(`${_blSelected.size} Ticket(s) archivieren?`)) return;
+  for (const id of [..._blSelected]) {
+    try {
+      await api(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'archived' }) });
+      const t = _blAllTickets.find(x => x.ticket_id === id);
+      if (t) t.status = 'archived';
+    } catch {}
+  }
+  showToast(`${_blSelected.size} Ticket(s) archiviert 🗂`, 'success');
+  blClearSelection();
+  renderBacklogTable();
+}
+
+async function blBulkTrash() {
+  if (!_blSelected.size) return;
+  if (!confirm(`${_blSelected.size} Ticket(s) in den Papierkorb?`)) return;
+  for (const id of [..._blSelected]) {
+    try {
+      await api(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'trash' }) });
+      const t = _blAllTickets.find(x => x.ticket_id === id);
+      if (t) t.status = 'trash';
+    } catch {}
+  }
+  showToast(`${_blSelected.size} Ticket(s) in Papierkorb 🗑`, 'success');
+  blClearSelection();
+  renderBacklogTable();
 }
 
 async function addToSprint(ticketId) {
