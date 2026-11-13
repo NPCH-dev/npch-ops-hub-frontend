@@ -1612,6 +1612,15 @@ async function api(path, opts = {}) {
   const url = CONFIG.apiBase + normalizedPath;
   const headers = { 'Content-Type': 'application/json', ...(CONFIG.authToken ? { Authorization: `Bearer ${CONFIG.authToken}` } : {}), ...opts.headers };
   const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) {
+    // Token abgelaufen oder ungültig → auto-logout
+    console.warn('API 401 auf', path, '— Token abgelaufen, logout');
+    CONFIG.authToken = '';
+    try { localStorage.removeItem('npch_token'); sessionStorage.removeItem('npch_token'); } catch {}
+    const loginEl = document.getElementById('login-screen');
+    if (loginEl) loginEl.style.display = 'flex';
+    throw new Error('Session abgelaufen — bitte neu anmelden');
+  }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 }
