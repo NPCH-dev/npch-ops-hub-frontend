@@ -331,14 +331,6 @@ body {
   transition: border-color .15s, color .15s;
 }
 .icon-btn:hover { border-color: var(--border2); color: var(--fg); }
-#env-badge {
-  font-size: 11px; font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--yellow-bg);
-  color: var(--yellow);
-  border: 1px solid rgba(245,158,11,.3);
-}
 
 /* ── Content ───────────────────────────────────────────────────────────────── */
 #content {
@@ -727,7 +719,6 @@ tr:hover td { background: var(--bg3); }
     <span style="margin-left:auto;font-size:11px;background:var(--border);padding:1px 5px;border-radius:4px;flex-shrink:0;">⌘K</span>
   </div>
   <div class="hdr-right">
-    <span id="env-badge">DEV</span>
     <button class="hdr-icon-btn" onclick="refreshPage()" title="Refresh">
       <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
     </button>
@@ -1468,7 +1459,6 @@ tr:hover td { background: var(--bg3); }
           <div style="margin-bottom:14px">
             <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Interne Notizen / Kommentar</label>
             <textarea id="tm-notes" rows="3" placeholder="Interne Notizen, Kontext, Links…" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
-            <div style="font-size:11px;color:var(--fg3);margin-top:4px">Wird lokal gespeichert (Backend-Sync kommt)</div>
           </div>
           <!-- Erstellt/Geändert Info -->
           <div id="tm-meta" hidden style="font-size:11px;color:var(--fg3);background:var(--bg3);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;line-height:1.6">
@@ -2653,9 +2643,6 @@ async function loadOrders() {
   const tbody = document.getElementById('orders-tbody');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
   try {
-    // /orders endpoint not yet implemented — show placeholder
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Auftragsliste folgt in Sprint 2</td></tr>';
-    return;
     const data = await api('/orders?limit=50');
     const orders = Array.isArray(data) ? data : (data.items || []);
     if (!orders.length) {
@@ -2749,15 +2736,17 @@ let _currentSprintData = null;  // currently displayed sprint with tickets
 
 async function loadSprint() {
   try {
-    const sprints = await api('/data/sprints');
-    if (sprints && sprints.length) {
-      _loadedSprints = sprints.sort((a, b) => (a.number || 0) - (b.number || 0));
-      let activeIdx = _loadedSprints.findIndex(s => s.status === 'active');
-      if (activeIdx < 0) activeIdx = _loadedSprints.length - 1;
+    // Load all sprints for nav
+    const sprintsRaw = await api('/');
+    const sprints = Array.isArray(sprintsRaw) ? sprintsRaw.sort((a, b) => (a.number || 0) - (b.number || 0)) : [];
+    if (sprints.length) {
+      _loadedSprints = sprints;
+      let activeIdx = sprints.findIndex(s => s.status === 'active');
+      if (activeIdx < 0) activeIdx = sprints.length - 1;
       _sprintIdx = activeIdx;
-      const sprint = _loadedSprints[activeIdx];
-      const tickets = await api('/data/tickets?sprint_id=' + sprint.id).catch(() => []);
-      const sprintData = { ...sprint, tickets: Array.isArray(tickets) ? tickets : [] };
+      // Load active sprint with tickets
+      const sprintData = await api('/' + sprints[activeIdx].id).catch(() => ({ ...sprints[activeIdx], tickets: [] }));
+      if (!Array.isArray(sprintData.tickets)) sprintData.tickets = [];
       _currentSprintData = sprintData;
       _renderSprintNav();
       _renderSprintBoard(sprintData);
@@ -2798,8 +2787,8 @@ async function _sprintGoto(i) {
   if (_loadedSprints) {
     try {
       const sprint = _loadedSprints[i];
-      const tickets = await api('/data/tickets?sprint_id=' + sprint.id).catch(() => []);
-      const sprintData = { ...sprint, tickets: Array.isArray(tickets) ? tickets : [] };
+      const sprintData = await api('/' + sprint.id);
+      if (!Array.isArray(sprintData.tickets)) sprintData.tickets = [];
       _currentSprintData = sprintData;
       _renderSprintBoard(sprintData);
       return;
@@ -3101,13 +3090,13 @@ function _aiRespond(text) {
     return `Hallo! 👋 Du bist gerade auf "${page}". Was kann ich für dich tun?`;
   }
   if (t.includes('hilfe') || t.includes('help') || t.includes('was kannst')) {
-    return `Ich kann dir helfen mit:\n• 📋 Backlog-Info ("Zeig kritische Tickets")\n• 🏃 Sprint-Status ("Sprint Status?")\n• 🎫 Ticket anlegen ("Erstell ein Ticket")\n• 🧭 Navigation ("Geh zu Backlog")\n\nBackend-Anbindung folgt — dann auch echte Datenabfragen!`;
+    return `Ich kann dir helfen mit:\n• 📋 Backlog-Info ("Zeig kritische Tickets")\n• 🏃 Sprint-Status ("Sprint Status?")\n• 🎫 Ticket anlegen ("Erstell ein Ticket")\n• 🧭 Navigation ("Geh zu Backlog")`;
   }
   // Fallback
   const fallbacks = [
     `Verstanden! Ich kann dir schon jetzt mit Backlog-Info, Sprint-Status und Ticket-Erstellung helfen. Frag mich z.B. "Zeig kritische Tickets" oder "Sprint Status".`,
     `Gute Frage! Für jetzt: frag mich nach Tickets, Sprints oder lass mich ein Ticket anlegen.`,
-    `Das Backend-KI-Endpoint wird gerade implementiert (BE-033). Für lokale Fragen bin ich schon da! 😄`,
+    `Für detaillierte KI-Analysen nutze den AI-Endpoint im Backend. Für Sprint- und Ticket-Fragen bin ich direkt hier! 😄`,
   ];
   return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 }
