@@ -4723,17 +4723,23 @@ async function loadAdminDeploy() {
   const grid = document.getElementById('adm-deploy-grid');
   if (!grid) return;
   try {
-    const d = await api('/admin/deploy');
+    // Parallel: GitHub-Commit-Info + laufende Backend-Version
+    const [d, v] = await Promise.allSettled([
+      api('/admin/deploy'),
+      api('/version')
+    ]);
+    const deploy = d.status === 'fulfilled' ? d.value : {};
+    const ver    = v.status === 'fulfilled' ? v.value : null;
     const cards = [];
 
-    // Frontend card
-    if (d.frontend) {
-      const f = d.frontend;
+    // Frontend card — aus GitHub API
+    if (deploy.frontend) {
+      const f = deploy.frontend;
       cards.push(`
         <div class="adm-deploy-card">
           <div class="adm-deploy-label">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="4"/><path d="m9 9 3 3"/></svg>
-            Frontend
+            Frontend · main
           </div>
           <div class="adm-deploy-sha">${(f.sha || '').slice(0,8) || '—'}</div>
           <div class="adm-deploy-msg" title="${f.message || ''}">${f.message || '—'}</div>
@@ -4741,30 +4747,45 @@ async function loadAdminDeploy() {
         </div>`);
     }
 
-    // Backend card
-    if (d.backend) {
-      const b = d.backend;
+    // Backend card — bevorzugt laufende Version (/version), Fallback GitHub API
+    const b = deploy.backend;
+    const gitHash = ver?.git_hash && ver.git_hash !== 'unknown' ? ver.git_hash : b?.sha;
+    const gitBranch = ver?.git_branch || 'develop';
+    const deployedAt = ver?.deployed_at || b?.date;
+    const commitMsg = b?.message || ver?.version || '—';
+    if (gitHash || b) {
       cards.push(`
         <div class="adm-deploy-card">
           <div class="adm-deploy-label">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
-            Backend
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="9" height="8" rx="1"/><path d="m8 7 3 3-3 3"/></svg>
+            Backend · ${gitBranch}
           </div>
-          <div class="adm-deploy-sha">${(b.sha || '').slice(0,8) || '—'}</div>
-          <div class="adm-deploy-msg" title="${b.message || ''}">${b.message || '—'}</div>
-          <div class="adm-deploy-date">${b.date ? fmtDate(b.date) : '—'}</div>
+          <div class="adm-deploy-sha">${(gitHash || '').slice(0,8) || '—'}</div>
+          <div class="adm-deploy-msg" title="${commitMsg}">${commitMsg}</div>
+          <div class="adm-deploy-date">${deployedAt ? fmtDate(deployedAt) : '—'}</div>
         </div>`);
     }
 
     // Container card (optional)
-    if (d.container) {
-      const c = d.container;
+    if (deploy.container) {
+      const c = deploy.container;
       cards.push(`
         <div class="adm-deploy-card">
           <div class="adm-deploy-label">🐳 Container</div>
           <div class="adm-deploy-sha">${c.name || '—'}</div>
           <div class="adm-deploy-msg">${c.image || '—'}</div>
           <div class="adm-deploy-date">${c.started ? fmtDate(c.started) : '—'}</div>
+        </div>`);
+    }
+
+    // Fallback: nur /version verfügbar
+    if (!cards.length && ver) {
+      cards.push(`
+        <div class="adm-deploy-card">
+          <div class="adm-deploy-label">⚙️ Backend · ${ver.git_branch || 'main'}</div>
+          <div class="adm-deploy-sha">${(ver.git_hash || 'unknown').slice(0,8)}</div>
+          <div class="adm-deploy-msg">v${ver.version || '—'} · ${ver.environment || '—'}</div>
+          <div class="adm-deploy-date">${ver.deployed_at ? fmtDate(ver.deployed_at) : '—'}</div>
         </div>`);
     }
 
