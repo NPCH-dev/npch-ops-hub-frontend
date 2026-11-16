@@ -706,19 +706,11 @@ tr:hover td { background: var(--bg3); }
     <button id="login-btn" onclick="doLogin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px">
       Anmelden
     </button>
-    <div style="text-align:center;margin-top:16px">
-      <button onclick="enableDevMode()" style="background:none;border:none;color:var(--fg3);font-size:11px;cursor:pointer;text-decoration:underline">
-        🛠 Dev Preview (kein Login)
-      </button>
-    </div>
   </div>
 </div>
 
-<!-- Dev-Mode-Banner (oben sichtbar wenn aktiv) -->
-<div id="dev-mode-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:#7c3aed;color:#fff;font-size:11.5px;font-weight:600;padding:5px 16px;align-items:center;gap:8px;justify-content:center">
-  🛠 DEV PREVIEW — Kein echter Login · API-Calls werden fehlschlagen
-  <button onclick="disableDevMode()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:10px;cursor:pointer;padding:2px 8px;border-radius:4px;margin-left:8px">Ausschalten</button>
-</div>
+<!-- Dev-Mode-Banner placeholder (unused) -->
+<div id="dev-mode-banner" style="display:none"></div>
 
 <!-- Fixed Header -->
 <header id="topbar">
@@ -2264,16 +2256,6 @@ tr:hover td { background: var(--bg3); }
 <script>
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function checkAuth() {
-  // Dev-Bypass: ?dev=1 in URL oder localStorage Flag → Login überspringen
-  const devMode = new URLSearchParams(location.search).get('dev') === '1'
-    || (() => { try { return localStorage.getItem('npch_dev_mode') === '1'; } catch { return false; } })();
-  if (devMode) {
-    try { localStorage.setItem('npch_dev_mode', '1'); } catch {}
-    CONFIG.authToken = 'dev-preview-token';
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('dev-mode-banner').style.display = 'flex';
-    return true;
-  }
   const token = (() => { try { return localStorage.getItem('npch_token') || sessionStorage.getItem('npch_token') || ''; } catch { return ''; } })();
   CONFIG.authToken = token;
   if (token) {
@@ -2284,18 +2266,8 @@ function checkAuth() {
   return !!token;
 }
 
-function enableDevMode() {
-  try { localStorage.setItem('npch_dev_mode', '1'); } catch {}
-  checkAuth();
-  navigate('dashboard');
-}
-
-function disableDevMode() {
-  try { localStorage.removeItem('npch_dev_mode'); } catch {}
-  document.getElementById('dev-mode-banner').style.display = 'none';
-  CONFIG.authToken = '';
-  document.getElementById('login-screen').style.display = 'flex';
-}
+function enableDevMode() { /* removed */ }
+function disableDevMode() { /* removed */ }
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -3347,7 +3319,7 @@ async function loadAgentsPage() {
   renderLLMFeed(MOCK_TRACES);
   _updateAgentStats(MOCK_TRACES);
 
-  if (!CONFIG.authToken || CONFIG.authToken === 'dev-preview-token') return;
+  if (!CONFIG.authToken) return;
 
   // Alle drei API-Calls parallel starten
   const [execsResult, questionsResult] = await Promise.allSettled([
