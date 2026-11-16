@@ -1532,7 +1532,8 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('kpi-revenue').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(total);
         }
 
-        render(MOCK); updateKPIs();
+        window._ordersInit = function(){ render(MOCK); updateKPIs(); };
+        window._ordersInit();
       })();
       </script>
     </div>
@@ -2994,28 +2995,11 @@ async function triggerDevAgent(btn) {
   }
 }
 
-async function loadOrders() {
-  const tbody = document.getElementById('orders-tbody');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
-  try {
-    const data = await api('/orders?limit=50');
-    const orders = Array.isArray(data) ? data : (data.items || []);
-    if (!orders.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Keine Aufträge</td></tr>';
-      return;
-    }
-    tbody.innerHTML = orders.map(o => `
-      <tr>
-        <td><code style="font-family:JetBrains Mono,monospace;font-size:12px">${o.order_number || o.id}</code></td>
-        <td>${o.customer_name || '—'}</td>
-        <td>${o.training_title || '—'}</td>
-        <td>${statusBadge(o.main_status)}</td>
-        <td>${o.created_at ? new Date(o.created_at).toLocaleDateString('de-DE') : '—'}</td>
-        <td>${o.gross_amount ? o.gross_amount.toLocaleString('de-DE', {style:'currency',currency:'EUR'}) : '—'}</td>
-      </tr>`).join('');
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:32px">Fehler: ${e.message}</td></tr>`;
-  }
+function loadOrders() {
+  // Dev mode: MOCK data rendered by the orders page IIFE
+  // The IIFE calls render(MOCK) + updateKPIs() directly on the DOM elements.
+  // Re-trigger those functions so a navigate() call also refreshes the table.
+  if (typeof window._ordersInit === 'function') window._ordersInit();
 }
 
 // ── Sprint & Backlog State ────────────────────────────────────────────────────
