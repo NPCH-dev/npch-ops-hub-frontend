@@ -3521,26 +3521,32 @@ async function loadTraceDetail(execId) {
   body.dataset.loaded = '1';
   const promptEl = document.getElementById('trace-prompt-' + execId);
   const respEl   = document.getElementById('trace-resp-'   + execId);
-  if (promptEl && promptEl.textContent === '—') promptEl.textContent = '⏳ Loading…';
+  // Use trim() so whitespace from template literal doesn't break comparison
+  if (promptEl) promptEl.textContent = '⏳ Loading…';
+  if (respEl && !document.getElementById('trace-' + execId)?.classList.contains('llt-running')) {
+    respEl.textContent = '⏳ Loading…';
+  }
   try {
     const detail = await api('/admin/n8n/executions/' + execId);
-    const runData = detail?.data?.resultData?.runData || {};
+    // n8n API v1 single-execution returns data directly at top level OR nested
+    const runData = detail?.data?.resultData?.runData
+                 || detail?.resultData?.runData
+                 || {};
     let prompt = '—', response = '—';
 
-    // Primary: "🤖 Prompt bauen" node has userPrompt + ticketName
+    // Primary: "🤖 Prompt bauen" node — has userPrompt field
     const promptNode = runData['🤖 Prompt bauen']?.[0]?.data?.main?.[0]?.[0]?.json;
     if (promptNode?.userPrompt) prompt = promptNode.userPrompt;
-    else if (promptNode?.systemPrompt) prompt = promptNode.systemPrompt;
 
     // Ticket fallback: "🎫 Ticket auswählen" has ticketContent
     const ticketNode = runData['🎫 Ticket auswählen']?.[0]?.data?.main?.[0]?.[0]?.json;
     if (prompt === '—' && ticketNode?.ticketContent) prompt = ticketNode.ticketContent;
 
-    // Primary: "🧠 LiteLLM aufrufen" node has choices array
+    // Primary: "🧠 LiteLLM aufrufen" node — has choices array
     const llmNode = runData['🧠 LiteLLM aufrufen']?.[0]?.data?.main?.[0]?.[0]?.json;
     if (llmNode?.choices?.[0]?.message?.content) response = llmNode.choices[0].message.content;
 
-    // Fallback: scan all nodes for choices / userPrompt
+    // Fallback: scan ALL nodes
     if (response === '—' || prompt === '—') {
       for (const nodeName of Object.keys(runData)) {
         const steps = runData[nodeName];
@@ -3556,16 +3562,20 @@ async function loadTraceDetail(execId) {
         }
       }
     }
+
+    if (prompt === '—' && Object.keys(runData).length === 0) {
+      prompt = '(No data available — execution may have been pruned)';
+    }
+
     if (promptEl) promptEl.textContent = prompt;
-    if (respEl && respEl.textContent !== 'Generating…') {
-      // Only update if not currently showing error/running state
-      const traceEl = document.getElementById('trace-' + execId);
-      if (traceEl && !traceEl.classList.contains('llt-running')) {
-        respEl.textContent = response;
-      }
+    const traceEl = document.getElementById('trace-' + execId);
+    if (respEl && !traceEl?.classList.contains('llt-running')) {
+      respEl.textContent = response;
     }
   } catch(e) {
-    if (promptEl && promptEl.textContent === '⏳ Loading…') promptEl.textContent = '—';
+    console.error('loadTraceDetail error:', e);
+    if (promptEl) promptEl.textContent = 'Error loading trace: ' + (e.message || String(e));
+    if (respEl) respEl.textContent = '—';
   }
 }
 
