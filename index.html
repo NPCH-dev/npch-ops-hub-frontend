@@ -2332,9 +2332,7 @@ const CONFIG = {
 
 // ── API helper ────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
-  // Ensure trailing slash to avoid nginx 307 redirects
-  const normalizedPath = path.endsWith('/') || path.includes('?') ? path : path + '/';
-  const url = CONFIG.apiBase + normalizedPath;
+  const url = CONFIG.apiBase + path;
   const headers = { 'Content-Type': 'application/json', ...(CONFIG.authToken ? { Authorization: `Bearer ${CONFIG.authToken}` } : {}), ...opts.headers };
   const res = await fetch(url, { ...opts, headers });
   if (res.status === 401) {
