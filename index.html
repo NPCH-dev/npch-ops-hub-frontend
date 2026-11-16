@@ -3305,20 +3305,23 @@ let _agentsPendingQuestions = [];  // needs_clarification tickets
 async function loadAgentsPage() {
   // Gespeicherte Reihenfolge wiederherstellen
   _restoreAgentsOrder();
-  // Erst Mock rendern für sofortiges UI
+  // Agents active aus AGENTS_DEF (kein hardcoded "9")
+  document.getElementById('agc-stat-active').textContent = AGENTS_DEF.length;
+  // Grid initial mit Cache-Status rendern
   _renderAgentGridFromCache();
-  renderLLMFeed(MOCK_TRACES);
-  _updateAgentStats(MOCK_TRACES);
+  // LLM Feed: Mock als Platzhalter bis echte Daten da sind
+  if (!_agentsN8nLoaded) renderLLMFeed(MOCK_TRACES);
 
   if (!CONFIG.authToken) return;
 
-  // Alle drei API-Calls parallel starten
-  const [execsResult, questionsResult] = await Promise.allSettled([
+  // Alle API-Calls parallel starten
+  const [execsResult, logsResult, questionsResult] = await Promise.allSettled([
     api('/admin/n8n/executions?limit=50'),
+    api('/data/agent-logs?limit=30'),
     api('/data/tickets?status=needs_clarification')
   ]);
 
-  // n8n Executions verarbeiten
+  // n8n Executions verarbeiten → Agent-Card Status-Dots
   if (execsResult.status === 'fulfilled') {
     const execs = execsResult.value;
     if (Array.isArray(execs) && execs.length > 0) {
@@ -3329,9 +3332,64 @@ async function loadAgentsPage() {
         _agentsExecCache[wfId].push(e);
       });
       _agentsN8nLoaded = true;
-      const running = execs.filter(e => e.status === 'running').length;
+      const running = execs.filter(e => e.status === 'running' || e.status === 'waiting').length;
+      const today = execs.filter(e => {
+        const d = new Date(e.startedAt || e.started_at);
+        return d.toDateString() === new Date().toDateString();
+      }).length;
       document.getElementById('agc-stat-running').textContent = running;
-      document.getElementById('agc-stat-today').textContent = execs.length;
+      document.getElementById('agc-stat-today').textContent = today || execs.length;
+
+      // LLM Trace Feed aus n8n Executions bauen
+      const traces = execs.map(e => {
+        const wfId = e.workflowId || e.workflow_id;
+        const agentDef = AGENTS_DEF.find(a => a.id === wfId);
+        const statusMap = { success: 'done', error: 'error', running: 'running', waiting: 'running' };
+        return {
+          id: String(e.id),
+          wfId,
+          wfName: agentDef ? `${agentDef.icon} ${agentDef.name}` : `🤖 Workflow ${wfId}`,
+          status: statusMap[e.status] || 'done',
+          startedAt: new Date(e.startedAt || e.started_at),
+          prompt: e.data?.startData?.runData?.['Start']?.[0]?.data?.main?.[0]?.[0]?.json?.prompt || '—',
+          response: e.status === 'error' ? null : '—',
+          error: e.status === 'error' ? (e.data?.resultData?.error?.message || 'Error') : null,
+          tokens_in: null, tokens_out: null,
+          duration_ms: e.stoppedAt && e.startedAt
+            ? new Date(e.stoppedAt) - new Date(e.startedAt) : null,
+          model: agentDef?.model || 'qwen2.5-coder',
+        };
+      });
+
+      // Wenn agent-logs vorhanden, Prompt+Response damit befüllen
+      const logs = logsResult.status === 'fulfilled' && Array.isArray(logsResult.value)
+        ? logsResult.value : [];
+      if (logs.length > 0) {
+        const totalTokens = logs.reduce((s, l) => s + (l.tokens_in || 0) + (l.tokens_out || 0), 0);
+        document.getElementById('agc-stat-tokens').textContent =
+          totalTokens > 1000 ? (totalTokens/1000).toFixed(1)+'k' : totalTokens;
+        // Map logs onto traces by wfId + rough time match, or use logs directly as feed
+        const logTraces = logs.map(l => {
+          const agentDef = AGENTS_DEF.find(a => a.name === l.agent_name || a.id === l.workflow_id);
+          return {
+            id: String(l.id),
+            wfId: l.workflow_id || agentDef?.id || '',
+            wfName: agentDef ? `${agentDef.icon} ${agentDef.name}` : `🤖 ${l.agent_name || 'Agent'}`,
+            status: l.status === 'success' ? 'done' : l.status === 'error' ? 'error' : 'done',
+            startedAt: new Date(l.created_at),
+            prompt: l.prompt || '—',
+            response: l.response || null,
+            error: l.error || null,
+            tokens_in: l.tokens_in || null,
+            tokens_out: l.tokens_out || null,
+            duration_ms: l.duration_ms || null,
+            model: l.model || agentDef?.model || 'qwen2.5-coder',
+          };
+        });
+        renderLLMFeed(logTraces.length > 0 ? logTraces : (traces.length > 0 ? traces : MOCK_TRACES));
+      } else {
+        renderLLMFeed(traces.length > 0 ? traces : MOCK_TRACES);
+      }
     }
   }
 
@@ -3477,12 +3535,8 @@ function toggleTrace(id) {
   if (btn) btn.textContent = open ? '▸ Details' : '▴ Schließen';
 }
 
-let _langfuseToastShown = false;
 function loadMoreTraces() {
-  if (!_langfuseToastShown) {
-    showToast('Langfuse integration coming next sprint', 'info');
-    _langfuseToastShown = true;
-  }
+  loadAgentsPage();
 }
 
 // ── Pending Questions (needs_clarification tickets) ───────────────────────────
