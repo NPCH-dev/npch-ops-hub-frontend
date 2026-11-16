@@ -3509,6 +3509,62 @@ function toggleTrace(id) {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (btn) btn.textContent = open ? '▸ Details' : '▴ Schließen';
+  // Load detail data on first expand (prompt/response from backend with includeData=true)
+  if (!open && !body.dataset.loaded) {
+    loadTraceDetail(id);
+  }
+}
+
+async function loadTraceDetail(execId) {
+  const body = document.getElementById('trace-body-' + execId);
+  if (!body) return;
+  body.dataset.loaded = '1';
+  const promptEl = document.getElementById('trace-prompt-' + execId);
+  const respEl   = document.getElementById('trace-resp-'   + execId);
+  if (promptEl && promptEl.textContent === '—') promptEl.textContent = '⏳ Loading…';
+  try {
+    const detail = await api('/admin/n8n/executions/' + execId);
+    const runData = detail?.data?.resultData?.runData || {};
+    // Extract prompt: look for ticket description in HTTP node output or first node
+    let prompt = '—', response = '—';
+    const nodeNames = Object.keys(runData);
+    for (const nodeName of nodeNames) {
+      const steps = runData[nodeName];
+      if (!Array.isArray(steps)) continue;
+      for (const step of steps) {
+        const items = step?.data?.main?.[0] || [];
+        for (const item of items) {
+          const j = item?.json || {};
+          // LiteLLM response: look for choices array
+          if (Array.isArray(j.choices) && j.choices[0]?.message?.content) {
+            response = j.choices[0].message.content;
+          }
+          // Ticket description / prompt input
+          if (j.description && typeof j.description === 'string' && j.description.length > 20) {
+            prompt = j.description;
+          }
+          if (j.prompt && typeof j.prompt === 'string') {
+            prompt = j.prompt;
+          }
+          // Fallback: HTTP response body from LiteLLM node
+          if (j.body && typeof j.body === 'object' && j.body.choices) {
+            const c = j.body.choices?.[0]?.message?.content;
+            if (c) response = c;
+          }
+        }
+      }
+    }
+    if (promptEl) promptEl.textContent = prompt;
+    if (respEl && respEl.textContent !== 'Generating…') {
+      // Only update if not currently showing error/running state
+      const traceEl = document.getElementById('trace-' + execId);
+      if (traceEl && !traceEl.classList.contains('llt-running')) {
+        respEl.textContent = response;
+      }
+    }
+  } catch(e) {
+    if (promptEl && promptEl.textContent === '⏳ Loading…') promptEl.textContent = '—';
+  }
 }
 
 function loadMoreTraces() {
