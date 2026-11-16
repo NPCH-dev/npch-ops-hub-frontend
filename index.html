@@ -1880,7 +1880,7 @@ tr:hover td { background: var(--bg3); }
       </div>
 
       <!-- Detail Modal -->
-      <div id="agent-detail-modal" hidden style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto">
+      <div id="agent-detail-modal" hidden onclick="if(event.target===this)closeAgentDetail()" style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:680px;padding:24px;position:relative">
           <button onclick="closeAgentDetail()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--fg2);cursor:pointer;font-size:18px;line-height:1">✕</button>
           <div id="agent-detail-content"></div>
@@ -2388,11 +2388,13 @@ function showToast(msg, type = 'error') {
   }
   const toast = document.createElement('div');
   const bg = type==='success' ? 'var(--accent)' : type==='info' ? '#2980b9' : '#c0392b';
-  toast.style.cssText = `background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .2s;max-width:320px;`;
+  toast.style.cssText = `background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .2s;max-width:320px;cursor:pointer;`;
   toast.textContent = msg;
+  const dismiss = () => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 200); };
+  toast.addEventListener('click', dismiss);
   container.appendChild(toast);
   requestAnimationFrame(() => { toast.style.opacity = '1'; });
-  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 200); }, 3500);
+  setTimeout(dismiss, 4000);
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
