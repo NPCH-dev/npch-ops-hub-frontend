@@ -1784,30 +1784,30 @@ tr:hover td { background: var(--bg3); }
 
       <div class="page-header">
         <div>
-          <h1>Agent Kontrollzentrum</h1>
-          <p>Alle KI-Agenten · LLM Traces · Live Monitoring</p>
+          <h1>Agent Control Center</h1>
+          <p>All AI Agents · LLM Traces · Live Monitoring</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg2);cursor:pointer">
             <input type="checkbox" id="agents-auto-refresh" checked onchange="toggleAgentsRefresh(this.checked)">
-            Auto-Refresh (5s)
+            Auto-Refresh (10s)
           </label>
-          <button class="btn btn-secondary btn-sm" onclick="loadAgentsPage()">↺ Jetzt</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadAgentsPage()">↺ Refresh</button>
         </div>
       </div>
 
       <!-- Stats -->
       <div class="agc-stats" id="agc-stats">
-        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-active" style="color:var(--green)">9</div><div class="agc-stat-lbl">Agenten aktiv</div></div>
-        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-running" style="color:var(--accent)">0</div><div class="agc-stat-lbl">Gerade laufend</div></div>
-        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-today">—</div><div class="agc-stat-lbl">Runs heute</div></div>
-        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-tokens">—</div><div class="agc-stat-lbl">Tokens heute</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-active" style="color:var(--green)">9</div><div class="agc-stat-lbl">Agents active</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-running" style="color:var(--accent)">0</div><div class="agc-stat-lbl">Currently running</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-today">—</div><div class="agc-stat-lbl">Runs today</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-tokens">—</div><div class="agc-stat-lbl">Tokens today</div></div>
       </div>
 
       <div class="agc-layout">
         <!-- Left: Agent Cards -->
         <div>
-          <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Agenten</div>
+          <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Agents</div>
           <div class="agent-grid" id="agent-grid">
             <!-- filled by JS -->
           </div>
@@ -1823,7 +1823,7 @@ tr:hover td { background: var(--bg3); }
             <!-- filled by JS -->
           </div>
           <div style="text-align:center;margin-top:8px">
-            <button class="btn btn-ghost btn-sm" onclick="loadMoreTraces()" style="font-size:11px">Ältere laden…</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadMoreTraces()" style="font-size:11px">Load older…</button>
           </div>
         </div>
       </div>
@@ -1844,17 +1844,17 @@ tr:hover td { background: var(--bg3); }
             <div id="apt-icon" style="font-size:28px"></div>
             <div>
               <div id="apt-name" style="font-size:16px;font-weight:700"></div>
-              <div style="font-size:11.5px;color:var(--fg3);margin-top:2px">Agent manuell mit eigenem Prompt starten</div>
+              <div style="font-size:11.5px;color:var(--fg3);margin-top:2px">Run agent manually with a custom prompt</div>
             </div>
           </div>
-          <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-top:16px">Prompt / Aufgabe</label>
+          <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-top:16px">Prompt / Task</label>
           <textarea id="apt-prompt" class="agent-prompt-textarea"
-            placeholder="Beschreibe die Aufgabe für den Agenten…&#10;z.B. Implementiere Ticket NPCH-042: User-Rollen in der API absichern"
-            onkeydown="if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();submitAgentPrompt()}" ></textarea>
-          <div style="font-size:10.5px;color:var(--fg3);text-align:right;margin-top:4px">⌘ Enter zum Starten</div>
+            placeholder="Describe the task for the agent…&#10;e.g. Implement ticket NPCH-042: Secure user roles in the API"
+            onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();submitAgentPrompt()}" ></textarea>
+          <div style="font-size:10.5px;color:var(--fg3);text-align:right;margin-top:4px">⌘ Enter to run</div>
           <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
-            <button onclick="closeAgentPrompt()" class="btn btn-secondary btn-sm">Abbrechen</button>
-            <button onclick="submitAgentPrompt()" class="btn btn-primary btn-sm" id="apt-submit-btn">▶ Starten</button>
+            <button onclick="closeAgentPrompt()" class="btn btn-secondary btn-sm">Cancel</button>
+            <button onclick="submitAgentPrompt()" class="btn btn-primary btn-sm" id="apt-submit-btn">▶ Run</button>
           </div>
         </div>
       </div>
@@ -3320,18 +3320,18 @@ function _renderAgentGridFromCache() {
       hasError = !running && liveExecs[0]?.status === 'error';
       const last = liveExecs[0];
       lastRunStr = last ? relTime(new Date(last.startedAt || last.started_at)) : 'Noch nie';
-      lastOut = last?.status === 'error' ? '⚠ Fehler beim letzten Run' : '';
+      lastOut = last?.status === 'error' ? '⚠ Error on last run' : '';
     } else {
       running = mockTraces.some(t => t.status === 'running');
       hasError = mockTraces.some(t => t.status === 'error');
       const lastTrace = mockTraces.sort((x,y) => y.startedAt - x.startedAt)[0];
       lastRunStr = lastTrace ? relTime(lastTrace.startedAt) : 'Noch nie';
-      lastOut = lastTrace?.response ? lastTrace.response.substring(0,120) : (lastTrace?.error ? '⚠ ' + lastTrace.error : '');
+      lastOut = lastTrace?.response ? lastTrace.response.substring(0,120) : (lastTrace?.error ? '⚠ Error: ' + lastTrace.error : '');
     }
 
     const status = running ? 'running' : hasError ? 'error' : a.active ? 'active' : 'paused';
     const dotClass = { running:'asd-running', error:'asd-error', active:'asd-active', paused:'asd-paused' }[status];
-    const statusLabel = { running:'▶ Läuft', error:'⚠ Fehler', active:'● Aktiv', paused:'⏸ Pausiert' }[status];
+    const statusLabel = { running:'▶ Running', error:'⚠ Error', active:'● Active', paused:'⏸ Paused' }[status];
 
     return `
       <div class="agent-card${running?' ac-running':hasError?' ac-error':''}"
@@ -3351,14 +3351,14 @@ function _renderAgentGridFromCache() {
         <div class="ac-name">${a.name}</div>
         <div class="ac-desc">${a.desc}</div>
         <div class="ac-meta">
-          <div class="ac-meta-item">Letzter Run: <span>${lastRunStr}</span></div>
-          <div class="ac-meta-item">Modell: <span>${a.model.split(':')[0]}</span></div>
+          <div class="ac-meta-item">Last run: <span>${lastRunStr}</span></div>
+          <div class="ac-meta-item">Model: <span>${a.model.split(':')[0]}</span></div>
         </div>
         <div class="ac-trigger">🕐 ${a.trigger}</div>
         ${lastOut ? `<div class="ac-last-output">${escHtml(lastOut)}</div>` : ''}
         <div class="ac-actions" onclick="event.stopPropagation()">
-          <button class="ac-btn-run" onclick="triggerAgentNow('${a.id}')" title="Sofort starten">▶ Start</button>
-          <button class="ac-btn-prompt" onclick="openAgentPrompt('${a.id}')" title="Mit eigenem Prompt starten">✎ mit Prompt</button>
+          <button class="ac-btn-run" onclick="triggerAgentNow('${a.id}')" title="Run now">▶ Run</button>
+          <button class="ac-btn-prompt" onclick="openAgentPrompt('${a.id}')" title="Run with custom prompt">✎ with Prompt</button>
         </div>
       </div>`;
   }).join('');
@@ -3369,12 +3369,12 @@ function renderLLMFeed(traces) {
   const feed = document.getElementById('llm-trace-feed');
   if (!feed) return;
   if (!traces.length) {
-    feed.innerHTML = '<div style="text-align:center;padding:32px;color:var(--fg3)">Keine Traces vorhanden</div>';
+    feed.innerHTML = '<div style="text-align:center;padding:32px;color:var(--fg3)">No traces available</div>';
     return;
   }
   feed.innerHTML = traces.map(t => {
     const statusCls = { running:'lts-running', done:'lts-done', error:'lts-error' }[t.status] || 'lts-done';
-    const statusLbl = { running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status] || t.status;
+    const statusLbl = { running:'▶ Running', done:'✓ Done', error:'✕ Error' }[t.status] || t.status;
     const duration = t.duration_ms ? (t.duration_ms/1000).toFixed(1)+'s' : '…';
     return `
       <div class="llm-trace llt-${t.status}" id="trace-${t.id}">
@@ -3387,23 +3387,24 @@ function renderLLMFeed(traces) {
         <div class="llt-body" id="trace-body-${t.id}" style="display:none">
           <div class="llt-section-label">Prompt</div>
           <div class="llt-prompt-box" id="trace-prompt-${t.id}">${escHtml(t.prompt)}</div>
-          <button class="llt-expand-text-btn" onclick="event.stopPropagation();toggleTraceBox('trace-prompt-${t.id}',this)">▾ mehr anzeigen</button>
+          <button class="llt-expand-text-btn" onclick="event.stopPropagation();toggleTraceBox('trace-prompt-${t.id}',this)">▾ show more</button>
           <div class="llt-section-label">Response</div>
           <div class="llt-response-box" id="trace-resp-${t.id}">
             ${t.status === 'running'
               ? '<div class="llt-typing"><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div></div><span style="font-size:11px;color:var(--fg3)"> Generating…</span>'
+
               : t.error
                 ? `<span style="color:var(--red)">${escHtml(t.error)}</span>`
                 : escHtml(t.response||'')
             }
           </div>
-          ${t.status !== 'running' ? `<button class="llt-expand-text-btn" onclick="event.stopPropagation();toggleTraceBox('trace-resp-${t.id}',this)">▾ mehr anzeigen</button>` : ''}
+          ${t.status !== 'running' ? `<button class="llt-expand-text-btn" onclick="event.stopPropagation();toggleTraceBox('trace-resp-${t.id}',this)">▾ show more</button>` : ''}
         </div>
         <div class="llt-footer">
           <div class="llt-metric">In: <span>${t.tokens_in ? t.tokens_in.toLocaleString() : '—'}</span></div>
           <div class="llt-metric">Out: <span>${t.tokens_out ? t.tokens_out.toLocaleString() : '—'}</span></div>
-          <div class="llt-metric">Dauer: <span>${duration}</span></div>
-          <div class="llt-metric">Modell: <span>${t.model.split(':')[0]}</span></div>
+          <div class="llt-metric">Duration: <span>${duration}</span></div>
+          <div class="llt-metric">Model: <span>${t.model.split(':')[0]}</span></div>
           <button class="llt-expand-btn" onclick="event.stopPropagation();toggleTrace('${t.id}')">▸ Details</button>
         </div>
       </div>`;
@@ -3420,7 +3421,7 @@ function toggleTrace(id) {
 }
 
 function loadMoreTraces() {
-  showToast('Langfuse-Integration kommt in nächstem Sprint', 'info');
+  showToast('Langfuse integration coming next sprint', 'info');
 }
 
 // ── Agent Detail Modal ────────────────────────────────────────────────────────
@@ -3453,16 +3454,16 @@ async function openAgentDetail(id) {
         <div style="font-size:11.5px;font-family:monospace;word-break:break-all">${a.id}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
-        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">Trigger-Zeit</div>
+        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">Trigger Schedule</div>
         <div style="font-size:12px">${a.trigger}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
-        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">LLM Modell</div>
+        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">LLM Model</div>
         <div style="font-size:11.5px;font-family:monospace">${a.model}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
         <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">Runs ${execs ? '(live)' : '(mock)'}</div>
-        <div style="font-size:12px">${runCount} heute</div>
+        <div style="font-size:12px">${runCount} today</div>
       </div>
     </div>
     <div style="font-size:11.5px;font-weight:600;margin-bottom:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.04em">
@@ -3470,22 +3471,22 @@ async function openAgentDetail(id) {
     </div>
     ${execs
       ? (execs.length === 0
-          ? '<div style="text-align:center;padding:24px;color:var(--fg3)">Keine Runs vorhanden</div>'
+          ? '<div style="text-align:center;padding:24px;color:var(--fg3)">No runs found</div>'
           : execs.slice(0,5).map(e => `
             <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
-              <div class="llt-status ${{ running:'lts-running', success:'lts-done', error:'lts-error', waiting:'lts-done' }[e.status] || 'lts-done'}">${{ running:'▶ Läuft', success:'✓ OK', error:'✕ Fehler', waiting:'⏸ Wartet' }[e.status] || e.status}</div>
+              <div class="llt-status ${{ running:'lts-running', success:'lts-done', error:'lts-error', waiting:'lts-done' }[e.status] || 'lts-done'}">${{ running:'▶ Running', success:'✓ OK', error:'✕ Error', waiting:'⏸ Waiting' }[e.status] || e.status}</div>
               <div style="font-size:11px;color:var(--fg3);margin-left:auto">${relTime(new Date(e.startedAt || e.started_at))} · Exec ${e.id||'—'}</div>
             </div>`).join('')
         )
       : (mockTraces.length === 0
-          ? '<div style="text-align:center;padding:24px;color:var(--fg3)">Keine Traces heute</div>'
+          ? '<div style="text-align:center;padding:24px;color:var(--fg3)">No traces today</div>'
           : mockTraces.map(t => `
             <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden">
               <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3)">
-                <div class="llt-status ${{ running:'lts-running', done:'lts-done', error:'lts-error' }[t.status]}">${{ running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status]}</div>
+                <div class="llt-status ${{ running:'lts-running', done:'lts-done', error:'lts-error' }[t.status]}">${{ running:'▶ Running', done:'✓ Done', error:'✕ Error' }[t.status]}</div>
                 <div style="font-size:11px;color:var(--fg3);margin-left:auto">${relTime(t.startedAt)} · ${t.tokens_in ? t.tokens_in.toLocaleString() + ' tokens' : '—'}</div>
               </div>
-              <div style="padding:10px 12px;font-size:11px;color:var(--fg2);font-family:monospace;white-space:pre-wrap;max-height:120px;overflow:hidden">${escHtml((t.response || t.error || 'Läuft noch…').substring(0,300))}</div>
+              <div style="padding:10px 12px;font-size:11px;color:var(--fg2);font-family:monospace;white-space:pre-wrap;max-height:120px;overflow:hidden">${escHtml((t.response || t.error || 'Still running…').substring(0,300))}</div>
             </div>`).join('')
         )
     }
@@ -3498,11 +3499,11 @@ async function triggerAgentNow(wfId) {
   if (!a) return;
   try {
     await api(`/admin/n8n/workflows/${wfId}/execute`, { method: 'POST', body: JSON.stringify({}) });
-    showToast(`${a.icon} ${a.name} gestartet ✓`, 'success');
+    showToast(`${a.icon} ${a.name} started ✓`, 'success');
     closeAgentDetail();
     setTimeout(loadAgentsPage, 2000);
   } catch (e) {
-    showToast('Fehler: ' + e.message, 'error');
+    showToast('Error: ' + e.message, 'error');
   }
 }
 
@@ -3540,20 +3541,19 @@ async function submitAgentPrompt() {
   }
   const a = AGENTS_DEF.find(x => x.id === wfId);
   const btn = document.getElementById('apt-submit-btn');
-  btn.textContent = '⏳ Startet…'; btn.disabled = true;
+  btn.textContent = '⏳ Starting…'; btn.disabled = true;
   try {
-    // n8n execute unterstützt optionale Input-Daten — wir schicken den Prompt als data
     await api(`/admin/n8n/workflows/${wfId}/execute`, {
       method: 'POST',
       body: JSON.stringify({ data: { prompt } })
     });
-    showToast(`${a?.icon || '🤖'} ${a?.name} gestartet ✓`, 'success');
+    showToast(`${a?.icon || '🤖'} ${a?.name} started ✓`, 'success');
     closeAgentPrompt();
     closeAgentDetail();
     setTimeout(loadAgentsPage, 2000);
   } catch (e) {
-    showToast('Fehler: ' + e.message, 'error');
-    btn.textContent = '▶ Starten'; btn.disabled = false;
+    showToast('Error: ' + e.message, 'error');
+    btn.textContent = '▶ Run'; btn.disabled = false;
   }
 }
 
@@ -3567,7 +3567,7 @@ function toggleTraceBox(id, btn) {
   const box = document.getElementById(id);
   if (!box) return;
   const expanded = box.classList.toggle('expanded');
-  if (btn) btn.textContent = expanded ? '▴ weniger' : '▾ mehr anzeigen';
+  if (btn) btn.textContent = expanded ? '▴ show less' : '▾ show more';
 }
 
 // ── Agent Card Drag & Drop ────────────────────────────────────────────────────

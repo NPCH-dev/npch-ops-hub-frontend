@@ -96,6 +96,7 @@ Spec: `docs/spec.md` im Backend-Repo
 - **Hash-Routing:** `navigate(page)` → setzt Hash, zeigt/versteckt `.page`-Divs
 - **API-Calls:** Ausschließlich über den `api(path, opts)` Helper — niemals `fetch()` direkt
 - **Token-Handling:** `CONFIG.authToken` + `localStorage`/`sessionStorage` — niemals in URL-Parametern
+- **UI-Sprache: ENGLISCH** — Alle UI-Texte, Labels, Buttons, Tooltips, Toast-Messages und Platzhalter in `index.html` sind auf **Englisch**. Keine deutschen Texte im Frontend-Code.
 
 ### Sicherheitsregeln (Absolut)
 
