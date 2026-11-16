@@ -3191,7 +3191,7 @@ async function confirmNewSprint() {
     capacity_sp: parseInt(document.getElementById('nsm-capacity').value) || 40,
   };
   try {
-    await api('/sprints', { method: 'POST', body: JSON.stringify(body) });
+    await api('/sprints/', { method: 'POST', body: JSON.stringify(body) });
     closeNewSprintModal();
     showToast(`Sprint "${name}" erstellt ✓`, 'success');
     loadSprint();
@@ -4096,7 +4096,7 @@ function extractSprintNum(str) {
 async function loadAllSprints() {
   if (_allSprintsLoaded) return;
   try {
-    const sprints = await api('/sprints?limit=50');
+    const sprints = await api('/sprints/?limit=50');
     if (Array.isArray(sprints) && sprints.length) {
       _blSprintOptions = sprints
         .sort((a, b) => (extractSprintNum(a.name||a.id)||99) - (extractSprintNum(b.name||b.id)||99))
@@ -4590,7 +4590,7 @@ async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
   try {
-    const data = await api('/users');
+    const data = await api('/users/');
     const users = Array.isArray(data) ? data : (data.items || []);
     if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">No users found</td></tr>'; return; }
     tbody.innerHTML = users.map(u => `
