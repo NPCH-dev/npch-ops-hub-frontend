@@ -1581,9 +1581,202 @@ tr:hover td { background: var(--bg3); }
     </div>
 
     <!-- ── Page: Agent Status ─────────────────────────────────────────────── -->
+    <!-- ── Page: Agent Kontrollzentrum ──────────────────────────────────────── -->
     <div class="page" id="page-agents">
-      <div class="page-header"><h1>Agent Status</h1><p>Laufende & geplante KI-Agenten</p></div>
-      <div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">🤖</div><p>n8n Webhook coming soon</p></div></div></div>
+      <style>
+        /* ── Agent Control Center ─────────────────────────────────────────── */
+        .agc-layout { display:grid; grid-template-columns:1fr 420px; gap:20px; align-items:start; }
+        @media(max-width:1100px){ .agc-layout { grid-template-columns:1fr; } }
+
+        /* Agent Cards Grid */
+        .agent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+        .agent-card {
+          background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+          padding:16px; cursor:pointer; transition:border-color .15s, box-shadow .15s;
+          position:relative; overflow:hidden;
+        }
+        .agent-card:hover { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+        .agent-card.ac-running { border-color:var(--green); }
+        .agent-card.ac-running::before {
+          content:''; position:absolute; top:0; left:0; right:0; height:2px;
+          background:linear-gradient(90deg, var(--green), transparent);
+          animation:agc-scan 2s linear infinite;
+        }
+        .agent-card.ac-error { border-color:var(--red); }
+        @keyframes agc-scan { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+        .ac-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; }
+        .ac-icon { font-size:26px; line-height:1; }
+        .ac-status-dot {
+          width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px;
+        }
+        .asd-active  { background:var(--green); box-shadow:0 0 6px var(--green); }
+        .asd-idle    { background:var(--fg3); }
+        .asd-running { background:var(--green); animation:pulse-dot 1s ease-in-out infinite; }
+        .asd-error   { background:var(--red); }
+        .asd-paused  { background:var(--yellow); }
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+
+        .ac-name { font-size:14px; font-weight:600; margin-bottom:2px; }
+        .ac-desc { font-size:11.5px; color:var(--fg2); line-height:1.4; margin-bottom:10px; }
+        .ac-meta { display:flex; gap:12px; flex-wrap:wrap; }
+        .ac-meta-item { font-size:11px; color:var(--fg3); }
+        .ac-meta-item span { color:var(--fg); font-weight:500; }
+        .ac-trigger { font-size:10.5px; color:var(--fg3); margin-top:8px; display:flex; align-items:center; gap:5px; }
+        .ac-last-output {
+          margin-top:10px; padding:8px 10px; background:var(--bg3); border-radius:var(--radius-sm);
+          font-size:11px; color:var(--fg2); line-height:1.4; font-family:'JetBrains Mono',monospace;
+          max-height:48px; overflow:hidden; position:relative;
+        }
+        .ac-last-output::after {
+          content:''; position:absolute; bottom:0; left:0; right:0; height:16px;
+          background:linear-gradient(transparent, var(--bg3));
+        }
+
+        /* LLM Live Feed */
+        .llm-feed-header {
+          display:flex; align-items:center; justify-content:space-between;
+          margin-bottom:12px;
+        }
+        .llm-feed-title { font-size:14px; font-weight:600; }
+        .llm-live-badge {
+          display:flex; align-items:center; gap:5px; font-size:11px; color:var(--green);
+          background:var(--green-bg); padding:3px 9px; border-radius:20px;
+        }
+        .llm-live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse-dot 1s ease-in-out infinite; }
+
+        .llm-trace {
+          border:1px solid var(--border); border-radius:var(--radius); margin-bottom:10px;
+          overflow:hidden; background:var(--bg2);
+        }
+        .llm-trace.llt-running { border-color:var(--green); }
+        .llm-trace.llt-error   { border-color:var(--red); }
+
+        .llt-header {
+          display:flex; align-items:center; gap:8px; padding:10px 12px;
+          border-bottom:1px solid var(--border); cursor:pointer;
+          background:var(--bg3); user-select:none;
+        }
+        .llt-wf-icon { font-size:16px; }
+        .llt-wf-name { font-size:12.5px; font-weight:600; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .llt-status  { font-size:10px; font-weight:700; border-radius:4px; padding:2px 7px; white-space:nowrap; }
+        .llt-status.lts-running { background:var(--green-bg); color:var(--green); }
+        .llt-status.lts-done    { background:rgba(99,102,241,.15); color:#818cf8; }
+        .llt-status.lts-error   { background:var(--red-bg); color:var(--red); }
+        .llt-time { font-size:10.5px; color:var(--fg3); white-space:nowrap; }
+
+        .llt-body { padding:10px 12px; }
+        .llt-section-label {
+          font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+          color:var(--fg3); margin-bottom:4px; margin-top:8px;
+        }
+        .llt-section-label:first-child { margin-top:0; }
+        .llt-prompt-box {
+          background:var(--bg3); border-radius:var(--radius-sm); padding:8px 10px;
+          font-size:11.5px; font-family:'JetBrains Mono',monospace; color:var(--fg2);
+          line-height:1.5; max-height:80px; overflow:hidden; position:relative;
+        }
+        .llt-prompt-box.expanded { max-height:none; }
+        .llt-prompt-box::after {
+          content:''; position:absolute; bottom:0; left:0; right:0; height:20px;
+          background:linear-gradient(transparent, var(--bg3));
+        }
+        .llt-prompt-box.expanded::after { display:none; }
+        .llt-response-box {
+          background:var(--bg3); border-radius:var(--radius-sm); padding:8px 10px;
+          font-size:11.5px; color:var(--fg); line-height:1.5;
+          max-height:80px; overflow:hidden; position:relative;
+        }
+        .llt-response-box.expanded { max-height:none; }
+        .llt-response-box::after {
+          content:''; position:absolute; bottom:0; left:0; right:0; height:20px;
+          background:linear-gradient(transparent, var(--bg3));
+        }
+        .llt-response-box.expanded::after { display:none; }
+
+        .llt-typing {
+          display:flex; align-items:center; gap:4px; padding:4px 0;
+        }
+        .llt-typing-dot {
+          width:5px; height:5px; border-radius:50%; background:var(--green);
+          animation:typing-bounce .8s ease-in-out infinite;
+        }
+        .llt-typing-dot:nth-child(2){ animation-delay:.15s; }
+        .llt-typing-dot:nth-child(3){ animation-delay:.3s; }
+        @keyframes typing-bounce { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+        .llt-footer {
+          display:flex; gap:12px; padding:7px 12px; border-top:1px solid var(--border);
+          background:var(--bg3);
+        }
+        .llt-metric { font-size:10.5px; color:var(--fg3); }
+        .llt-metric span { color:var(--fg2); font-weight:500; }
+        .llt-expand-btn {
+          margin-left:auto; font-size:10.5px; color:var(--accent); background:none;
+          border:none; cursor:pointer; padding:0;
+        }
+        .llt-expand-btn:hover { text-decoration:underline; }
+
+        /* Stats bar */
+        .agc-stats { display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+        .agc-stat { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; flex:1; min-width:120px; }
+        .agc-stat-val { font-size:22px; font-weight:700; line-height:1; margin-bottom:3px; }
+        .agc-stat-lbl { font-size:11px; color:var(--fg3); }
+      </style>
+
+      <div class="page-header">
+        <div>
+          <h1>Agent Kontrollzentrum</h1>
+          <p>Alle KI-Agenten · LLM Traces · Live Monitoring</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg2);cursor:pointer">
+            <input type="checkbox" id="agents-auto-refresh" checked onchange="toggleAgentsRefresh(this.checked)">
+            Auto-Refresh (5s)
+          </label>
+          <button class="btn btn-secondary btn-sm" onclick="loadAgentsPage()">↺ Jetzt</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="agc-stats" id="agc-stats">
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-active" style="color:var(--green)">9</div><div class="agc-stat-lbl">Agenten aktiv</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-running" style="color:var(--accent)">0</div><div class="agc-stat-lbl">Gerade laufend</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-today">—</div><div class="agc-stat-lbl">Runs heute</div></div>
+        <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-tokens">—</div><div class="agc-stat-lbl">Tokens heute</div></div>
+      </div>
+
+      <div class="agc-layout">
+        <!-- Left: Agent Cards -->
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Agenten</div>
+          <div class="agent-grid" id="agent-grid">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- Right: LLM Live Feed -->
+        <div>
+          <div class="llm-feed-header">
+            <div class="llm-feed-title">LLM Traces</div>
+            <div class="llm-live-badge"><div class="llm-live-dot"></div> LIVE</div>
+          </div>
+          <div id="llm-trace-feed">
+            <!-- filled by JS -->
+          </div>
+          <div style="text-align:center;margin-top:8px">
+            <button class="btn btn-ghost btn-sm" onclick="loadMoreTraces()" style="font-size:11px">Ältere laden…</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail Modal -->
+      <div id="agent-detail-modal" hidden style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:680px;padding:24px;position:relative">
+          <button onclick="closeAgentDetail()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--fg2);cursor:pointer;font-size:18px;line-height:1">✕</button>
+          <div id="agent-detail-content"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Page: Freigaben ────────────────────────────────────────────────── -->
@@ -2039,7 +2232,7 @@ const PAGES = {
   team:         { title: 'Team / Intern',       load: null },
   sprint:       { title: 'Sprint Board',        load: loadSprint },
   backlog:      { title: 'Backlog',             load: loadBacklog },
-  agents:       { title: 'Agenten',             load: null },
+  agents:       { title: 'Agenten',             load: () => { loadAgentsPage(); if(document.getElementById('agents-auto-refresh')?.checked) toggleAgentsRefresh(true); } },
   status:       { title: 'System Status',       load: loadStatus },
   approvals:    { title: 'Freigaben',           load: loadApprovals },
   users:        { title: 'Benutzer',            load: loadUsers },
@@ -2071,6 +2264,8 @@ function navigate(page) {
 
   // Health-Polling stoppen wenn Admin verlassen wird
   if (key !== 'admin') stopAdminHealthPolling();
+  // Agent-Refresh stoppen wenn Seite verlassen wird
+  if (key !== 'agents') { clearInterval(_agentsRefreshTimer); _agentsRefreshTimer = null; }
 
   // Load data
   if (PAGES[key].load) PAGES[key].load();
@@ -2846,6 +3041,284 @@ async function confirmNewSprint() {
     showToast(`Sprint "${name}" erstellt ✓`, 'success');
     loadSprint();
   } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+}
+
+// ── Agent Kontrollzentrum ─────────────────────────────────────────────────────
+
+const AGENTS_DEF = [
+  {
+    id: 'VlWgEiwV6LItYaVX', icon: '🤖', name: 'Developer Agent',
+    desc: 'Implementiert Tickets vollautomatisch — lädt nächstes Ticket, generiert Code mit LLM, committed in GitHub.',
+    trigger: 'Stündlich 18–24 Uhr', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: '9LdJb5To4wgiSKzw', icon: '👑', name: 'Product Owner Agent',
+    desc: 'Plant täglich den Sprint-Tag: liest aktiven Sprint, holt GitHub Commits, schreibt Tagesplan und benachrichtigt Google Chat.',
+    trigger: 'Täglich 17:30', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: 'vAUBALVuyQdVTbIe', icon: '🧪', name: 'Tester Agent',
+    desc: 'Generiert pytest Tests für alle heutigen Commits und committed sie ins Repo.',
+    trigger: 'Täglich 20:00', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: 'j9oHVCIUYu6VvcnY', icon: '🔒', name: 'Security Agent',
+    desc: 'Analysiert heutige Commits auf OWASP Top 10 Schwachstellen und erstellt Security-Report.',
+    trigger: 'Täglich 21:00', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: 'XlShmkF1WltaYqNG', icon: '⚡', name: 'Performance Agent',
+    desc: 'Sucht N+1-Queries, fehlende Indizes und Caching-Lücken in heutigen Commits.',
+    trigger: 'Täglich 21:30', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: 'Ds6YbkjwoUoEwhgf', icon: '👁️', name: 'Reviewer Agent',
+    desc: 'Code Review nach Clean Code, SOLID-Prinzipien und Design Patterns. Committed Review nach docs/reviews/.',
+    trigger: 'Täglich 22:00', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: '0mjofrfvUOZ6B25n', icon: '🚀', name: 'Release Agent',
+    desc: 'Erstellt CHANGELOG-Eintrag im Keep-a-Changelog-Format aus allen heutigen Commits.',
+    trigger: 'Täglich 23:00', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: 'PXuTY2s2qzaehR96', icon: '📚', name: 'Documentation Agent',
+    desc: 'Generiert API-Dokumentation für heutige Code-Änderungen und committed nach docs/api/.',
+    trigger: 'Täglich 23:30', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+  {
+    id: '78ZMYm1VsspiECsI', icon: '📅', name: 'Sprint Planning Agent',
+    desc: 'Analysiert Backlog mit KI, erstellt Planungsvorschlag und postet zur Freigabe in Google Chat.',
+    trigger: 'Montags 08:30', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+  },
+];
+
+// Mock LLM Traces (später durch Langfuse API ersetzen)
+const MOCK_TRACES = [
+  {
+    id: 'tr-001', wfId: 'VlWgEiwV6LItYaVX', wfName: '🤖 Developer Agent',
+    status: 'running',
+    startedAt: new Date(Date.now() - 42000),
+    prompt: `Du bist ein erfahrener Python/FastAPI Backend-Entwickler.\nDu implementierst Tickets für das NPCH Operations Hub Projekt.\nRepository: NPCH-dev/npch-ops-hub, Branch: develop\n\nImplementiere das folgende Ticket vollständig:\n\nTicket: BE-035 — GET /sprints/{id}/velocity Endpoint\n\nBerechne Velocity (Story Points done/total) für einen Sprint und gib einen strukturierten Response zurück.`,
+    response: null,
+    tokens_in: 1842, tokens_out: null, duration_ms: null,
+    model: 'qwen2.5-coder:32b',
+  },
+  {
+    id: 'tr-002', wfId: '9LdJb5To4wgiSKzw', wfName: '👑 Product Owner Agent',
+    status: 'done',
+    startedAt: new Date(Date.now() - 3600000 * 2.3),
+    prompt: `Analysiere den aktuellen Sprint und erstelle den Tagesplan.\n\nAktiver Sprint: Sprint 3 "API-Anbindung & KI"\nHeute committed: 4 Files (sprints.py, users.py, main.py, auth.py)\nOffene Tickets: BE-035, BE-036, FE-007\n\nErstelle einen strukturierten Tagesplan für das Team.`,
+    response: `# Sprint-Tag Zusammenfassung — 15.11.2026\n\n## ✅ Heute erledigt\n- Sprint-Management Endpoints vollständig (POST, PATCH, GET)\n- Auth-Bug: JWT Token-Laufzeit auf 480min erhöht\n- Pydantic-Schemas korrigiert (SprintCreate, SprintUpdate)\n\n## 🎯 Nächste Prioritäten\n1. BE-035: Velocity-Endpoint (3 SP) — Developer Agent heute Nacht\n2. FE-007: Sprint Board live connect (2 SP) — bereits deployed\n3. BE-036: Dashboard KPI-Endpoints (5 SP) — morgen\n\n## ⚠️ Risiken\n- Backend-Container Neustart nach BE-035 nötig\n- API Rate Limits bei GitHub noch nicht getestet`,
+    tokens_in: 2104, tokens_out: 387, duration_ms: 28400,
+    model: 'qwen2.5-coder:32b',
+  },
+  {
+    id: 'tr-003', wfId: 'j9oHVCIUYu6VvcnY', wfName: '🔒 Security Agent',
+    status: 'done',
+    startedAt: new Date(Date.now() - 3600000 * 19),
+    prompt: `Security Review für NPCH Ops Hub — Commits vom 14.11.2026\n\nAnalysiere die folgenden geänderten Dateien auf OWASP Top 10 Schwachstellen:\n- app/routers/sprints.py\n- app/routers/auth.py\n- app/dependencies.py`,
+    response: `# Security Report — 14.11.2026\n\n## 🟢 Keine kritischen Findings\n\n### Analysierte Dateien\n- sprints.py: PATCH-Endpoint prüft Sprint-Existenz korrekt (404 statt 500)\n- auth.py: Passwort-Hashing mit bcrypt ✅, JWT-Secret aus Env ✅\n- dependencies.py: get_current_user korrekt implementiert\n\n### ⚠️ Low Severity\n- sprints.py L23: Keine Rollen-Prüfung auf PATCH — jeder auth. User kann Sprint-Status ändern\n  → Empfehlung: require_role('management') oder 'coordination'\n\n### ℹ️ Info\n- Alle DB-Zugriffe über SQLAlchemy ORM (kein Raw SQL → kein SQL-Injection-Risiko)`,
+    tokens_in: 1567, tokens_out: 312, duration_ms: 19800,
+    model: 'qwen2.5-coder:32b',
+  },
+  {
+    id: 'tr-004', wfId: 'XlShmkF1WltaYqNG', wfName: '⚡ Performance Agent',
+    status: 'done',
+    startedAt: new Date(Date.now() - 3600000 * 18.5),
+    prompt: `Performance-Analyse für Commits vom 14.11.2026.\n\nPrüfe auf: N+1-Queries, fehlende DB-Indizes, fehlende Caching-Strategien, ineffiziente Loops.\n\nDateien: app/routers/sprints.py, app/models/sprint.py`,
+    response: `# Performance Report — 14.11.2026\n\n## ⚠️ N+1-Potential in GET /{sprint_id}\nDer Endpoint lädt Sprint und Tickets in separaten Queries.\nEmpfehlung: selectinload() oder joinedload() nutzen:\n\`\`\`python\nawait db.execute(select(Sprint).options(selectinload(Sprint.tickets)).where(...))\n\`\`\`\n\n## ✅ Keine fehlenden Indizes\nSprint.status bereits mit index=True definiert.\n\n## ℹ️ Kein Caching nötig\nSprint-Daten ändern sich häufig — Caching würde Stale-Data riskieren.`,
+    tokens_in: 1389, tokens_out: 258, duration_ms: 17200,
+    model: 'qwen2.5-coder:32b',
+  },
+  {
+    id: 'tr-005', wfId: 'Ds6YbkjwoUoEwhgf', wfName: '👁️ Reviewer Agent',
+    status: 'error',
+    startedAt: new Date(Date.now() - 3600000 * 17),
+    prompt: `Code Review für NPCH Ops Hub. Analysiere heutige Commits nach Clean Code, SOLID-Prinzipien, Design Patterns.`,
+    response: null,
+    error: 'GitHub API: 403 rate limit exceeded. Retry in 1200s.',
+    tokens_in: 0, tokens_out: null, duration_ms: 1200,
+    model: 'qwen2.5-coder:32b',
+  },
+];
+
+let _agentsRefreshTimer = null;
+let _agentsTraceOffset = 0;
+
+function loadAgentsPage() {
+  renderAgentGrid(AGENTS_DEF);
+  renderLLMFeed(MOCK_TRACES);
+  // Stats
+  const running = MOCK_TRACES.filter(t => t.status === 'running').length;
+  document.getElementById('agc-stat-running').textContent = running;
+  document.getElementById('agc-stat-today').textContent = MOCK_TRACES.length;
+  const totalTokens = MOCK_TRACES.reduce((s, t) => s + (t.tokens_in || 0) + (t.tokens_out || 0), 0);
+  document.getElementById('agc-stat-tokens').textContent = totalTokens > 1000 ? (totalTokens/1000).toFixed(1)+'k' : totalTokens;
+}
+
+function toggleAgentsRefresh(on) {
+  clearInterval(_agentsRefreshTimer);
+  if (on) _agentsRefreshTimer = setInterval(loadAgentsPage, 5000);
+}
+
+function renderAgentGrid(agents) {
+  const grid = document.getElementById('agent-grid');
+  if (!grid) return;
+  grid.innerHTML = agents.map(a => {
+    // Determine status from traces
+    const running = MOCK_TRACES.some(t => t.wfId === a.id && t.status === 'running');
+    const hasError = MOCK_TRACES.some(t => t.wfId === a.id && t.status === 'error');
+    const lastTrace = MOCK_TRACES.filter(t => t.wfId === a.id).sort((x,y) => y.startedAt - x.startedAt)[0];
+    const status = running ? 'running' : hasError ? 'error' : a.active ? 'active' : 'paused';
+    const dotClass = { running:'asd-running', error:'asd-error', active:'asd-active', paused:'asd-paused' }[status];
+    const statusLabel = { running:'▶ Läuft', error:'⚠ Fehler', active:'● Aktiv', paused:'⏸ Pausiert' }[status];
+    const lastRunStr = lastTrace ? relTime(lastTrace.startedAt) : 'Noch nie';
+    const lastOut = lastTrace && lastTrace.response ? lastTrace.response.substring(0,120) : (lastTrace && lastTrace.error ? '⚠ ' + lastTrace.error : '');
+    return `
+      <div class="agent-card${running?' ac-running':hasError?' ac-error':''}" onclick="openAgentDetail('${a.id}')">
+        <div class="ac-top">
+          <div class="ac-icon">${a.icon}</div>
+          <div class="ac-status-dot ${dotClass}" title="${statusLabel}"></div>
+        </div>
+        <div class="ac-name">${a.name}</div>
+        <div class="ac-desc">${a.desc}</div>
+        <div class="ac-meta">
+          <div class="ac-meta-item">Letzter Run: <span>${lastRunStr}</span></div>
+          <div class="ac-meta-item">Modell: <span>${a.model.split(':')[0]}</span></div>
+        </div>
+        <div class="ac-trigger">🕐 ${a.trigger}</div>
+        ${lastOut ? `<div class="ac-last-output">${escHtml(lastOut)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderLLMFeed(traces) {
+  const feed = document.getElementById('llm-trace-feed');
+  if (!feed) return;
+  feed.innerHTML = traces.map(t => {
+    const statusCls = { running:'lts-running', done:'lts-done', error:'lts-error' }[t.status] || 'lts-done';
+    const statusLbl = { running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status] || t.status;
+    const duration = t.duration_ms ? (t.duration_ms/1000).toFixed(1)+'s' : '…';
+    const totalTok = (t.tokens_in || 0) + (t.tokens_out || 0);
+    return `
+      <div class="llm-trace llt-${t.status}" id="trace-${t.id}">
+        <div class="llt-header" onclick="toggleTrace('${t.id}')">
+          <div class="llt-wf-icon">${t.wfName.split(' ')[0]}</div>
+          <div class="llt-wf-name">${t.wfName.replace(/^\S+\s/, '')}</div>
+          <div class="llt-status ${statusCls}">${statusLbl}</div>
+          <div class="llt-time">${relTime(t.startedAt)}</div>
+        </div>
+        <div class="llt-body" id="trace-body-${t.id}" style="display:none">
+          <div class="llt-section-label">Prompt</div>
+          <div class="llt-prompt-box" id="trace-prompt-${t.id}">${escHtml(t.prompt.substring(0,400))}</div>
+          <div class="llt-section-label">Response</div>
+          <div class="llt-response-box" id="trace-resp-${t.id}">
+            ${t.status === 'running'
+              ? '<div class="llt-typing"><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div></div><span style="font-size:11px;color:var(--fg3)">Generating…</span>'
+              : t.error
+                ? `<span style="color:var(--red)">${escHtml(t.error)}</span>`
+                : escHtml((t.response||'').substring(0,400))
+            }
+          </div>
+        </div>
+        <div class="llt-footer">
+          <div class="llt-metric">In: <span>${t.tokens_in ? t.tokens_in.toLocaleString() : '—'}</span></div>
+          <div class="llt-metric">Out: <span>${t.tokens_out ? t.tokens_out.toLocaleString() : '—'}</span></div>
+          <div class="llt-metric">Dauer: <span>${duration}</span></div>
+          <div class="llt-metric">Modell: <span>${t.model.split(':')[0]}</span></div>
+          <button class="llt-expand-btn" onclick="event.stopPropagation();toggleTrace('${t.id}')">▸ Details</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleTrace(id) {
+  const body = document.getElementById('trace-body-' + id);
+  const btn = document.querySelector(`#trace-${id} .llt-expand-btn`);
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? '▸ Details' : '▴ Schließen';
+}
+
+function loadMoreTraces() {
+  showToast('API-Anbindung für ältere Traces kommt mit Langfuse-Integration', 'info');
+}
+
+function openAgentDetail(id) {
+  const a = AGENTS_DEF.find(x => x.id === id);
+  if (!a) return;
+  const traces = MOCK_TRACES.filter(t => t.wfId === id);
+  const modal = document.getElementById('agent-detail-modal');
+  const content = document.getElementById('agent-detail-content');
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="font-size:36px">${a.icon}</div>
+      <div>
+        <div style="font-size:18px;font-weight:700">${a.name}</div>
+        <div style="font-size:12px;color:var(--fg2);margin-top:2px">${a.desc}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">n8n Workflow ID</div>
+        <div style="font-size:12px;font-family:monospace">${a.id}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Trigger</div>
+        <div style="font-size:12px">${a.trigger}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">LLM Modell</div>
+        <div style="font-size:12px;font-family:monospace">${a.model}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Runs (Mock)</div>
+        <div style="font-size:12px">${traces.length} heute</div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--fg2)">Letzte Traces</div>
+    ${traces.length === 0
+      ? '<div style="text-align:center;padding:24px;color:var(--fg3)">Keine Traces heute</div>'
+      : traces.map(t => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3)">
+            <div class="llt-status ${{ running:'lts-running', done:'lts-done', error:'lts-error' }[t.status]}">${{ running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status]}</div>
+            <div style="font-size:11px;color:var(--fg3);margin-left:auto">${relTime(t.startedAt)} · ${t.tokens_in ? t.tokens_in.toLocaleString() + ' tokens' : '—'}</div>
+          </div>
+          <div style="padding:10px 12px;font-size:11.5px;color:var(--fg2);font-family:monospace;white-space:pre-wrap;max-height:120px;overflow:hidden">${escHtml((t.response || t.error || 'Läuft noch…').substring(0,300))}</div>
+        </div>`).join('')
+    }
+  `;
+  modal.hidden = false; modal.style.display = 'flex';
+}
+
+function closeAgentDetail() {
+  const modal = document.getElementById('agent-detail-modal');
+  modal.hidden = true; modal.style.display = 'none';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function relTime(d) {
+  if (!d) return '—';
+  const diff = Math.floor((Date.now() - new Date(d)) / 1000);
+  if (diff < 60) return 'vor ' + diff + 's';
+  if (diff < 3600) return 'vor ' + Math.floor(diff/60) + 'min';
+  if (diff < 86400) return 'vor ' + Math.floor(diff/3600) + 'h';
+  return 'vor ' + Math.floor(diff/86400) + 'd';
 }
 
 // ── Backlog ───────────────────────────────────────────────────────────────────
