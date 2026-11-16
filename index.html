@@ -2334,7 +2334,13 @@ async function api(path, opts = {}) {
     if (loginEl) loginEl.style.display = 'flex';
     throw new Error('Session abgelaufen — bitte neu anmelden');
   }
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try { const j = await res.json(); detail = j.detail || j.message || detail; } catch {}
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
