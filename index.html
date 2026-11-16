@@ -798,7 +798,7 @@ tr:hover td { background: var(--bg3); }
       </a>
       <a class="nav-item" data-page="orders" href="#orders">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-        Auftragsbuch
+        Orderbook
         <span class="nav-badge" id="badge-orders" style="display:none">0</span>
       </a>
     </div>
@@ -1170,34 +1170,183 @@ tr:hover td { background: var(--bg3); }
     <!-- ── Page: Aufträge ────────────────────────────────────────────────── -->
     <div class="page" id="page-orders">
       <div class="page-header">
-        <h1>Aufträge</h1>
-        <p>SP-04 bis SP-06 — Auftragsabwicklung & Trainerkoordination</p>
+        <h1>Orderbook</h1>
+        <p>SP-04 — Auftragsübersicht (Demo-Daten)</p>
       </div>
-      <div class="card">
-        <div class="card-header">
-          Aufträge
-          <button class="btn btn-primary btn-sm">+ Neuer Auftrag</button>
+
+      <!-- KPI Row -->
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card accent"><div class="stat-label">Aktive Aufträge</div><div class="stat-value">12</div><div class="stat-sub">In Bearbeitung</div></div>
+        <div class="stat-card green"><div class="stat-label">Volumen MTD</div><div class="stat-value">€ 148.500</div><div class="stat-sub">Nov 2026</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Warten auf PO</div><div class="stat-value">3</div><div class="stat-sub">Purchase Order ausstehend</div></div>
+        <div class="stat-card"><div class="stat-label">Abgeschlossen</div><div class="stat-value">47</div><div class="stat-sub">YTD 2026</div></div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body" style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="ob-search" placeholder="Suche nach Auftrag, Kunde, Training…"
+            style="flex:1;min-width:200px;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:13px">
+          <select id="ob-status-filter" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:13px">
+            <option value="">Alle Status</option>
+            <option value="SP-04">SP-04 Auftrag</option>
+            <option value="SP-05">SP-05 Trainer-Assignment</option>
+            <option value="SP-06">SP-06 Training</option>
+            <option value="SP-07">SP-07 Rechnung</option>
+            <option value="SP-08">SP-08 Zahlung</option>
+            <option value="done">Abgeschlossen</option>
+          </select>
+          <span id="ob-count" style="font-size:12px;color:var(--fg3);white-space:nowrap">12 Aufträge</span>
         </div>
-        <div class="card-body">
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-body" style="padding:0">
           <div class="table-wrap">
-            <table id="orders-table">
+            <table id="orders-table" style="font-size:13px">
               <thead>
                 <tr>
-                  <th>Auftragsnr.</th>
+                  <th style="width:150px">Auftragsnr.</th>
                   <th>Kunde</th>
                   <th>Training</th>
-                  <th>Status</th>
-                  <th>Datum</th>
-                  <th>Betrag</th>
+                  <th style="width:80px">Tage</th>
+                  <th style="width:110px">Startdatum</th>
+                  <th style="width:100px">Betrag</th>
+                  <th style="width:130px">Status</th>
+                  <th style="width:90px">PO</th>
+                  <th style="width:90px">Vertrag</th>
+                  <th style="width:60px"></th>
                 </tr>
               </thead>
-              <tbody id="orders-tbody">
-                <tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>
-              </tbody>
+              <tbody id="orders-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
+
+      <!-- Detail Drawer (hidden by default) -->
+      <div id="ob-drawer" style="display:none;position:fixed;right:0;top:0;bottom:0;width:420px;background:var(--bg1);border-left:1px solid var(--border);z-index:200;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.2)">
+        <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <strong id="ob-drawer-title" style="font-size:15px"></strong>
+          <button onclick="document.getElementById('ob-drawer').style.display='none'" style="background:none;border:none;color:var(--fg3);cursor:pointer;font-size:20px;line-height:1">×</button>
+        </div>
+        <div id="ob-drawer-body" style="padding:20px"></div>
+      </div>
+
+      <style>
+        #orders-table th { background:var(--bg2); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; padding:9px 12px; }
+        #orders-table td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+        #orders-table tbody tr:hover { background:var(--bg2); cursor:pointer; }
+        #orders-table tbody tr:last-child td { border-bottom:none; }
+        .ob-stage { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+        .ob-stage.sp04 { background:rgba(99,102,241,.15); color:#818cf8; }
+        .ob-stage.sp05 { background:rgba(234,179,8,.12); color:#ca8a04; }
+        .ob-stage.sp06 { background:rgba(59,130,246,.12); color:#3b82f6; }
+        .ob-stage.sp07 { background:rgba(249,115,22,.12); color:#f97316; }
+        .ob-stage.sp08 { background:rgba(16,185,129,.12); color:#10b981; }
+        .ob-stage.done { background:rgba(107,114,128,.12); color:#6b7280; }
+        .ob-bool { font-size:13px; }
+        .ob-bool.yes { color:var(--green); }
+        .ob-bool.no  { color:var(--fg3); }
+      </style>
+
+      <script>
+      (function(){
+        const MOCK = [
+          { id:'NP-DACH-2026-0047', customer:'Allianz SE', training:'Python für Data Scientists', days:3, start:'2026-12-02', amount:12600, stage:'SP-05', po:true,  contract:true,  trainer:'M. Weber' },
+          { id:'NP-DACH-2026-0046', customer:'BMW Group', training:'AWS Solutions Architect', days:5, start:'2026-11-25', amount:21000, stage:'SP-06', po:true,  contract:true,  trainer:'S. Müller' },
+          { id:'NP-DACH-2026-0045', customer:'Deutsche Bank', training:'Excel Advanced & Power BI', days:2, start:'2026-12-09', amount:8400, stage:'SP-04', po:false, contract:true,  trainer:null },
+          { id:'NP-DACH-2026-0044', customer:'Siemens AG', training:'PRINCE2 Foundation', days:3, start:'2026-12-03', amount:11250, stage:'SP-05', po:true,  contract:true,  trainer:'A. Schmidt' },
+          { id:'NP-DACH-2026-0043', customer:'Bosch GmbH', training:'Scrum Master Zertifizierung', days:2, start:'2026-11-28', amount:9800, stage:'SP-07', po:true,  contract:true,  trainer:'J. Klein' },
+          { id:'NP-DACH-2026-0042', customer:'Volkswagen AG', training:'Leadership & Change Mgmt', days:2, start:'2026-12-05', amount:16800, stage:'SP-04', po:false, contract:false, trainer:null },
+          { id:'NP-DACH-2026-0041', customer:'SAP SE', training:'ISTQB Foundation Level', days:3, start:'2026-11-18', amount:9450, stage:'SP-06', po:true,  contract:true,  trainer:'T. Braun' },
+          { id:'NP-DACH-2026-0040', customer:'Lufthansa AG', training:'Kubernetes for Developers', days:3, start:'2026-12-10', amount:14700, stage:'SP-05', po:true,  contract:true,  trainer:'C. Wolf' },
+          { id:'NP-DACH-2026-0039', customer:'Commerzbank AG', training:'Excel VBA & Automatisierung', days:2, start:'2026-12-01', amount:7200, stage:'SP-04', po:false, contract:true,  trainer:null },
+          { id:'NP-DACH-2026-0038', customer:'BASF SE', training:'Agile Coach Training', days:5, start:'2026-11-10', amount:22500, stage:'SP-08', po:true,  contract:true,  trainer:'M. Fischer' },
+          { id:'NP-DACH-2026-0037', customer:'Daimler Truck AG', training:'Python Grundlagen', days:3, start:'2026-11-04', amount:10500, stage:'done', po:true,  contract:true,  trainer:'S. Müller' },
+          { id:'NP-DACH-2026-0036', customer:'E.ON SE', training:'Azure Fundamentals AZ-900', days:2, start:'2026-10-28', amount:6800, stage:'done', po:true,  contract:true,  trainer:'K. Richter' },
+        ];
+
+        const STAGE_CSS = { 'SP-04':'sp04','SP-05':'sp05','SP-06':'sp06','SP-07':'sp07','SP-08':'sp08','done':'done' };
+        const STAGE_LABEL = { 'SP-04':'SP-04 Auftrag','SP-05':'SP-05 Trainer','SP-06':'SP-06 Training','SP-07':'SP-07 Rechnung','SP-08':'SP-08 Zahlung','done':'✓ Abgeschlossen' };
+
+        function fmt(n){ return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n); }
+        function fmtDate(d){ return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
+        function bool(v){ return `<span class="ob-bool ${v?'yes':'no'}">${v?'✓':'—'}</span>`; }
+
+        function render(data){
+          const tbody = document.getElementById('orders-tbody');
+          document.getElementById('ob-count').textContent = data.length + ' Aufträge';
+          if(!data.length){
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--fg3);padding:40px">Keine Aufträge gefunden</td></tr>';
+            return;
+          }
+          tbody.innerHTML = data.map(o=>`
+            <tr onclick="showDetail('${o.id}')">
+              <td style="font-family:monospace;font-size:12px;color:var(--accent)">${o.id}</td>
+              <td style="font-weight:500">${o.customer}</td>
+              <td style="color:var(--fg2)">${o.training}</td>
+              <td style="text-align:center">${o.days}d</td>
+              <td>${fmtDate(o.start)}</td>
+              <td style="font-weight:600">${fmt(o.amount)}</td>
+              <td><span class="ob-stage ${STAGE_CSS[o.stage]||'done'}">${STAGE_LABEL[o.stage]||o.stage}</span></td>
+              <td>${bool(o.po)}</td>
+              <td>${bool(o.contract)}</td>
+              <td style="color:var(--fg3)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></td>
+            </tr>`).join('');
+        }
+
+        window.showDetail = function(id){
+          const o = MOCK.find(x=>x.id===id); if(!o) return;
+          document.getElementById('ob-drawer-title').textContent = o.id;
+          document.getElementById('ob-drawer-body').innerHTML = `
+            <div style="display:grid;gap:14px">
+              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Kunde</div><div style="font-weight:600">${o.customer}</div></div>
+              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Training</div><div>${o.training}</div></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Startdatum</div><div>${fmtDate(o.start)}</div></div>
+                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Dauer</div><div>${o.days} Tage</div></div>
+              </div>
+              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Auftragswert</div><div style="font-size:22px;font-weight:700;color:var(--green)">${fmt(o.amount)}</div></div>
+              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Status</div><div><span class="ob-stage ${STAGE_CSS[o.stage]||'done'}">${STAGE_LABEL[o.stage]||o.stage}</span></div></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Purchase Order</div><div>${bool(o.po)}</div></div>
+                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Vertrag</div><div>${bool(o.contract)}</div></div>
+              </div>
+              ${o.trainer ? `<div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trainer</div><div>${o.trainer}</div></div>` : ''}
+              <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">
+                <div style="font-size:11px;color:var(--fg3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Aktionen</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API folgt">Status ändern</button>
+                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API folgt">Trainer zuweisen</button>
+                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API folgt">Rechnung erstellen</button>
+                </div>
+              </div>
+            </div>`;
+          document.getElementById('ob-drawer').style.display='block';
+        };
+
+        function filter(){
+          const q = document.getElementById('ob-search').value.toLowerCase();
+          const s = document.getElementById('ob-status-filter').value;
+          const filtered = MOCK.filter(o=>{
+            const matchQ = !q || [o.id,o.customer,o.training].some(x=>x.toLowerCase().includes(q));
+            const matchS = !s || o.stage===s;
+            return matchQ && matchS;
+          });
+          render(filtered);
+        }
+
+        document.getElementById('ob-search').addEventListener('input', filter);
+        document.getElementById('ob-status-filter').addEventListener('change', filter);
+
+        // initial render when page is shown
+        document.addEventListener('DOMContentLoaded', ()=>render(MOCK));
+        // also re-render if already loaded
+        render(MOCK);
+      })();
+      </script>
     </div>
 
     <!-- ── Page: Trainer ─────────────────────────────────────────────────── -->
