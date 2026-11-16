@@ -1176,10 +1176,10 @@ tr:hover td { background: var(--bg3); }
 
       <!-- KPI Row -->
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card accent"><div class="stat-label">Aktive Aufträge</div><div class="stat-value">12</div><div class="stat-sub">In Bearbeitung</div></div>
-        <div class="stat-card green"><div class="stat-label">Volumen MTD</div><div class="stat-value">€ 148.500</div><div class="stat-sub">Nov 2026</div></div>
-        <div class="stat-card yellow"><div class="stat-label">Warten auf PO</div><div class="stat-value">3</div><div class="stat-sub">Purchase Order ausstehend</div></div>
-        <div class="stat-card"><div class="stat-label">Abgeschlossen</div><div class="stat-value">47</div><div class="stat-sub">YTD 2026</div></div>
+        <div class="stat-card accent"><div class="stat-label">Active Orders</div><div class="stat-value" id="kpi-active">—</div><div class="stat-sub">In progress</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Delivery Invoiceable</div><div class="stat-value" id="kpi-invoiceable">—</div><div class="stat-sub">Ready to invoice</div></div>
+        <div class="stat-card green"><div class="stat-label">Pre-Payment Done</div><div class="stat-value" id="kpi-prepaid">—</div><div class="stat-sub">Funds received</div></div>
+        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value" id="kpi-done">—</div><div class="stat-sub">Sep–Nov 2026</div></div>
       </div>
 
       <!-- Filter Bar -->
@@ -1188,13 +1188,22 @@ tr:hover td { background: var(--bg3); }
           <input type="text" id="ob-search" placeholder="Suche nach Auftrag, Kunde, Training…"
             style="flex:1;min-width:200px;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:13px">
           <select id="ob-status-filter" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:13px">
-            <option value="">Alle Status</option>
-            <option value="SP-04">SP-04 Auftrag</option>
-            <option value="SP-05">SP-05 Trainer-Assignment</option>
-            <option value="SP-06">SP-06 Training</option>
-            <option value="SP-07">SP-07 Rechnung</option>
-            <option value="SP-08">SP-08 Zahlung</option>
-            <option value="done">Abgeschlossen</option>
+            <option value="">All Status</option>
+            <optgroup label="SP-04 Finance">
+              <option value="ORDER_CREATED">Order Created</option>
+              <option value="PRE_PAYMENT_INVOICED">Pre-Payment Invoiced</option>
+              <option value="PRE_PAYMENT_DONE">Pre-Payment Done</option>
+            </optgroup>
+            <optgroup label="SP-05 Coordination">
+              <option value="DELIVERY_INVOICEABLE">Delivery Invoiceable</option>
+            </optgroup>
+            <optgroup label="SP-06 Finance">
+              <option value="FULL_PAYMENT_INVOICED">Full Payment Invoiced</option>
+              <option value="FULL_PAYMENT_DONE">Full Payment Done</option>
+            </optgroup>
+            <optgroup label="SP-08 Completed">
+              <option value="ORDER_COMPLETED">Order Completed</option>
+            </optgroup>
           </select>
           <span id="ob-count" style="font-size:12px;color:var(--fg3);white-space:nowrap">12 Aufträge</span>
         </div>
@@ -1207,15 +1216,15 @@ tr:hover td { background: var(--bg3); }
             <table id="orders-table" style="font-size:13px">
               <thead>
                 <tr>
-                  <th style="width:150px">Auftragsnr.</th>
-                  <th>Kunde</th>
+                  <th style="width:60px">#</th>
+                  <th style="width:40px">Rg</th>
+                  <th>Customer</th>
                   <th>Training</th>
-                  <th style="width:80px">Tage</th>
-                  <th style="width:110px">Startdatum</th>
-                  <th style="width:100px">Betrag</th>
-                  <th style="width:130px">Status</th>
-                  <th style="width:90px">PO</th>
-                  <th style="width:90px">Vertrag</th>
+                  <th style="width:80px">Days</th>
+                  <th style="width:110px">Delivery</th>
+                  <th style="width:100px">Value</th>
+                  <th style="width:160px">Status</th>
+                  <th style="width:60px">PO</th>
                   <th style="width:60px"></th>
                 </tr>
               </thead>
@@ -1240,12 +1249,17 @@ tr:hover td { background: var(--bg3); }
         #orders-table tbody tr:hover { background:var(--bg2); cursor:pointer; }
         #orders-table tbody tr:last-child td { border-bottom:none; }
         .ob-stage { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap; }
-        .ob-stage.sp04 { background:rgba(99,102,241,.15); color:#818cf8; }
-        .ob-stage.sp05 { background:rgba(234,179,8,.12); color:#ca8a04; }
-        .ob-stage.sp06 { background:rgba(59,130,246,.12); color:#3b82f6; }
-        .ob-stage.sp07 { background:rgba(249,115,22,.12); color:#f97316; }
-        .ob-stage.sp08 { background:rgba(16,185,129,.12); color:#10b981; }
-        .ob-stage.done { background:rgba(107,114,128,.12); color:#6b7280; }
+        /* SP-04 family */
+        .ob-stage.sp04  { background:rgba(99,102,241,.14); color:#818cf8; }
+        .ob-stage.sp04b { background:rgba(139,92,246,.14); color:#a78bfa; }
+        .ob-stage.sp04c { background:rgba(167,139,250,.14); color:#c4b5fd; }
+        /* SP-05 */
+        .ob-stage.sp05  { background:rgba(234,179,8,.13); color:#eab308; }
+        /* SP-06 family */
+        .ob-stage.sp06  { background:rgba(59,130,246,.14); color:#60a5fa; }
+        .ob-stage.sp06b { background:rgba(16,185,129,.14); color:#34d399; }
+        /* SP-08 / done */
+        .ob-stage.done  { background:rgba(107,114,128,.12); color:#9ca3af; }
         .ob-bool { font-size:13px; }
         .ob-bool.yes { color:var(--green); }
         .ob-bool.no  { color:var(--fg3); }
@@ -1253,23 +1267,76 @@ tr:hover td { background: var(--bg3); }
 
       <script>
       (function(){
+        // Status mapping: Excel status → Statemachine state
+        // ORDER_CREATED → PRE_PAYMENT_INVOICED → PRE_PAYMENT_DONE → DELIVERY_INVOICEABLE → FULL_PAYMENT_INVOICED → FULL_PAYMENT_DONE → ORDER_COMPLETED
         const MOCK = [
-          { id:'NP-DACH-2026-0047', customer:'Allianz SE', training:'Python für Data Scientists', days:3, start:'2026-12-02', amount:12600, stage:'SP-05', po:true,  contract:true,  trainer:'M. Weber' },
-          { id:'NP-DACH-2026-0046', customer:'BMW Group', training:'AWS Solutions Architect', days:5, start:'2026-11-25', amount:21000, stage:'SP-06', po:true,  contract:true,  trainer:'S. Müller' },
-          { id:'NP-DACH-2026-0045', customer:'Deutsche Bank', training:'Excel Advanced & Power BI', days:2, start:'2026-12-09', amount:8400, stage:'SP-04', po:false, contract:true,  trainer:null },
-          { id:'NP-DACH-2026-0044', customer:'Siemens AG', training:'PRINCE2 Foundation', days:3, start:'2026-12-03', amount:11250, stage:'SP-05', po:true,  contract:true,  trainer:'A. Schmidt' },
-          { id:'NP-DACH-2026-0043', customer:'Bosch GmbH', training:'Scrum Master Zertifizierung', days:2, start:'2026-11-28', amount:9800, stage:'SP-07', po:true,  contract:true,  trainer:'J. Klein' },
-          { id:'NP-DACH-2026-0042', customer:'Volkswagen AG', training:'Leadership & Change Mgmt', days:2, start:'2026-12-05', amount:16800, stage:'SP-04', po:false, contract:false, trainer:null },
-          { id:'NP-DACH-2026-0041', customer:'SAP SE', training:'ISTQB Foundation Level', days:3, start:'2026-11-18', amount:9450, stage:'SP-06', po:true,  contract:true,  trainer:'T. Braun' },
-          { id:'NP-DACH-2026-0040', customer:'Lufthansa AG', training:'Kubernetes for Developers', days:3, start:'2026-12-10', amount:14700, stage:'SP-05', po:true,  contract:true,  trainer:'C. Wolf' },
-          { id:'NP-DACH-2026-0039', customer:'Commerzbank AG', training:'Excel VBA & Automatisierung', days:2, start:'2026-12-01', amount:7200, stage:'SP-04', po:false, contract:true,  trainer:null },
-          { id:'NP-DACH-2026-0038', customer:'BASF SE', training:'Agile Coach Training', days:5, start:'2026-11-10', amount:22500, stage:'SP-08', po:true,  contract:true,  trainer:'M. Fischer' },
-          { id:'NP-DACH-2026-0037', customer:'Daimler Truck AG', training:'Python Grundlagen', days:3, start:'2026-11-04', amount:10500, stage:'done', po:true,  contract:true,  trainer:'S. Müller' },
-          { id:'NP-DACH-2026-0036', customer:'E.ON SE', training:'Azure Fundamentals AZ-900', days:2, start:'2026-10-28', amount:6800, stage:'done', po:true,  contract:true,  trainer:'K. Richter' },
+          { seq:'00001', customer:'Frequentis', region:'A', entity:'NP GER', training:'Erweitertes Python: Best Practices und Design Patterns', days:'5', delivery:'', amount:'€12,500', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Welling', po:false, contract:false },
+          { seq:'00002', customer:'Cellere Group', region:'CH', entity:'NP GER', training:'Overview of Financials in SAP S/4HANA', days:'', delivery:'14.09.2026', amount:'CHF 5,500', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Marcel Hausamann', po:false, contract:false },
+          { seq:'00002', customer:'Lorenz Snacks GmbH Co KG', region:'D', entity:'NP GER', training:'Custom AI Solutions with Google Vertex AI', days:'', delivery:'14.09.2026', amount:'€7,500', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Uwe Zieling', po:false, contract:false },
+          { seq:'00003', customer:'Wallee Group', region:'CH', entity:'NP GER', training:'Tailored Leadership & Project Management workshop', days:'', delivery:'21.10.2026', amount:'CHF 4,700', status:'FULL_PAYMENT_DONE', location:'Inhouse', contact:'Corina Merfu', po:false, contract:false },
+          { seq:'00003', customer:'Wirtschaftsförderung Land Brandenburg (WFBB)', region:'D', entity:'NP GER', training:'Microsoft 365 Copilot for Government Use', days:'', delivery:'14.09.2026', amount:'€16,500', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Lara Kiesow', po:false, contract:false },
+          { seq:'00004', customer:'Advantest Europe GmbH', region:'D', entity:'NP GER', training:'AI Enablement Training Program for Software QA Engineers', days:'', delivery:'12.11.2026', amount:'€5,200', status:'FULL_PAYMENT_INVOICED', location:'Online', contact:'Ashish Zadoo', po:false, contract:false },
+          { seq:'00004', customer:'Deutsche Luft- und Raumfahrttechnik (DLR)', region:'D', entity:'NP GER', training:'Vibe Coding: AI Driven Software Development Workflows', days:'', delivery:'04.11.2026', amount:'€9,500', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Benjamin Kuhrau', po:false, contract:false },
+          { seq:'00005', customer:'Andritz Hydro GmbH', region:'D', entity:'NP GER', training:'Leadership Dev. for Managers', days:'', delivery:'24.09.2026', amount:'€8,500', status:'FULL_PAYMENT_DONE', location:'Inhouse', contact:'Dagmar Ponsold', po:false, contract:false },
+          { seq:'00005', customer:'Media Carrier Solutions GmbH', region:'D', entity:'NP GER', training:'Microsoft 365 Copilot für Produktivität, Kommunikation, Reporting', days:'', delivery:'09.09.2026', amount:'€2,600', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Franziska Eggers', po:false, contract:false },
+          { seq:'00006', customer:'eBay', region:'D', entity:'NP GER', training:'Design Thinking: Innovation & Creative Problem Solving', days:'', delivery:'01.09.2026', amount:'€7,900', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Jason Shannon', po:false, contract:false },
+          { seq:'00006', customer:'Senatsverwaltung für Bildung, Jugend und Familie', region:'D', entity:'NP GER', training:'Application Security für .NET, ASP.NET und Angular', days:'', delivery:'22.10.2026', amount:'€8,100', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Derek Richards', po:false, contract:false },
+          { seq:'00007', customer:'ebay', region:'D', entity:'NP GER', training:'GenAI, prompting ChatGPT', days:'', delivery:'16.09.2026', amount:'€6,100', status:'FULL_PAYMENT_DONE', location:'Inhouse', contact:'Julia Verpoorten', po:false, contract:false },
+          { seq:'00007', customer:'Julius Kühn-Institut (JKI)', region:'D', entity:'NP GER', training:'Anwendungen mit Oracle APEX entwickeln', days:'', delivery:'03./04.11.2026', amount:'€6,100', status:'FULL_PAYMENT_INVOICED', location:'Online', contact:'Ina Krukenberg', po:false, contract:false },
+          { seq:'00008', customer:'Strides Pharma', region:'CH', entity:'NP GER', training:'Critical Thinking', days:'', delivery:'03.12.2026', amount:'CHF 6,900', status:'PRE_PAYMENT_DONE', location:'Inhouse', contact:'Dar Kurtze', po:false, contract:false },
+          { seq:'00008', customer:'Study Center Gerzensee (Swiss National Bank)', region:'CH', entity:'NP GER', training:'Project Management with Trello', days:'1', delivery:'November', amount:'CHF 4,000', status:'PRE_PAYMENT_DONE', location:'Inhouse', contact:'Teodora Ruiz', po:false, contract:false },
+          { seq:'00009', customer:'Wetter Aukreis', region:'D', entity:'NP GER', training:'Xwiki for Developers', days:'2', delivery:'29./30.10.2026', amount:'€7,900', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Herr Tänzer', po:false, contract:false },
+          { seq:'00009', customer:'Nordex Energy SE & Co. KG', region:'D', entity:'NP GER', training:'Customized Cybersecurity GRC Training', days:'2', delivery:'14–15.10.2026', amount:'€10,900', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Alejandro Gonzalez Alvarez', po:true, contract:false },
+          { seq:'00010', customer:'PROCHECK24 GmbH', region:'D', entity:'NP GER', training:'Apache Camel, Spring Boot, API-Integration', days:'2', delivery:'14.–15.10.2026', amount:'€6,200', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Anna Ira Hurnaus', po:true, contract:false },
+          { seq:'00010', customer:'Senatsverwaltung für Bildung, Jungen und Familie', region:'D', entity:'NP GER', training:'Datenanalyse mit R', days:'21h', delivery:'08.10.2026', amount:'€9,900', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Mustafa Kirmizigül', po:false, contract:false },
+          { seq:'00011', customer:'ACR Austrian Cooperative Research', region:'D', entity:'NP GER', training:'Claude AI für Forschung und Wissensmanagement', days:'2', delivery:'15.–16.10.2026', amount:'€6,600', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Victoria Mayer', po:false, contract:false },
+          { seq:'00011', customer:'ACR Austrian Cooperative Research', region:'D', entity:'NP GER', training:'Programmieren mit KI für Fortgeschrittene', days:'3', delivery:'02.–04.12.2026', amount:'€9,300', status:'PRE_PAYMENT_DONE', location:'Online', contact:'Victoria Mayer', po:false, contract:false },
+          { seq:'00012', customer:'New Booking Ref:09799-ch', region:'CH', entity:'NP CH', training:'CAPEX - Financial Evaluation and Business Cases', days:'2', delivery:'10.–11.11.2026', amount:'CHF 3,972', status:'ORDER_CREATED', location:'Inhouse', contact:'Fahad al Janabi', po:false, contract:false },
+          { seq:'00012', customer:'Bundeskriminalamt', region:'D', entity:'NP GER', training:'Vibe Coding: AI Driven Software Development Workflows', days:'3', delivery:'01.10.2026', amount:'€7,500', status:'FULL_PAYMENT_DONE', location:'Online', contact:'Jacqueline Wlodyka', po:false, contract:false },
+          { seq:'00013', customer:'Dataport', region:'D', entity:'NP GER', training:'LLM mit Ollama', days:'3', delivery:'23.09.2026', amount:'€6,870', status:'DELIVERY_INVOICEABLE', location:'Inhouse', contact:'Haferkamp', po:false, contract:false },
+          { seq:'00014', customer:'Dataport', region:'D', entity:'NP GER', training:'LLM mit Ollama', days:'3', delivery:'05.10.2026', amount:'€6,870', status:'DELIVERY_INVOICEABLE', location:'Inhouse', contact:'Haferkamp', po:false, contract:false },
+          { seq:'00015', customer:'Dataport', region:'D', entity:'NP GER', training:'LLM mit Ollama', days:'3', delivery:'14.10.2026', amount:'€6,870', status:'DELIVERY_INVOICEABLE', location:'Inhouse', contact:'Haferkamp', po:false, contract:false },
+          { seq:'00014', customer:'Morgan Advanced plc', region:'D', entity:'NP GER', training:'Microsoft Dynamics 365 – Finance and Supply Chain', days:'5', delivery:'asap', amount:'€12,500', status:'ORDER_CREATED', location:'Online', contact:'Ronald Bruinsma', po:false, contract:false },
+          { seq:'00015', customer:'Generalzolldirektion Zollkriminalamt', region:'D', entity:'NP GER', training:'Splunk Fundamentals 2', days:'', delivery:'7–10/12.2026', amount:'€11,900', status:'ORDER_CREATED', location:'Online', contact:'Sandra Schulze-Brandt', po:false, contract:false },
+          { seq:'00015', customer:'KLA - Tencor MIE GmbH', region:'D', entity:'NP GER', training:'SolidWorks: Intermediate to Advanced', days:'2', delivery:'', amount:'€6,000', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Laukik Kharche', po:false, contract:false },
+          { seq:'00016', customer:'Bavarian Nordic GmbH', region:'D', entity:'NP GER', training:'High-Impact Communication Skills', days:'1', delivery:'16.–23.11.2026', amount:'€2,400', status:'PRE_PAYMENT_DONE', location:'Online', contact:'Shazad Nabeel', po:false, contract:false },
+          { seq:'00016', customer:'Fahad al Janabi', region:'CH', entity:'', training:'CAPEX - Financial Evaluation for Manufacturing Managers', days:'2', delivery:'10./11.11.2026', amount:'CHF 4,000', status:'FULL_PAYMENT_DONE', location:'', contact:'Fahad al Janabi', po:false, contract:false },
+          { seq:'00017', customer:'Rudolf Berthold Ges.m.b.H', region:'A', entity:'NP GER', training:'KI-gestützte Softwareentwicklung (AIASE)', days:'2', delivery:'', amount:'€6,900', status:'FULL_PAYMENT_INVOICED', location:'Inhouse', contact:'Claudia Csukovich', po:false, contract:false },
+          { seq:'00017', customer:'Merck KGaA', region:'D', entity:'NP GER', training:'Transact SQL Advanced', days:'', delivery:'asap', amount:'€16,500', status:'ORDER_CREATED', location:'Online', contact:'Douglas Costa Correa', po:false, contract:false },
+          { seq:'00018', customer:'Dataport', region:'D', entity:'NP GER', training:'AutoCAD Basic', days:'', delivery:'', amount:'€6,000', status:'DELIVERY_INVOICEABLE', location:'Online', contact:'Frau Sorgatz', po:false, contract:false },
+          { seq:'00019', customer:'Helios Klinikum', region:'D', entity:'NP GER', training:'Prompting', days:'', delivery:'', amount:'€850', status:'ORDER_COMPLETED', location:'Online', contact:'Dr. Kraft', po:false, contract:false },
+          { seq:'00020', customer:'CPO Containerschiffreederei', region:'D', entity:'NP GER', training:'ChatGPT, Prompt Engineering, Workflows', days:'0.57', delivery:'05.11.2026', amount:'€3,350', status:'FULL_PAYMENT_DONE', location:'Inhouse', contact:'Felina Struckhof', po:false, contract:false },
+          { seq:'00020', customer:'HydraFacial Germany GmbH', region:'D', entity:'NP GER', training:'Excel Follow-up Sales Team', days:'1', delivery:'01/2027', amount:'€1,500', status:'PRE_PAYMENT_INVOICED', location:'Online', contact:'Corina Chapman', po:false, contract:false },
+          { seq:'00021', customer:'EUMETSAT', region:'D', entity:'NP GER', training:'Agentic AI and the Future of Work', days:'1', delivery:'04.12.2026', amount:'€4,500', status:'PRE_PAYMENT_INVOICED', location:'Inhouse', contact:'Florian Arnold', po:false, contract:false },
+          { seq:'00021', customer:'IABG', region:'D', entity:'NP GER', training:'CCSK', days:'3', delivery:'Q1 2027', amount:'€9,300', status:'ORDER_CREATED', location:'Inhouse', contact:'Armina Suciu', po:false, contract:false },
+          { seq:'00022', customer:'dpa Picture-Alliance GmbH', region:'D', entity:'NP GER', training:'Metabase – Datenabfragen, Dashboards, Visualisierung', days:'1', delivery:'23.11.2026', amount:'€4,200', status:'PRE_PAYMENT_DONE', location:'Inhouse', contact:'Tobias Marold', po:false, contract:false },
+          { seq:'00022', customer:'Czarnowski GmbH', region:'D', entity:'NP GER', training:'Claude AI für Workflow-Automatisierung', days:'2', delivery:'18./19.11.2026', amount:'€7,500', status:'PRE_PAYMENT_DONE', location:'Inhouse', contact:'Johanna Stadler', po:false, contract:false },
+          { seq:'00023', customer:'Bundesministerium für Landesverteidigung (BMLV)', region:'A', entity:'NP GER', training:'Grafana – Datenvisualisierung, Dashboards, Monitoring', days:'2', delivery:'02.–03.11.2026', amount:'€4,900', status:'FULL_PAYMENT_INVOICED', location:'Online', contact:'Kurt Huber', po:false, contract:false },
+          { seq:'00024', customer:'Greentube GmbH', region:'A', entity:'NP GER', training:'Claude Code – Enterprise Development & AI DevOps', days:'2', delivery:'23.–27.11.2026', amount:'€7,500', status:'PRE_PAYMENT_INVOICED', location:'Inhouse', contact:'Vincent Buri', po:false, contract:false },
+          { seq:'00024', customer:'ProSiebenSat.1 PULS 4 GmbH', region:'A', entity:'NP GER', training:'Tableau Analytics & AI-gestütztes Reporting', days:'1', delivery:'09.12.2026', amount:'€3,900', status:'PRE_PAYMENT_INVOICED', location:'Inhouse', contact:'Michael Kneidinger', po:false, contract:false },
+          { seq:'00025', customer:'Wien IT', region:'A', entity:'NP GER', training:'OWASP GenAI-Sicherheit inkl. KI-Einsatz bei SAST/DAST', days:'2', delivery:'27.11./30.11./14.12./18.12.2026', amount:'€15,900', status:'ORDER_CREATED', location:'Inhouse', contact:'Xenia Milota', po:false, contract:false },
+          { seq:'00025', customer:'Accuride Europe GmbH', region:'D', entity:'NP GER', training:'Cloudflare Security, CDN, DNS and Fastly Migration', days:'4', delivery:'30.11.–03.12.2026', amount:'€11,500', status:'PRE_PAYMENT_INVOICED', location:'Inhouse', contact:'Justin Namegabe', po:false, contract:false },
+          { seq:'00026', customer:'SUVA', region:'CH', entity:'NP GER', training:'PySpark, Pandas und Polars auf Kubernetes', days:'16h', delivery:'Q1 2027', amount:'CHF 5,000', status:'PRE_PAYMENT_INVOICED', location:'Online', contact:'Patrick Stählin', po:false, contract:false },
+          { seq:'00027', customer:'Privatkundin (Andrea Klara Polanski)', region:'D', entity:'NP GER', training:'n8n-Automatisierungen für Einsteiger', days:'1', delivery:'offen', amount:'€2,059', status:'FULL_PAYMENT_INVOICED', location:'Online', contact:'Andrea Klara Polanski', po:false, contract:false },
+          { seq:'00027', customer:'Renesas Electronics', region:'A', entity:'NP GER', training:'AUTOSAR Classic – Basic Software, RTE and Vector DaVinci', days:'4', delivery:'2026 TBD', amount:'€15,620', status:'ORDER_CREATED', location:'Inhouse', contact:'Patrick Weissengruber', po:false, contract:false },
+          { seq:'00028', customer:'Genetec Poland Sp. z o.o.', region:'A', entity:'NP GER', training:'Advanced Go – Microservices, Event-Driven Architecture, Kubernetes', days:'3', delivery:'Mid-Dec 2026', amount:'€9,990', status:'ORDER_CREATED', location:'Inhouse', contact:'Patrick Seidler', po:true, contract:false },
+          { seq:'00028', customer:'Helios Universitätsklinikum Wuppertal', region:'D', entity:'NP EU', training:'Generative KI und Prompt Engineering im Gesundheitswesen', days:'2h', delivery:'25.11.2026', amount:'€3,500', status:'PRE_PAYMENT_DONE', location:'Online', contact:'Christina Fechner', po:false, contract:false },
+          { seq:'00029', customer:'Helaba', region:'D', entity:'NP GER', training:'KI-Agenten und Workflow-Automatisierung mit n8n, Claude Code', days:'2', delivery:'21.–22.12.2026', amount:'€6,900', status:'ORDER_CREATED', location:'Inhouse', contact:'Yosef Faizi', po:false, contract:false },
         ];
 
-        const STAGE_CSS = { 'SP-04':'sp04','SP-05':'sp05','SP-06':'sp06','SP-07':'sp07','SP-08':'sp08','done':'done' };
-        const STAGE_LABEL = { 'SP-04':'SP-04 Auftrag','SP-05':'SP-05 Trainer','SP-06':'SP-06 Training','SP-07':'SP-07 Rechnung','SP-08':'SP-08 Zahlung','done':'✓ Abgeschlossen' };
+        // Statemachine status → phase / label / css
+        const STATUS_META = {
+          ORDER_CREATED:          { phase:'SP-04', label:'Order Created',          css:'sp04' },
+          PRE_PAYMENT_INVOICED:   { phase:'SP-04', label:'Pre-Payment Invoiced',   css:'sp04b' },
+          PRE_PAYMENT_DONE:       { phase:'SP-04', label:'Pre-Payment Done',       css:'sp04c' },
+          DELIVERY_INVOICEABLE:   { phase:'SP-05', label:'Delivery Invoiceable',   css:'sp05' },
+          FULL_PAYMENT_INVOICED:  { phase:'SP-06', label:'Full Payment Invoiced',  css:'sp06' },
+          FULL_PAYMENT_DONE:      { phase:'SP-06', label:'Full Payment Done',      css:'sp06b' },
+          ORDER_COMPLETED:        { phase:'SP-08', label:'Order Completed',        css:'done' },
+        };
+        // Legacy compat
+        const STAGE_CSS = Object.fromEntries(Object.entries(STATUS_META).map(([k,v])=>[k,v.css]));
+        const STAGE_LABEL = Object.fromEntries(Object.entries(STATUS_META).map(([k,v])=>[k,`${v.phase} · ${v.label}`]));
 
         function fmt(n){ return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n); }
         function fmtDate(d){ return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
@@ -1282,57 +1349,73 @@ tr:hover td { background: var(--bg3); }
             tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--fg3);padding:40px">Keine Aufträge gefunden</td></tr>';
             return;
           }
-          tbody.innerHTML = data.map(o=>`
-            <tr onclick="showDetail('${o.id}')">
-              <td style="font-family:monospace;font-size:12px;color:var(--accent)">${o.id}</td>
-              <td style="font-weight:500">${o.customer}</td>
-              <td style="color:var(--fg2)">${o.training}</td>
-              <td style="text-align:center">${o.days}d</td>
-              <td>${fmtDate(o.start)}</td>
-              <td style="font-weight:600">${fmt(o.amount)}</td>
-              <td><span class="ob-stage ${STAGE_CSS[o.stage]||'done'}">${STAGE_LABEL[o.stage]||o.stage}</span></td>
+          tbody.innerHTML = data.map((o,i)=>`
+            <tr onclick="showDetail(${i})" data-idx="${i}">
+              <td style="font-family:monospace;font-size:11px;color:var(--accent)">${o.seq}</td>
+              <td style="font-size:11px;color:var(--fg3)">${o.region}</td>
+              <td style="font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.customer}">${o.customer}</td>
+              <td style="color:var(--fg2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${o.training}">${o.training}</td>
+              <td style="text-align:center;font-size:12px">${o.days||'—'}</td>
+              <td style="font-size:12px">${o.delivery||'—'}</td>
+              <td style="font-weight:600;font-size:12px">${o.amount}</td>
+              <td><span class="ob-stage ${STAGE_CSS[o.status]||'sp04'}">${STAGE_LABEL[o.status]||o.status}</span></td>
               <td>${bool(o.po)}</td>
-              <td>${bool(o.contract)}</td>
               <td style="color:var(--fg3)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></td>
             </tr>`).join('');
         }
 
-        window.showDetail = function(id){
-          const o = MOCK.find(x=>x.id===id); if(!o) return;
-          document.getElementById('ob-drawer-title').textContent = o.id;
+        window.showDetail = function(idx){
+          const o = MOCK[idx]; if(!o) return;
+          const id = o.seq;
+          const meta = STATUS_META[o.status]||{phase:'?',label:o.status,css:'sp04'};
+          document.getElementById('ob-drawer-title').textContent = `Order #${o.seq}`;
           document.getElementById('ob-drawer-body').innerHTML = `
             <div style="display:grid;gap:14px">
-              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Kunde</div><div style="font-weight:600">${o.customer}</div></div>
-              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Training</div><div>${o.training}</div></div>
+              <div><div class="ob-dl">Customer</div><div style="font-weight:600">${o.customer}</div></div>
+              <div><div class="ob-dl">Contact</div><div>${o.contact||'—'}</div></div>
+              <div><div class="ob-dl">Training</div><div style="font-size:13px">${o.training}</div></div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Startdatum</div><div>${fmtDate(o.start)}</div></div>
-                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Dauer</div><div>${o.days} Tage</div></div>
+                <div><div class="ob-dl">Region</div><div>${o.region||'—'}</div></div>
+                <div><div class="ob-dl">Entity</div><div>${o.entity||'—'}</div></div>
               </div>
-              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Auftragswert</div><div style="font-size:22px;font-weight:700;color:var(--green)">${fmt(o.amount)}</div></div>
-              <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Status</div><div><span class="ob-stage ${STAGE_CSS[o.stage]||'done'}">${STAGE_LABEL[o.stage]||o.stage}</span></div></div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Purchase Order</div><div>${bool(o.po)}</div></div>
-                <div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Vertrag</div><div>${bool(o.contract)}</div></div>
+                <div><div class="ob-dl">Delivery Date</div><div>${o.delivery||'—'}</div></div>
+                <div><div class="ob-dl">Duration</div><div>${o.days||'—'} ${o.days?'days':''}</div></div>
               </div>
-              ${o.trainer ? `<div><div style="font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trainer</div><div>${o.trainer}</div></div>` : ''}
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div><div class="ob-dl">Location</div><div>${o.location||'—'}</div></div>
+                <div><div class="ob-dl">PO Received</div><div>${bool(o.po)}</div></div>
+              </div>
+              <div><div class="ob-dl">Order Value</div><div style="font-size:22px;font-weight:700;color:var(--green)">${o.amount}</div></div>
+              <div>
+                <div class="ob-dl">Statemachine Status</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>
+                </div>
+              </div>
               <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">
-                <div style="font-size:11px;color:var(--fg3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Aktionen</div>
+                <div class="ob-dl" style="margin-bottom:10px">Actions</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API folgt">Status ändern</button>
-                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API folgt">Trainer zuweisen</button>
-                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API folgt">Rechnung erstellen</button>
+                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API follows">Transition Status</button>
+                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API follows">Assign Trainer</button>
+                  <button class="btn btn-sm" style="opacity:.5;cursor:not-allowed" title="API follows">Create Invoice</button>
                 </div>
               </div>
             </div>`;
           document.getElementById('ob-drawer').style.display='block';
         };
 
+        // Add helper style for drawer labels
+        const st = document.createElement('style');
+        st.textContent = '.ob-dl{font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}';
+        document.head.appendChild(st);
+
         function filter(){
           const q = document.getElementById('ob-search').value.toLowerCase();
           const s = document.getElementById('ob-status-filter').value;
           const filtered = MOCK.filter(o=>{
-            const matchQ = !q || [o.id,o.customer,o.training].some(x=>x.toLowerCase().includes(q));
-            const matchS = !s || o.stage===s;
+            const matchQ = !q || [o.seq,o.customer,o.training,o.contact,o.region].some(x=>(x||'').toLowerCase().includes(q));
+            const matchS = !s || o.status===s;
             return matchQ && matchS;
           });
           render(filtered);
@@ -1342,9 +1425,17 @@ tr:hover td { background: var(--bg3); }
         document.getElementById('ob-status-filter').addEventListener('change', filter);
 
         // initial render when page is shown
-        document.addEventListener('DOMContentLoaded', ()=>render(MOCK));
-        // also re-render if already loaded
-        render(MOCK);
+        // KPI computation
+        function updateKPIs(){
+          const active = ['ORDER_CREATED','PRE_PAYMENT_INVOICED','PRE_PAYMENT_DONE','DELIVERY_INVOICEABLE','FULL_PAYMENT_INVOICED'];
+          document.getElementById('kpi-active').textContent = MOCK.filter(o=>active.includes(o.status)).length;
+          document.getElementById('kpi-invoiceable').textContent = MOCK.filter(o=>o.status==='DELIVERY_INVOICEABLE').length;
+          document.getElementById('kpi-prepaid').textContent = MOCK.filter(o=>o.status==='PRE_PAYMENT_DONE').length;
+          document.getElementById('kpi-done').textContent = MOCK.filter(o=>['FULL_PAYMENT_DONE','ORDER_COMPLETED'].includes(o.status)).length;
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{ render(MOCK); updateKPIs(); });
+        render(MOCK); updateKPIs();
       })();
       </script>
     </div>
