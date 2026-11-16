@@ -3690,6 +3690,15 @@ async function loadTraceDetail(execId) {
     const ticketNode = runData['🎫 Ticket auswählen']?.[0]?.data?.main?.[0]?.[0]?.json;
     if (prompt === '—' && ticketNode?.ticketContent) prompt = ticketNode.ticketContent;
 
+    // Webhook fallback: prompt sent via webhook body (when no LLM ran, e.g. no backlog ticket)
+    const webhookNode = runData['🌐 Webhook Trigger']?.[0]?.data?.main?.[0]?.[0]?.json;
+    if (prompt === '—' && webhookNode?.body?.prompt) {
+      prompt = webhookNode.body.prompt;
+      // If LLM didn't run, show why
+      const noTicket = runData['📋 Ticket-Liste laden']?.[0]?.data?.main?.[0]?.[0]?.json?.detail;
+      if (response === '—' && noTicket) response = `ℹ️ ${noTicket} — LLM was not called`;
+    }
+
     // Primary: "🧠 LiteLLM aufrufen" node — has choices array
     const llmNode = runData['🧠 LiteLLM aufrufen']?.[0]?.data?.main?.[0]?.[0]?.json;
     if (llmNode?.choices?.[0]?.message?.content) response = llmNode.choices[0].message.content;
