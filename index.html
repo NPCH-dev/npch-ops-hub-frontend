@@ -1615,6 +1615,38 @@ tr:hover td { background: var(--bg3); }
         }
         .agent-card:hover .ac-drag-handle { opacity:1; }
         .ac-drag-handle:active { cursor:grabbing; }
+        /* Card Action Buttons */
+        .ac-actions {
+          display:flex; gap:6px; margin-top:10px; padding-top:10px;
+          border-top:1px solid var(--border);
+        }
+        .ac-btn-run, .ac-btn-prompt {
+          flex:1; padding:5px 8px; border-radius:var(--radius-sm); font-size:11.5px;
+          font-weight:600; cursor:pointer; border:1px solid var(--border);
+          transition:background .15s, border-color .15s, color .15s;
+        }
+        .ac-btn-run {
+          background:var(--accent); color:#fff; border-color:var(--accent);
+        }
+        .ac-btn-run:hover { background:var(--accent2); border-color:var(--accent2); }
+        .ac-btn-prompt {
+          background:transparent; color:var(--fg2);
+        }
+        .ac-btn-prompt:hover { background:var(--bg3); border-color:var(--accent); color:var(--fg); }
+        /* Prompt-Modal */
+        .agent-prompt-modal-box {
+          background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+          width:100%; max-width:560px; padding:24px; position:relative;
+        }
+        .agent-prompt-textarea {
+          width:100%; box-sizing:border-box; background:var(--bg3); border:1px solid var(--border);
+          border-radius:var(--radius-sm); color:var(--fg); font-size:12.5px;
+          font-family:'JetBrains Mono',monospace; line-height:1.6;
+          padding:10px 12px; resize:vertical; min-height:120px; max-height:400px;
+          outline:none; margin-top:8px;
+        }
+        .agent-prompt-textarea:focus { border-color:var(--accent); }
+        .agent-prompt-textarea::placeholder { color:var(--fg3); }
         .agent-card.ac-running { border-color:var(--green); }
         .agent-card.ac-running::before {
           content:''; position:absolute; top:0; left:0; right:0; height:2px;
@@ -1801,6 +1833,29 @@ tr:hover td { background: var(--bg3); }
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:680px;padding:24px;position:relative">
           <button onclick="closeAgentDetail()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--fg2);cursor:pointer;font-size:18px;line-height:1">✕</button>
           <div id="agent-detail-content"></div>
+        </div>
+      </div>
+
+      <!-- Prompt-Start Modal -->
+      <div id="agent-prompt-modal" hidden style="position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:24px 16px">
+        <div class="agent-prompt-modal-box">
+          <button onclick="closeAgentPrompt()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--fg2);cursor:pointer;font-size:18px;line-height:1">✕</button>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+            <div id="apt-icon" style="font-size:28px"></div>
+            <div>
+              <div id="apt-name" style="font-size:16px;font-weight:700"></div>
+              <div style="font-size:11.5px;color:var(--fg3);margin-top:2px">Agent manuell mit eigenem Prompt starten</div>
+            </div>
+          </div>
+          <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-top:16px">Prompt / Aufgabe</label>
+          <textarea id="apt-prompt" class="agent-prompt-textarea"
+            placeholder="Beschreibe die Aufgabe für den Agenten…&#10;z.B. Implementiere Ticket NPCH-042: User-Rollen in der API absichern"
+            onkeydown="if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();submitAgentPrompt()}" ></textarea>
+          <div style="font-size:10.5px;color:var(--fg3);text-align:right;margin-top:4px">⌘ Enter zum Starten</div>
+          <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+            <button onclick="closeAgentPrompt()" class="btn btn-secondary btn-sm">Abbrechen</button>
+            <button onclick="submitAgentPrompt()" class="btn btn-primary btn-sm" id="apt-submit-btn">▶ Starten</button>
+          </div>
         </div>
       </div>
     </div>
@@ -3301,6 +3356,10 @@ function _renderAgentGridFromCache() {
         </div>
         <div class="ac-trigger">🕐 ${a.trigger}</div>
         ${lastOut ? `<div class="ac-last-output">${escHtml(lastOut)}</div>` : ''}
+        <div class="ac-actions" onclick="event.stopPropagation()">
+          <button class="ac-btn-run" onclick="triggerAgentNow('${a.id}')" title="Sofort starten">▶ Start</button>
+          <button class="ac-btn-prompt" onclick="openAgentPrompt('${a.id}')" title="Mit eigenem Prompt starten">✎ mit Prompt</button>
+        </div>
       </div>`;
   }).join('');
 }
@@ -3437,7 +3496,6 @@ async function openAgentDetail(id) {
 async function triggerAgentNow(wfId) {
   const a = AGENTS_DEF.find(x => x.id === wfId);
   if (!a) return;
-  if (!confirm(`"${a.name}" jetzt manuell starten?`)) return;
   try {
     await api(`/admin/n8n/workflows/${wfId}/execute`, { method: 'POST', body: JSON.stringify({}) });
     showToast(`${a.icon} ${a.name} gestartet ✓`, 'success');
@@ -3445,6 +3503,57 @@ async function triggerAgentNow(wfId) {
     setTimeout(loadAgentsPage, 2000);
   } catch (e) {
     showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+let _promptAgentId = null;
+
+function openAgentPrompt(wfId) {
+  const a = AGENTS_DEF.find(x => x.id === wfId);
+  if (!a) return;
+  _promptAgentId = wfId;
+  document.getElementById('apt-icon').textContent = a.icon;
+  document.getElementById('apt-name').textContent = a.name;
+  document.getElementById('apt-prompt').value = '';
+  document.getElementById('apt-submit-btn').textContent = '▶ Starten';
+  document.getElementById('apt-submit-btn').disabled = false;
+  const modal = document.getElementById('agent-prompt-modal');
+  modal.hidden = false; modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('apt-prompt').focus(), 80);
+}
+
+function closeAgentPrompt() {
+  const modal = document.getElementById('agent-prompt-modal');
+  modal.hidden = true; modal.style.display = 'none';
+  _promptAgentId = null;
+}
+
+async function submitAgentPrompt() {
+  const wfId = _promptAgentId;
+  const prompt = (document.getElementById('apt-prompt').value || '').trim();
+  if (!wfId) return;
+  if (!prompt) {
+    document.getElementById('apt-prompt').focus();
+    document.getElementById('apt-prompt').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('apt-prompt').style.borderColor = '', 1200);
+    return;
+  }
+  const a = AGENTS_DEF.find(x => x.id === wfId);
+  const btn = document.getElementById('apt-submit-btn');
+  btn.textContent = '⏳ Startet…'; btn.disabled = true;
+  try {
+    // n8n execute unterstützt optionale Input-Daten — wir schicken den Prompt als data
+    await api(`/admin/n8n/workflows/${wfId}/execute`, {
+      method: 'POST',
+      body: JSON.stringify({ data: { prompt } })
+    });
+    showToast(`${a?.icon || '🤖'} ${a?.name} gestartet ✓`, 'success');
+    closeAgentPrompt();
+    closeAgentDetail();
+    setTimeout(loadAgentsPage, 2000);
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+    btn.textContent = '▶ Starten'; btn.disabled = false;
   }
 }
 
