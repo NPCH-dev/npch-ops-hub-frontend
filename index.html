@@ -1757,6 +1757,18 @@ tr:hover td { background: var(--bg3); }
         }
         .llt-expand-btn:hover { text-decoration:underline; }
 
+        /* Run-row hover tooltip */
+        #run-tooltip {
+          position:fixed; z-index:9999; pointer-events:none;
+          background:var(--bg2); border:1px solid var(--border);
+          border-radius:var(--radius); box-shadow:0 8px 24px rgba(0,0,0,.4);
+          padding:12px 14px; max-width:360px; min-width:220px;
+          font-size:11.5px; line-height:1.5; color:var(--fg);
+        }
+        #run-tooltip .rtt-label { font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); margin-bottom:3px; margin-top:8px; }
+        #run-tooltip .rtt-label:first-child { margin-top:0; }
+        #run-tooltip .rtt-text { color:var(--fg2); white-space:pre-wrap; word-break:break-word; max-height:120px; overflow:hidden; }
+
         /* Stats bar */
         .agc-stats { display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
         .agc-stat { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; flex:1; min-width:120px; }
@@ -3402,6 +3414,78 @@ function toggleCardRuns(agentId, btn) {
   if (arrow) arrow.textContent = open ? '▸' : '▾';
 }
 
+// ── Run-row hover tooltip ─────────────────────────────────────────────────────
+let _runTooltipTimer = null;
+const _runTooltipCache = {};  // execId → {prompt, response}
+
+function _getOrCreateTooltip() {
+  let el = document.getElementById('run-tooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'run-tooltip';
+    el.hidden = true;
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function _positionTooltip(el, event) {
+  const pad = 12;
+  let x = event.clientX + pad;
+  let y = event.clientY + pad;
+  // Keep within viewport
+  const tw = el.offsetWidth || 360;
+  const th = el.offsetHeight || 180;
+  if (x + tw > window.innerWidth - pad) x = event.clientX - tw - pad;
+  if (y + th > window.innerHeight - pad) y = event.clientY - th - pad;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+}
+
+async function showRunTooltip(event, execId) {
+  clearTimeout(_runTooltipTimer);
+  const tip = _getOrCreateTooltip();
+
+  // Show loading immediately
+  tip.innerHTML = `<div class="rtt-label">Prompt</div><div class="rtt-text">⏳ Loading…</div>`;
+  tip.hidden = false;
+  _positionTooltip(tip, event);
+
+  // Use cache if available
+  if (_runTooltipCache[execId]) {
+    const c = _runTooltipCache[execId];
+    tip.innerHTML = `<div class="rtt-label">Prompt</div><div class="rtt-text">${escHtml(c.prompt)}</div><div class="rtt-label">Response</div><div class="rtt-text">${escHtml(c.response)}</div>`;
+    return;
+  }
+
+  try {
+    const detail = await api('/admin/n8n/executions/' + execId);
+    const runData = detail?.data?.resultData?.runData || detail?.resultData?.runData || {};
+    let prompt = '—', response = '—';
+
+    const promptNode = runData['🤖 Prompt bauen']?.[0]?.data?.main?.[0]?.[0]?.json;
+    if (promptNode?.userPrompt) prompt = promptNode.userPrompt;
+    const ticketNode = runData['🎫 Ticket auswählen']?.[0]?.data?.main?.[0]?.[0]?.json;
+    if (prompt === '—' && ticketNode?.ticketContent) prompt = ticketNode.ticketContent;
+    const llmNode = runData['🧠 LiteLLM aufrufen']?.[0]?.data?.main?.[0]?.[0]?.json;
+    if (llmNode?.choices?.[0]?.message?.content) response = llmNode.choices[0].message.content;
+
+    _runTooltipCache[execId] = { prompt, response };
+    if (!tip.hidden) {
+      tip.innerHTML = `<div class="rtt-label">Prompt</div><div class="rtt-text">${escHtml(prompt)}</div><div class="rtt-label">Response</div><div class="rtt-text">${escHtml(response)}</div>`;
+    }
+  } catch(e) {
+    if (!tip.hidden) tip.innerHTML = `<div class="rtt-text" style="color:var(--red)">Error: ${escHtml(e.message||String(e))}</div>`;
+  }
+}
+
+function hideRunTooltip() {
+  _runTooltipTimer = setTimeout(() => {
+    const tip = document.getElementById('run-tooltip');
+    if (tip) tip.hidden = true;
+  }, 150);
+}
+
 // ── Agent Card Grid ───────────────────────────────────────────────────────────
 function _renderAgentGridFromCache() {
   const grid = document.getElementById('agent-grid');
@@ -3468,7 +3552,7 @@ function _renderAgentGridFromCache() {
             const icon = { error:'✕', running:'▶', done:'✓' }[st];
             const cls  = { error:'lts-error', running:'lts-running', done:'lts-done' }[st];
             const dur  = e.stoppedAt && e.startedAt ? ((new Date(e.stoppedAt)-new Date(e.startedAt))/1000).toFixed(1)+'s' : '…';
-            return `<div class="acr-row" onclick="event.stopPropagation();toggleTrace('${e.id}')" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border2);cursor:pointer">
+            return `<div class="acr-row" onclick="event.stopPropagation()" onmouseenter="showRunTooltip(event,'${e.id}')" onmouseleave="hideRunTooltip()" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border2);cursor:default">
               <span class="llt-status ${cls}" style="font-size:9px;padding:1px 5px">${icon} ${st}</span>
               <span style="font-size:11px;color:var(--fg2);flex:1">${relTime(new Date(e.startedAt||e.started_at))}</span>
               <span style="font-size:11px;color:var(--fg3)">${dur}</span>
