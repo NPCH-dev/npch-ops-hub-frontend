@@ -4724,11 +4724,10 @@ async function loadAdminDeploy() {
   if (!grid) return;
   try {
     // Parallel: GitHub-Commit-Info + laufende Backend-Version
-    // /version: erst ohne Auth (kein CORS-Preflight), Fallback mit Auth
+    // GET /version ist öffentlich (Root-Endpoint wie /health) — kein Auth, kein Preflight
+    const apiRoot = CONFIG.apiBase.replace('/api/v1', '');
     const fetchVersion = () =>
-      fetch(CONFIG.apiBase + '/version', { mode: 'cors' })
-        .then(r => r.ok ? r.json() : api('/version'))
-        .catch(() => api('/version'));
+      fetch(apiRoot + '/version').then(r => r.ok ? r.json() : Promise.reject(r.status));
     const [d, v] = await Promise.allSettled([
       api('/admin/deploy'),
       fetchVersion()
