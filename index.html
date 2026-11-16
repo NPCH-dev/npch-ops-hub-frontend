@@ -3490,6 +3490,11 @@ function hideRunTooltip() {
 function _renderAgentGridFromCache() {
   const grid = document.getElementById('agent-grid');
   if (!grid) return;
+  // Remember which card-runs panels are open before re-render
+  const openRuns = new Set();
+  grid.querySelectorAll('[id^="card-runs-"]').forEach(el => {
+    if (el.style.display !== 'none') openRuns.add(el.id.replace('card-runs-', ''));
+  });
   grid.innerHTML = AGENTS_DEF.map(a => {
     // Status aus n8n Executions (live) oder Mock-Traces
     const liveExecs = _agentsExecCache[a.id] || [];
@@ -3568,6 +3573,14 @@ function _renderAgentGridFromCache() {
         })()}
       </div>`;
   }).join('');
+  // Restore open card-runs panels after re-render
+  openRuns.forEach(agentId => {
+    const panel = document.getElementById('card-runs-' + agentId);
+    if (!panel) return;
+    panel.style.display = 'block';
+    const toggle = panel.previousElementSibling;
+    if (toggle) { const arrow = toggle.querySelector('.acr-arrow'); if (arrow) arrow.textContent = '▾'; }
+  });
 }
 
 // ── LLM Trace Feed ────────────────────────────────────────────────────────────
