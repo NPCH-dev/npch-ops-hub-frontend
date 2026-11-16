@@ -1263,18 +1263,27 @@ tr:hover td { background: var(--bg3); }
             </button>
           </div>
           <div class="od-ribbon" id="od-ribbon"></div>
+          <!-- Tab bar -->
+          <div class="od-tabs" id="od-tabs">
+            <button class="od-tab active" data-tab="overview" onclick="switchDetailTab('overview')">Overview</button>
+            <button class="od-tab" data-tab="insights" onclick="switchDetailTab('insights')">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              AI Insights
+            </button>
+          </div>
           <div class="od-step-body" id="od-step-body"></div>
+          <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
 
       <style>
         /* Master-Detail Layout */
-        .od-layout { display:flex; gap:0; align-items:flex-start; }
+        .od-layout { display:flex; gap:12px; align-items:flex-start; }
         .od-list { flex:1; min-width:0; transition:flex .25s ease; }
-        .od-layout.detail-open .od-list { flex:0 0 42%; }
-        .od-detail { flex:0 0 0; overflow:hidden; opacity:0; transition:flex .25s ease, opacity .2s ease; display:none; flex-direction:column; border-left:1px solid var(--border); min-height:400px; }
-        .od-layout.detail-open .od-detail { flex:0 0 58%; opacity:1; display:flex !important; overflow:visible; }
+        .od-layout.detail-open .od-list { flex:0 0 40%; }
+        .od-detail { flex:0 0 0; overflow:hidden; opacity:0; transition:flex .25s ease, opacity .2s ease; display:none; flex-direction:column; border:1px solid var(--border); border-radius:8px; background:var(--bg2); min-height:400px; box-shadow:0 2px 16px rgba(0,0,0,.18); }
+        .od-layout.detail-open .od-detail { flex:0 0 59%; opacity:1; display:flex !important; overflow:visible; }
 
         /* Table */
         #orders-table th { background:var(--bg2); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; padding:9px 12px; user-select:none; }
@@ -1343,6 +1352,36 @@ tr:hover td { background: var(--bg3); }
         .od-task input[type=checkbox] { width:15px; height:15px; cursor:pointer; accent-color:var(--accent); flex-shrink:0; margin-top:1px; }
         .od-task-label { font-size:13px; color:var(--fg); line-height:1.4; cursor:pointer; flex:1; }
         .od-task.checked .od-task-label { text-decoration:line-through; color:var(--fg3); }
+
+        /* Detail Panel Tabs */
+        .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
+        .od-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px 8px; font-size:12px; font-weight:600; color:var(--fg3); cursor:pointer; display:flex; align-items:center; transition:all .15s; white-space:nowrap; }
+        .od-tab:hover { color:var(--fg); }
+        .od-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+        /* AI Insights Panel */
+        .od-insights-body { padding:18px 20px; overflow-y:auto; flex:1; }
+        .od-insight-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:12px; }
+        .od-insight-card-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+        .od-insight-card-title svg { opacity:.6; }
+        .od-insight-email { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+        .od-insight-email:last-child { border-bottom:none; padding-bottom:0; }
+        .od-insight-avatar { width:28px; height:28px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
+        .od-insight-email-meta { flex:1; min-width:0; }
+        .od-insight-email-from { font-size:12px; font-weight:600; color:var(--fg); }
+        .od-insight-email-subj { font-size:11px; color:var(--fg3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px; }
+        .od-insight-email-date { font-size:10px; color:var(--fg3); white-space:nowrap; }
+        .od-action-item { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:12px; color:var(--fg); }
+        .od-action-item:last-child { border-bottom:none; }
+        .od-action-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:5px; }
+        .od-action-dot.urgent { background:#f87171; }
+        .od-insight-loading { display:flex; flex-direction:column; gap:10px; }
+        .od-skel { height:12px; border-radius:4px; background:linear-gradient(90deg,var(--bg2) 25%,rgba(255,255,255,.06) 50%,var(--bg2) 75%); background-size:200% 100%; animation:skel-shimmer 1.4s infinite; }
+        @keyframes skel-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .od-insight-empty { text-align:center; padding:40px 20px; color:var(--fg3); font-size:13px; }
+        .od-insight-empty svg { opacity:.3; display:block; margin:0 auto 10px; }
+        .od-insight-connect { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:7px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+        .od-summary-text { font-size:13px; color:var(--fg); line-height:1.6; }
       </style>
 
       <script>
@@ -1673,6 +1712,11 @@ tr:hover td { background: var(--bg3); }
           renderRibbon(idx);
           renderStepBody(idx, viewingStepIdx);
 
+          // Reset to Overview tab on new order open
+          document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab==='overview'));
+          document.getElementById('od-step-body').style.display    = '';
+          document.getElementById('od-insights-body').style.display = 'none';
+
           const layout = document.getElementById('od-layout');
           const detail = document.getElementById('od-detail');
           detail.style.display = 'flex';
@@ -1735,6 +1779,99 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('kpi-done').textContent = MOCK.filter(o=>['FULL_PAYMENT_DONE','ORDER_COMPLETED'].includes(o.status)).length;
           const total = MOCK.reduce((s,o)=>s+(o.amountNum||0),0);
           document.getElementById('kpi-revenue').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(total);
+        }
+
+        // ── Tab switching ─────────────────────────────────────────────────────
+        window.switchDetailTab = function(tab){
+          document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+          document.getElementById('od-step-body').style.display    = tab==='overview'  ? '' : 'none';
+          document.getElementById('od-insights-body').style.display = tab==='insights' ? '' : 'none';
+          if(tab==='insights' && currentOrderIdx>=0) renderInsights(currentOrderIdx);
+        };
+
+        // ── AI Insights ───────────────────────────────────────────────────────
+        // Skeleton loader shown while "fetching"
+        function insightSkeleton(){
+          return `<div class="od-insight-loading">
+            <div class="od-skel" style="width:60%;height:10px"></div>
+            <div class="od-skel" style="width:90%"></div>
+            <div class="od-skel" style="width:75%"></div>
+            <div class="od-skel" style="width:85%"></div>
+            <div class="od-skel" style="width:50%;margin-top:8px;height:10px"></div>
+            <div class="od-skel" style="width:88%"></div>
+            <div class="od-skel" style="width:70%"></div>
+          </div>`;
+        }
+
+        // Email agent not yet wired → show placeholder with mock data for demo
+        function renderInsights(oIdx){
+          const body = document.getElementById('od-insights-body');
+          const o = MOCK[oIdx];
+          body.innerHTML = insightSkeleton();
+
+          // Simulate async fetch delay (replace with real api() call later)
+          setTimeout(()=>{
+            // --- MOCK DATA — replace with: api('/orders/'+o.seq+'/insights') ---
+            const emails = [
+              { from: o.contact||'Customer', subj: 'Re: Training confirmation — '+o.training.slice(0,40), date: '2 days ago', init: (o.contact||'C')[0] },
+              { from: o.sales||'Sales Team', subj: 'Quote follow-up sent', date: '5 days ago', init: (o.sales||'S')[0] },
+              { from: 'Trainer Pool', subj: 'Availability confirmed for '+o.delivery, date: '1 week ago', init: 'T' },
+            ];
+            const actions = [
+              { text: 'Send booking confirmation to '+o.customer, urgent: true },
+              { text: 'Confirm trainer briefing materials are ready', urgent: false },
+              { text: 'Check PO status — not yet received', urgent: !o.po },
+            ];
+            const summary = `Last interaction was 2 days ago. ${o.customer} confirmed the training dates. `
+              + `Waiting for ${o.po?'full invoice':'PO and pre-payment'}. `
+              + `Next step: ${o.status==='ORDER_CREATED'?'Send booking confirmation.':o.status==='DELIVERY_INVOICEABLE'?'Issue full invoice.':'Follow up on payment.'}`;
+
+            body.innerHTML = `
+              <!-- Summary -->
+              <div class="od-insight-card">
+                <div class="od-insight-card-title">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  AI Summary
+                  <span style="margin-left:auto;font-size:9px;background:rgba(99,102,241,.15);color:var(--accent);padding:2px 6px;border-radius:10px;font-weight:700">DEMO</span>
+                </div>
+                <div class="od-summary-text">${summary}</div>
+              </div>
+
+              <!-- Action Items -->
+              <div class="od-insight-card">
+                <div class="od-insight-card-title">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Action Items
+                </div>
+                ${actions.map(a=>`<div class="od-action-item"><div class="od-action-dot${a.urgent?' urgent':''}"></div><span>${a.text}</span></div>`).join('')}
+              </div>
+
+              <!-- Recent Emails -->
+              <div class="od-insight-card">
+                <div class="od-insight-card-title">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  Recent Emails
+                </div>
+                ${emails.map(e=>`
+                  <div class="od-insight-email">
+                    <div class="od-insight-avatar">${e.init.toUpperCase()}</div>
+                    <div class="od-insight-email-meta">
+                      <div class="od-insight-email-from">${e.from}</div>
+                      <div class="od-insight-email-subj">${e.subj}</div>
+                    </div>
+                    <div class="od-insight-email-date">${e.date}</div>
+                  </div>`).join('')}
+              </div>
+
+              <!-- Connect CTA -->
+              <div style="text-align:center;padding:16px 0 4px;color:var(--fg3);font-size:11px">
+                <div>Connect Gmail to load real email history</div>
+                <button class="od-insight-connect" onclick="navigate('settings')" style="margin-top:10px">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Connect Gmail
+                </button>
+              </div>`;
+          }, 900);
         }
 
         window._ordersInit = function(){ render(MOCK); updateKPIs(); };
