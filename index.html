@@ -1603,10 +1603,18 @@ tr:hover td { background: var(--bg3); }
         .agent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
         .agent-card {
           background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
-          padding:16px; cursor:pointer; transition:border-color .15s, box-shadow .15s;
-          position:relative; overflow:hidden;
+          padding:16px; cursor:pointer; transition:border-color .15s, box-shadow .15s, opacity .15s;
+          position:relative; overflow:hidden; user-select:none;
         }
         .agent-card:hover { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+        .agent-card.ac-dragging { opacity:.4; border-style:dashed; }
+        .agent-card.ac-drag-over { border-color:var(--accent2); box-shadow:0 0 0 2px var(--accent2); background:var(--accent-bg); }
+        .ac-drag-handle {
+          position:absolute; top:10px; right:10px; color:var(--fg3); font-size:13px;
+          cursor:grab; padding:2px 4px; border-radius:3px; opacity:.5; transition:opacity .1s;
+        }
+        .agent-card:hover .ac-drag-handle { opacity:1; }
+        .ac-drag-handle:active { cursor:grabbing; }
         .agent-card.ac-running { border-color:var(--green); }
         .agent-card.ac-running::before {
           content:''; position:absolute; top:0; left:0; right:0; height:2px;
@@ -1686,25 +1694,31 @@ tr:hover td { background: var(--bg3); }
         .llt-prompt-box {
           background:var(--bg3); border-radius:var(--radius-sm); padding:8px 10px;
           font-size:11.5px; font-family:'JetBrains Mono',monospace; color:var(--fg2);
-          line-height:1.5; max-height:80px; overflow:hidden; position:relative;
+          line-height:1.5; max-height:120px; overflow-y:auto; position:relative;
+          white-space:pre-wrap; word-break:break-word;
+          scrollbar-width:thin; scrollbar-color:var(--border) transparent;
         }
-        .llt-prompt-box.expanded { max-height:none; }
-        .llt-prompt-box::after {
-          content:''; position:absolute; bottom:0; left:0; right:0; height:20px;
-          background:linear-gradient(transparent, var(--bg3));
-        }
-        .llt-prompt-box.expanded::after { display:none; }
+        .llt-prompt-box.expanded { max-height:320px; }
         .llt-response-box {
           background:var(--bg3); border-radius:var(--radius-sm); padding:8px 10px;
           font-size:11.5px; color:var(--fg); line-height:1.5;
-          max-height:80px; overflow:hidden; position:relative;
+          max-height:160px; overflow-y:auto; position:relative;
+          white-space:pre-wrap; word-break:break-word;
+          scrollbar-width:thin; scrollbar-color:var(--border) transparent;
         }
-        .llt-response-box.expanded { max-height:none; }
-        .llt-response-box::after {
-          content:''; position:absolute; bottom:0; left:0; right:0; height:20px;
-          background:linear-gradient(transparent, var(--bg3));
+        .llt-response-box.expanded { max-height:480px; }
+        /* Webkit scrollbar */
+        .llt-prompt-box::-webkit-scrollbar,
+        .llt-response-box::-webkit-scrollbar { width:4px; }
+        .llt-prompt-box::-webkit-scrollbar-thumb,
+        .llt-response-box::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+        /* Expand-Button für Traces */
+        .llt-expand-text-btn {
+          display:block; width:100%; text-align:center; font-size:10px; color:var(--fg3);
+          background:none; border:none; cursor:pointer; padding:3px 0 1px;
+          letter-spacing:.04em;
         }
-        .llt-response-box.expanded::after { display:none; }
+        .llt-expand-text-btn:hover { color:var(--accent2); }
 
         .llt-typing {
           display:flex; align-items:center; gap:4px; padding:4px 0;
@@ -3190,6 +3204,8 @@ let _agentsN8nLoaded = false;
 
 // ── Agents: Haupt-Load ────────────────────────────────────────────────────────
 async function loadAgentsPage() {
+  // Gespeicherte Reihenfolge wiederherstellen
+  _restoreAgentsOrder();
   // Erst Mock rendern für sofortiges UI
   _renderAgentGridFromCache();
   renderLLMFeed(MOCK_TRACES);
@@ -3263,7 +3279,16 @@ function _renderAgentGridFromCache() {
     const statusLabel = { running:'▶ Läuft', error:'⚠ Fehler', active:'● Aktiv', paused:'⏸ Pausiert' }[status];
 
     return `
-      <div class="agent-card${running?' ac-running':hasError?' ac-error':''}" onclick="openAgentDetail('${a.id}')">
+      <div class="agent-card${running?' ac-running':hasError?' ac-error':''}"
+           data-agent-id="${a.id}"
+           draggable="true"
+           onclick="openAgentDetail('${a.id}')"
+           ondragstart="agentDragStart(event,'${a.id}')"
+           ondragover="agentDragOver(event)"
+           ondragleave="agentDragLeave(event)"
+           ondrop="agentDrop(event,'${a.id}')"
+           ondragend="agentDragEnd(event)">
+        <div class="ac-drag-handle" title="Verschieben" onclick="event.stopPropagation()">⠿</div>
         <div class="ac-top">
           <div class="ac-icon">${a.icon}</div>
           <div class="ac-status-dot ${dotClass}" title="${statusLabel}"></div>
@@ -3302,16 +3327,18 @@ function renderLLMFeed(traces) {
         </div>
         <div class="llt-body" id="trace-body-${t.id}" style="display:none">
           <div class="llt-section-label">Prompt</div>
-          <div class="llt-prompt-box">${escHtml(t.prompt.substring(0,400))}</div>
+          <div class="llt-prompt-box" id="trace-prompt-${t.id}">${escHtml(t.prompt)}</div>
+          <button class="llt-expand-text-btn" onclick="event.stopPropagation();toggleTraceBox('trace-prompt-${t.id}',this)">▾ mehr anzeigen</button>
           <div class="llt-section-label">Response</div>
-          <div class="llt-response-box">
+          <div class="llt-response-box" id="trace-resp-${t.id}">
             ${t.status === 'running'
               ? '<div class="llt-typing"><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div></div><span style="font-size:11px;color:var(--fg3)"> Generating…</span>'
               : t.error
                 ? `<span style="color:var(--red)">${escHtml(t.error)}</span>`
-                : escHtml((t.response||'').substring(0,400))
+                : escHtml(t.response||'')
             }
           </div>
+          ${t.status !== 'running' ? `<button class="llt-expand-text-btn" onclick="event.stopPropagation();toggleTraceBox('trace-resp-${t.id}',this)">▾ mehr anzeigen</button>` : ''}
         </div>
         <div class="llt-footer">
           <div class="llt-metric">In: <span>${t.tokens_in ? t.tokens_in.toLocaleString() : '—'}</span></div>
@@ -3424,6 +3451,78 @@ async function triggerAgentNow(wfId) {
 function closeAgentDetail() {
   const modal = document.getElementById('agent-detail-modal');
   modal.hidden = true; modal.style.display = 'none';
+}
+
+// ── Trace-Box expand/collapse ─────────────────────────────────────────────────
+function toggleTraceBox(id, btn) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  const expanded = box.classList.toggle('expanded');
+  if (btn) btn.textContent = expanded ? '▴ weniger' : '▾ mehr anzeigen';
+}
+
+// ── Agent Card Drag & Drop ────────────────────────────────────────────────────
+let _dragAgentId = null;
+
+function agentDragStart(e, id) {
+  _dragAgentId = id;
+  e.currentTarget.classList.add('ac-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function agentDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const card = e.currentTarget;
+  if (card.dataset.agentId !== _dragAgentId) {
+    card.classList.add('ac-drag-over');
+  }
+}
+
+function agentDragLeave(e) {
+  e.currentTarget.classList.remove('ac-drag-over');
+}
+
+function agentDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('ac-drag-over');
+  if (!_dragAgentId || _dragAgentId === targetId) return;
+
+  const fromIdx = AGENTS_DEF.findIndex(a => a.id === _dragAgentId);
+  const toIdx   = AGENTS_DEF.findIndex(a => a.id === targetId);
+  if (fromIdx < 0 || toIdx < 0) return;
+
+  // Reihenfolge anpassen
+  const [moved] = AGENTS_DEF.splice(fromIdx, 1);
+  AGENTS_DEF.splice(toIdx, 0, moved);
+
+  // Reihenfolge in localStorage speichern
+  try {
+    localStorage.setItem('npch_agents_order', JSON.stringify(AGENTS_DEF.map(a => a.id)));
+  } catch {}
+
+  _renderAgentGridFromCache();
+}
+
+function agentDragEnd(e) {
+  e.currentTarget.classList.remove('ac-dragging');
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('ac-drag-over'));
+  _dragAgentId = null;
+}
+
+function _restoreAgentsOrder() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('npch_agents_order') || '[]');
+    if (!Array.isArray(saved) || saved.length === 0) return;
+    const ordered = [];
+    saved.forEach(id => {
+      const a = AGENTS_DEF.find(x => x.id === id);
+      if (a) ordered.push(a);
+    });
+    // Neu hinzugekommene Agents anhängen
+    AGENTS_DEF.forEach(a => { if (!ordered.find(x => x.id === a.id)) ordered.push(a); });
+    AGENTS_DEF.splice(0, AGENTS_DEF.length, ...ordered);
+  } catch {}
 }
 
 function escHtml(s) {
