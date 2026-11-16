@@ -4724,9 +4724,10 @@ async function loadAdminDeploy() {
   if (!grid) return;
   try {
     // Parallel: GitHub-Commit-Info + laufende Backend-Version
+    // /version ist public → kein Auth-Header → kein CORS-Preflight nötig
     const [d, v] = await Promise.allSettled([
       api('/admin/deploy'),
-      api('/version')
+      fetch(CONFIG.apiBase + '/version').then(r => r.json())
     ]);
     const deploy = d.status === 'fulfilled' ? d.value : {};
     const ver    = v.status === 'fulfilled' ? v.value : null;
