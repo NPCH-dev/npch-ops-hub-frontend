@@ -3463,6 +3463,19 @@ function renderLLMFeed(traces) {
     feed.innerHTML = '<div style="text-align:center;padding:32px;color:var(--fg3)">No recent agent runs</div>';
     return;
   }
+  // Remember which traces are currently open (to restore after re-render)
+  const openState = {};
+  feed.querySelectorAll('.llm-trace').forEach(el => {
+    const id = el.id.replace('trace-', '');
+    const body = document.getElementById('trace-body-' + id);
+    if (body && body.style.display !== 'none') {
+      openState[id] = {
+        prompt: document.getElementById('trace-prompt-' + id)?.textContent,
+        resp:   document.getElementById('trace-resp-'   + id)?.textContent
+      };
+    }
+  });
+
   feed.innerHTML = traces.map(t => {
     const statusCls = { running:'lts-running', done:'lts-done', error:'lts-error' }[t.status] || 'lts-done';
     const statusLbl = { running:'▶ Running', done:'✓ Done', error:'✕ Error' }[t.status] || t.status;
@@ -3500,6 +3513,26 @@ function renderLLMFeed(traces) {
         </div>
       </div>`;
   }).join('');
+
+  // Restore open traces after re-render
+  Object.keys(openState).forEach(id => {
+    const body = document.getElementById('trace-body-' + id);
+    const btn  = document.querySelector(`#trace-${id} .llt-expand-btn`);
+    if (!body) return;
+    body.style.display = 'block';
+    if (btn) btn.textContent = '▴ Schließen';
+    // Restore already-loaded content (avoid re-fetching)
+    const promptEl = document.getElementById('trace-prompt-' + id);
+    const respEl   = document.getElementById('trace-resp-'   + id);
+    const saved = openState[id];
+    if (promptEl && saved.prompt && saved.prompt !== '⏳ Loading…') {
+      promptEl.textContent = saved.prompt;
+      body.dataset.loaded = '1';
+    }
+    if (respEl && saved.resp && saved.resp !== '⏳ Loading…') {
+      respEl.textContent = saved.resp;
+    }
+  });
 }
 
 function toggleTrace(id) {
