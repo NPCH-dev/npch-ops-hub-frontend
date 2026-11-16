@@ -2751,13 +2751,15 @@ let _currentSprintData = null;  // currently displayed sprint with tickets
 
 async function loadSprint() {
   try {
-    const sprints = await api('/sprints');
+    const sprints = await api('/data/sprints');
     if (sprints && sprints.length) {
       _loadedSprints = sprints.sort((a, b) => (a.number || 0) - (b.number || 0));
       let activeIdx = _loadedSprints.findIndex(s => s.status === 'active');
       if (activeIdx < 0) activeIdx = _loadedSprints.length - 1;
       _sprintIdx = activeIdx;
-      const sprintData = await api('/sprints/' + _loadedSprints[activeIdx].id);
+      const sprint = _loadedSprints[activeIdx];
+      const tickets = await api('/data/tickets?sprint_id=' + sprint.id).catch(() => []);
+      const sprintData = { ...sprint, tickets: Array.isArray(tickets) ? tickets : [] };
       _currentSprintData = sprintData;
       _renderSprintNav();
       _renderSprintBoard(sprintData);
@@ -2797,7 +2799,9 @@ async function _sprintGoto(i) {
   _renderSprintNav();
   if (_loadedSprints) {
     try {
-      const sprintData = await api('/sprints/' + _loadedSprints[i].id);
+      const sprint = _loadedSprints[i];
+      const tickets = await api('/data/tickets?sprint_id=' + sprint.id).catch(() => []);
+      const sprintData = { ...sprint, tickets: Array.isArray(tickets) ? tickets : [] };
       _currentSprintData = sprintData;
       _renderSprintBoard(sprintData);
       return;
@@ -3486,8 +3490,12 @@ function toggleTrace(id) {
   if (btn) btn.textContent = open ? '▸ Details' : '▴ Schließen';
 }
 
+let _langfuseToastShown = false;
 function loadMoreTraces() {
-  showToast('Langfuse integration coming next sprint', 'info');
+  if (!_langfuseToastShown) {
+    showToast('Langfuse integration coming next sprint', 'info');
+    _langfuseToastShown = true;
+  }
 }
 
 // ── Pending Questions (needs_clarification tickets) ───────────────────────────
@@ -4584,20 +4592,20 @@ async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
   try {
-    const data = await api('/admin/users');
+    const data = await api('/users');
     const users = Array.isArray(data) ? data : (data.items || []);
-    if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Keine Benutzer</td></tr>'; return; }
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">No users found</td></tr>'; return; }
     tbody.innerHTML = users.map(u => `
       <tr>
         <td>${u.full_name || '—'}</td>
         <td>${u.email}</td>
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role || '—'}</span></td>
-        <td><span class="badge ${u.is_active ? 'badge-green' : 'badge-gray'}">${u.is_active ? 'Aktiv' : 'Inaktiv'}</span></td>
+        <td><span class="badge ${u.is_active ? 'badge-green' : 'badge-gray'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
         <td>${fmtDate(u.created_at)}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="editUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button></td>
       </tr>`).join('');
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:32px">Fehler: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:32px">Error loading users: ${e.message}</td></tr>`;
   }
 }
 
