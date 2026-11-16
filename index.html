@@ -3541,7 +3541,10 @@ function _renderAgentGridFromCache() {
         <div class="ac-trigger">🕐 ${a.trigger}</div>
         ${lastOut ? `<div class="ac-last-output">${escHtml(lastOut)}</div>` : ''}
         <div class="ac-actions" onclick="event.stopPropagation()">
-          <button class="ac-btn-run" onclick="triggerAgentNow('${a.id}',this)" title="Run now">▶ Run</button>
+          ${running
+            ? `<button class="ac-btn-run" style="background:var(--red);border-color:var(--red)" onclick="stopAgentNow('${a.id}',this)" title="Stop running execution">⏹ Stop</button>`
+            : `<button class="ac-btn-run" onclick="triggerAgentNow('${a.id}',this)" title="Run now">▶ Run</button>`
+          }
           <button class="ac-btn-prompt" onclick="openAgentPrompt('${a.id}')" title="Run with custom prompt">✎ with Prompt</button>
         </div>
         ${(() => {
@@ -3881,6 +3884,24 @@ async function openAgentDetail(id) {
     }
   `;
   modal.hidden = false; modal.style.display = 'flex';
+}
+
+async function stopAgentNow(wfId, btn) {
+  const a = AGENTS_DEF.find(x => x.id === wfId);
+  if (!a) return;
+  // Find the running execution ID from cache
+  const liveExecs = _agentsExecCache[wfId] || [];
+  const runningExec = liveExecs.find(e => e.status === 'running' || e.status === 'waiting');
+  if (!runningExec) { showToast('No running execution found', 'info'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Stopping…'; }
+  try {
+    await api(`/admin/n8n/executions/${runningExec.id}`, { method: 'DELETE' });
+    showToast(`${a.icon} ${a.name} stopped ✓`, 'success');
+    setTimeout(loadAgentsPage, 1000);
+  } catch (e) {
+    showToast(`Stop failed: ${e.message || String(e)}`, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '⏹ Stop'; }
+  }
 }
 
 async function triggerAgentNow(wfId, btn) {
