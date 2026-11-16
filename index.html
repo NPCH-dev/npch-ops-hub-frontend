@@ -1610,7 +1610,8 @@ tr:hover td { background: var(--bg3); }
         .agent-card.ac-running { border-color:var(--green); }
         .agent-card.ac-running::before {
           content:''; position:absolute; top:0; left:0; right:0; height:2px;
-          background:linear-gradient(90deg, var(--green), transparent);
+          background:linear-gradient(90deg, transparent, var(--green), transparent);
+          background-size:200% 100%;
           animation:agc-scan 2s linear infinite;
         }
         .agent-card.ac-error { border-color:var(--red); }
@@ -1672,7 +1673,7 @@ tr:hover td { background: var(--bg3); }
         .llt-wf-name { font-size:12.5px; font-weight:600; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .llt-status  { font-size:10px; font-weight:700; border-radius:4px; padding:2px 7px; white-space:nowrap; }
         .llt-status.lts-running { background:var(--green-bg); color:var(--green); }
-        .llt-status.lts-done    { background:rgba(99,102,241,.15); color:#818cf8; }
+        .llt-status.lts-done    { background:var(--accent-bg); color:var(--accent2); }
         .llt-status.lts-error   { background:var(--red-bg); color:var(--red); }
         .llt-time { font-size:10.5px; color:var(--fg3); white-space:nowrap; }
 
@@ -3184,37 +3185,83 @@ const MOCK_TRACES = [
 ];
 
 let _agentsRefreshTimer = null;
-let _agentsTraceOffset = 0;
+let _agentsExecCache = {};   // wfId → letzte n8n Executions (live)
+let _agentsN8nLoaded = false;
 
-function loadAgentsPage() {
-  renderAgentGrid(AGENTS_DEF);
+// ── Agents: Haupt-Load ────────────────────────────────────────────────────────
+async function loadAgentsPage() {
+  // Erst Mock rendern für sofortiges UI
+  _renderAgentGridFromCache();
   renderLLMFeed(MOCK_TRACES);
-  // Stats
-  const running = MOCK_TRACES.filter(t => t.status === 'running').length;
+  _updateAgentStats(MOCK_TRACES);
+
+  // Dann echte n8n Execution-Daten holen (GET /admin/n8n/executions)
+  if (CONFIG.authToken && CONFIG.authToken !== 'dev-preview-token') {
+    try {
+      const execs = await api('/admin/n8n/executions?limit=50');
+      if (Array.isArray(execs) && execs.length > 0) {
+        // Executions nach wfId gruppieren
+        _agentsExecCache = {};
+        execs.forEach(e => {
+          const wfId = e.workflowId || e.workflow_id;
+          if (!_agentsExecCache[wfId]) _agentsExecCache[wfId] = [];
+          _agentsExecCache[wfId].push(e);
+        });
+        _agentsN8nLoaded = true;
+        _renderAgentGridFromCache();
+        // Stats aktualisieren
+        const running = execs.filter(e => e.status === 'running').length;
+        document.getElementById('agc-stat-running').textContent = running;
+        document.getElementById('agc-stat-today').textContent = execs.length;
+      }
+    } catch (e) {
+      // API nicht erreichbar — bleibt bei Mock
+    }
+  }
+}
+
+function _updateAgentStats(traces) {
+  const running = traces.filter(t => t.status === 'running').length;
   document.getElementById('agc-stat-running').textContent = running;
-  document.getElementById('agc-stat-today').textContent = MOCK_TRACES.length;
-  const totalTokens = MOCK_TRACES.reduce((s, t) => s + (t.tokens_in || 0) + (t.tokens_out || 0), 0);
+  document.getElementById('agc-stat-today').textContent = traces.length;
+  const totalTokens = traces.reduce((s, t) => s + (t.tokens_in || 0) + (t.tokens_out || 0), 0);
   document.getElementById('agc-stat-tokens').textContent = totalTokens > 1000 ? (totalTokens/1000).toFixed(1)+'k' : totalTokens;
 }
 
 function toggleAgentsRefresh(on) {
   clearInterval(_agentsRefreshTimer);
-  if (on) _agentsRefreshTimer = setInterval(loadAgentsPage, 5000);
+  if (on) _agentsRefreshTimer = setInterval(loadAgentsPage, 10000);
 }
 
-function renderAgentGrid(agents) {
+// ── Agent Card Grid ───────────────────────────────────────────────────────────
+function _renderAgentGridFromCache() {
   const grid = document.getElementById('agent-grid');
   if (!grid) return;
-  grid.innerHTML = agents.map(a => {
-    // Determine status from traces
-    const running = MOCK_TRACES.some(t => t.wfId === a.id && t.status === 'running');
-    const hasError = MOCK_TRACES.some(t => t.wfId === a.id && t.status === 'error');
-    const lastTrace = MOCK_TRACES.filter(t => t.wfId === a.id).sort((x,y) => y.startedAt - x.startedAt)[0];
+  grid.innerHTML = AGENTS_DEF.map(a => {
+    // Status aus n8n Executions (live) oder Mock-Traces
+    const liveExecs = _agentsExecCache[a.id] || [];
+    const mockTraces = MOCK_TRACES.filter(t => t.wfId === a.id);
+
+    let running = false, hasError = false, lastRunStr = 'Noch nie', lastOut = '';
+
+    if (_agentsN8nLoaded && liveExecs.length > 0) {
+      running = liveExecs.some(e => e.status === 'running');
+      hasError = !running && liveExecs[0]?.status === 'error';
+      const last = liveExecs[0];
+      lastRunStr = last ? relTime(new Date(last.startedAt || last.started_at)) : 'Noch nie';
+      lastOut = last?.status === 'error' ? '⚠ Fehler beim letzten Run' : '';
+    } else {
+      running = mockTraces.some(t => t.status === 'running');
+      hasError = mockTraces.some(t => t.status === 'error');
+      const lastTrace = mockTraces.sort((x,y) => y.startedAt - x.startedAt)[0];
+      lastRunStr = lastTrace ? relTime(lastTrace.startedAt) : 'Noch nie';
+      lastOut = lastTrace?.response ? lastTrace.response.substring(0,120) : (lastTrace?.error ? '⚠ ' + lastTrace.error : '');
+    }
+
     const status = running ? 'running' : hasError ? 'error' : a.active ? 'active' : 'paused';
     const dotClass = { running:'asd-running', error:'asd-error', active:'asd-active', paused:'asd-paused' }[status];
     const statusLabel = { running:'▶ Läuft', error:'⚠ Fehler', active:'● Aktiv', paused:'⏸ Pausiert' }[status];
-    const lastRunStr = lastTrace ? relTime(lastTrace.startedAt) : 'Noch nie';
-    const lastOut = lastTrace && lastTrace.response ? lastTrace.response.substring(0,120) : (lastTrace && lastTrace.error ? '⚠ ' + lastTrace.error : '');
+
     return `
       <div class="agent-card${running?' ac-running':hasError?' ac-error':''}" onclick="openAgentDetail('${a.id}')">
         <div class="ac-top">
@@ -3233,14 +3280,18 @@ function renderAgentGrid(agents) {
   }).join('');
 }
 
+// ── LLM Trace Feed (Mock → später Langfuse) ───────────────────────────────────
 function renderLLMFeed(traces) {
   const feed = document.getElementById('llm-trace-feed');
   if (!feed) return;
+  if (!traces.length) {
+    feed.innerHTML = '<div style="text-align:center;padding:32px;color:var(--fg3)">Keine Traces vorhanden</div>';
+    return;
+  }
   feed.innerHTML = traces.map(t => {
     const statusCls = { running:'lts-running', done:'lts-done', error:'lts-error' }[t.status] || 'lts-done';
     const statusLbl = { running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status] || t.status;
     const duration = t.duration_ms ? (t.duration_ms/1000).toFixed(1)+'s' : '…';
-    const totalTok = (t.tokens_in || 0) + (t.tokens_out || 0);
     return `
       <div class="llm-trace llt-${t.status}" id="trace-${t.id}">
         <div class="llt-header" onclick="toggleTrace('${t.id}')">
@@ -3251,11 +3302,11 @@ function renderLLMFeed(traces) {
         </div>
         <div class="llt-body" id="trace-body-${t.id}" style="display:none">
           <div class="llt-section-label">Prompt</div>
-          <div class="llt-prompt-box" id="trace-prompt-${t.id}">${escHtml(t.prompt.substring(0,400))}</div>
+          <div class="llt-prompt-box">${escHtml(t.prompt.substring(0,400))}</div>
           <div class="llt-section-label">Response</div>
-          <div class="llt-response-box" id="trace-resp-${t.id}">
+          <div class="llt-response-box">
             ${t.status === 'running'
-              ? '<div class="llt-typing"><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div></div><span style="font-size:11px;color:var(--fg3)">Generating…</span>'
+              ? '<div class="llt-typing"><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div><div class="llt-typing-dot"></div></div><span style="font-size:11px;color:var(--fg3)"> Generating…</span>'
               : t.error
                 ? `<span style="color:var(--red)">${escHtml(t.error)}</span>`
                 : escHtml((t.response||'').substring(0,400))
@@ -3283,55 +3334,91 @@ function toggleTrace(id) {
 }
 
 function loadMoreTraces() {
-  showToast('API-Anbindung für ältere Traces kommt mit Langfuse-Integration', 'info');
+  showToast('Langfuse-Integration kommt in nächstem Sprint', 'info');
 }
 
-function openAgentDetail(id) {
+// ── Agent Detail Modal ────────────────────────────────────────────────────────
+async function openAgentDetail(id) {
   const a = AGENTS_DEF.find(x => x.id === id);
   if (!a) return;
-  const traces = MOCK_TRACES.filter(t => t.wfId === id);
   const modal = document.getElementById('agent-detail-modal');
   const content = document.getElementById('agent-detail-content');
+  const mockTraces = MOCK_TRACES.filter(t => t.wfId === id);
+  const liveExecs = _agentsExecCache[id] || [];
+  const execs = (_agentsN8nLoaded && liveExecs.length > 0) ? liveExecs : null;
+  const runCount = execs ? execs.length : mockTraces.length;
+
   content.innerHTML = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div style="font-size:36px">${a.icon}</div>
-      <div>
-        <div style="font-size:18px;font-weight:700">${a.name}</div>
-        <div style="font-size:12px;color:var(--fg2);margin-top:2px">${a.desc}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="font-size:36px">${a.icon}</div>
+        <div>
+          <div style="font-size:18px;font-weight:700">${a.name}</div>
+          <div style="font-size:12px;color:var(--fg2);margin-top:2px">${a.desc}</div>
+        </div>
       </div>
+      <button onclick="triggerAgentNow('${a.id}')" class="btn btn-primary btn-sm" style="gap:6px">
+        ▶ Jetzt starten
+      </button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
-        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">n8n Workflow ID</div>
-        <div style="font-size:12px;font-family:monospace">${a.id}</div>
+        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">n8n Workflow ID</div>
+        <div style="font-size:11.5px;font-family:monospace;word-break:break-all">${a.id}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
-        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Trigger</div>
+        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">Trigger-Zeit</div>
         <div style="font-size:12px">${a.trigger}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
-        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">LLM Modell</div>
-        <div style="font-size:12px;font-family:monospace">${a.model}</div>
+        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">LLM Modell</div>
+        <div style="font-size:11.5px;font-family:monospace">${a.model}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
-        <div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Runs (Mock)</div>
-        <div style="font-size:12px">${traces.length} heute</div>
+        <div style="font-size:10.5px;color:var(--fg3);margin-bottom:3px">Runs ${execs ? '(live)' : '(mock)'}</div>
+        <div style="font-size:12px">${runCount} heute</div>
       </div>
     </div>
-    <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--fg2)">Letzte Traces</div>
-    ${traces.length === 0
-      ? '<div style="text-align:center;padding:24px;color:var(--fg3)">Keine Traces heute</div>'
-      : traces.map(t => `
-        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3)">
-            <div class="llt-status ${{ running:'lts-running', done:'lts-done', error:'lts-error' }[t.status]}">${{ running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status]}</div>
-            <div style="font-size:11px;color:var(--fg3);margin-left:auto">${relTime(t.startedAt)} · ${t.tokens_in ? t.tokens_in.toLocaleString() + ' tokens' : '—'}</div>
-          </div>
-          <div style="padding:10px 12px;font-size:11.5px;color:var(--fg2);font-family:monospace;white-space:pre-wrap;max-height:120px;overflow:hidden">${escHtml((t.response || t.error || 'Läuft noch…').substring(0,300))}</div>
-        </div>`).join('')
+    <div style="font-size:11.5px;font-weight:600;margin-bottom:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.04em">
+      ${execs ? 'n8n Executions (live)' : 'Mock Traces'}
+    </div>
+    ${execs
+      ? (execs.length === 0
+          ? '<div style="text-align:center;padding:24px;color:var(--fg3)">Keine Runs vorhanden</div>'
+          : execs.slice(0,5).map(e => `
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+              <div class="llt-status ${{ running:'lts-running', success:'lts-done', error:'lts-error', waiting:'lts-done' }[e.status] || 'lts-done'}">${{ running:'▶ Läuft', success:'✓ OK', error:'✕ Fehler', waiting:'⏸ Wartet' }[e.status] || e.status}</div>
+              <div style="font-size:11px;color:var(--fg3);margin-left:auto">${relTime(new Date(e.startedAt || e.started_at))} · Exec ${e.id||'—'}</div>
+            </div>`).join('')
+        )
+      : (mockTraces.length === 0
+          ? '<div style="text-align:center;padding:24px;color:var(--fg3)">Keine Traces heute</div>'
+          : mockTraces.map(t => `
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3)">
+                <div class="llt-status ${{ running:'lts-running', done:'lts-done', error:'lts-error' }[t.status]}">${{ running:'▶ Läuft', done:'✓ Fertig', error:'✕ Fehler' }[t.status]}</div>
+                <div style="font-size:11px;color:var(--fg3);margin-left:auto">${relTime(t.startedAt)} · ${t.tokens_in ? t.tokens_in.toLocaleString() + ' tokens' : '—'}</div>
+              </div>
+              <div style="padding:10px 12px;font-size:11px;color:var(--fg2);font-family:monospace;white-space:pre-wrap;max-height:120px;overflow:hidden">${escHtml((t.response || t.error || 'Läuft noch…').substring(0,300))}</div>
+            </div>`).join('')
+        )
     }
   `;
   modal.hidden = false; modal.style.display = 'flex';
+}
+
+async function triggerAgentNow(wfId) {
+  const a = AGENTS_DEF.find(x => x.id === wfId);
+  if (!a) return;
+  if (!confirm(`"${a.name}" jetzt manuell starten?`)) return;
+  try {
+    await api(`/admin/n8n/workflows/${wfId}/execute`, { method: 'POST', body: JSON.stringify({}) });
+    showToast(`${a.icon} ${a.name} gestartet ✓`, 'success');
+    closeAgentDetail();
+    setTimeout(loadAgentsPage, 2000);
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
 }
 
 function closeAgentDetail() {
