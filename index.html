@@ -4723,49 +4723,44 @@ async function loadAdminDeploy() {
   const grid = document.getElementById('adm-deploy-grid');
   if (!grid) return;
   try {
-    // Parallel: GitHub-Commit-Info + laufende Backend-Version
-    // /version ist public → kein Auth-Header → kein CORS-Preflight nötig
+    // Parallel: GitHub-Commit-Info (benötigt GITHUB_TOKEN im Container) + laufende Backend-Version
     const [d, v] = await Promise.allSettled([
       api('/admin/deploy'),
-      fetch(CONFIG.apiBase + '/version').then(r => r.json())
+      api('/version')
     ]);
-    const deploy = d.status === 'fulfilled' ? d.value : {};
+    const deploy = d.status === 'fulfilled' ? (d.value || {}) : {};
     const ver    = v.status === 'fulfilled' ? v.value : null;
     const cards = [];
 
-    // Frontend card — aus GitHub API
-    if (deploy.frontend) {
-      const f = deploy.frontend;
-      cards.push(`
-        <div class="adm-deploy-card">
-          <div class="adm-deploy-label">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="4"/><path d="m9 9 3 3"/></svg>
-            Frontend · main
-          </div>
-          <div class="adm-deploy-sha">${(f.sha || '').slice(0,8) || '—'}</div>
-          <div class="adm-deploy-msg" title="${f.message || ''}">${f.message || '—'}</div>
-          <div class="adm-deploy-date">${f.date ? fmtDate(f.date) : '—'}</div>
-        </div>`);
-    }
+    // Frontend card — aus GitHub API (nur wenn GITHUB_TOKEN gesetzt)
+    const f = deploy.frontend;
+    cards.push(`
+      <div class="adm-deploy-card">
+        <div class="adm-deploy-label">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Frontend · main
+        </div>
+        <div class="adm-deploy-sha">${f ? (f.sha || '').slice(0,8) : '—'}</div>
+        <div class="adm-deploy-msg" title="${f?.message || ''}">${f?.message || (f ? '—' : 'GitHub Token fehlt')}</div>
+        <div class="adm-deploy-date">${f?.date ? fmtDate(f.date) : '—'}</div>
+      </div>`);
 
-    // Backend card — bevorzugt laufende Version (/version), Fallback GitHub API
+    // Backend card — laufende Version (/version) + optionaler GitHub-Commit
     const b = deploy.backend;
-    const gitHash = ver?.git_hash && ver.git_hash !== 'unknown' ? ver.git_hash : b?.sha;
-    const gitBranch = ver?.git_branch || 'develop';
+    const gitHash    = (ver?.git_hash && ver.git_hash !== 'unknown') ? ver.git_hash : b?.sha;
+    const gitBranch  = (ver?.git_branch && ver.git_branch !== 'main') ? ver.git_branch : (b ? 'develop' : (ver?.git_branch || 'develop'));
     const deployedAt = ver?.deployed_at || b?.date;
-    const commitMsg = b?.message || ver?.version || '—';
-    if (gitHash || b) {
-      cards.push(`
-        <div class="adm-deploy-card">
-          <div class="adm-deploy-label">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="9" height="8" rx="1"/><path d="m8 7 3 3-3 3"/></svg>
-            Backend · ${gitBranch}
-          </div>
-          <div class="adm-deploy-sha">${(gitHash || '').slice(0,8) || '—'}</div>
-          <div class="adm-deploy-msg" title="${commitMsg}">${commitMsg}</div>
-          <div class="adm-deploy-date">${deployedAt ? fmtDate(deployedAt) : '—'}</div>
-        </div>`);
-    }
+    const commitMsg  = b?.message || (ver ? `v${ver.version} · ${ver.environment}` : '—');
+    cards.push(`
+      <div class="adm-deploy-card">
+        <div class="adm-deploy-label">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="9" height="8" rx="1"/><path d="m8 7 3 3-3 3"/></svg>
+          Backend · ${gitBranch}
+        </div>
+        <div class="adm-deploy-sha">${gitHash ? gitHash.slice(0,8) : '—'}</div>
+        <div class="adm-deploy-msg" title="${commitMsg}">${commitMsg}</div>
+        <div class="adm-deploy-date">${deployedAt ? fmtDate(deployedAt) : '—'}</div>
+      </div>`);
 
     // Container card (optional)
     if (deploy.container) {
@@ -4779,18 +4774,7 @@ async function loadAdminDeploy() {
         </div>`);
     }
 
-    // Fallback: nur /version verfügbar
-    if (!cards.length && ver) {
-      cards.push(`
-        <div class="adm-deploy-card">
-          <div class="adm-deploy-label">⚙️ Backend · ${ver.git_branch || 'main'}</div>
-          <div class="adm-deploy-sha">${(ver.git_hash || 'unknown').slice(0,8)}</div>
-          <div class="adm-deploy-msg">v${ver.version || '—'} · ${ver.environment || '—'}</div>
-          <div class="adm-deploy-date">${ver.deployed_at ? fmtDate(ver.deployed_at) : '—'}</div>
-        </div>`);
-    }
-
-    grid.innerHTML = cards.length ? cards.join('') : '<div class="adm-deploy-card"><div style="color:var(--fg3)">Keine Daten</div></div>';
+    grid.innerHTML = cards.join('');
   } catch(e) {
     grid.innerHTML = `<div class="adm-deploy-card"><div style="color:var(--red);font-size:12px">⚠️ Deploy-Daten nicht verfügbar: ${e.message}</div></div>`;
   }
