@@ -4723,10 +4723,15 @@ async function loadAdminDeploy() {
   const grid = document.getElementById('adm-deploy-grid');
   if (!grid) return;
   try {
-    // Parallel: GitHub-Commit-Info (benötigt GITHUB_TOKEN im Container) + laufende Backend-Version
+    // Parallel: GitHub-Commit-Info + laufende Backend-Version
+    // /version: erst ohne Auth (kein CORS-Preflight), Fallback mit Auth
+    const fetchVersion = () =>
+      fetch(CONFIG.apiBase + '/version', { mode: 'cors' })
+        .then(r => r.ok ? r.json() : api('/version'))
+        .catch(() => api('/version'));
     const [d, v] = await Promise.allSettled([
       api('/admin/deploy'),
-      api('/version')
+      fetchVersion()
     ]);
     const deploy = d.status === 'fulfilled' ? (d.value || {}) : {};
     const ver    = v.status === 'fulfilled' ? v.value : null;
@@ -4740,7 +4745,7 @@ async function loadAdminDeploy() {
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           Frontend · main
         </div>
-        <div class="adm-deploy-sha">${f ? (f.sha || '').slice(0,8) : '—'}</div>
+        <div class="adm-deploy-sha" title="${f?.sha || ''}">${f ? (f.sha || '').slice(0,8) : '—'}</div>
         <div class="adm-deploy-msg" title="${f?.message || ''}">${f?.message || (f ? '—' : 'GitHub Token fehlt')}</div>
         <div class="adm-deploy-date">${f?.date ? fmtDate(f.date) : '—'}</div>
       </div>`);
@@ -4757,7 +4762,7 @@ async function loadAdminDeploy() {
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="9" height="8" rx="1"/><path d="m8 7 3 3-3 3"/></svg>
           Backend · ${gitBranch}
         </div>
-        <div class="adm-deploy-sha">${gitHash ? gitHash.slice(0,8) : '—'}</div>
+        <div class="adm-deploy-sha" title="${gitHash || ''}">${gitHash ? gitHash.slice(0,8) : '—'}</div>
         <div class="adm-deploy-msg" title="${commitMsg}">${commitMsg}</div>
         <div class="adm-deploy-date">${deployedAt ? fmtDate(deployedAt) : '—'}</div>
       </div>`);
