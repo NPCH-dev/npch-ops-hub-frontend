@@ -1780,6 +1780,54 @@ tr:hover td { background: var(--bg3); }
         .agc-stat { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; flex:1; min-width:120px; }
         .agc-stat-val { font-size:22px; font-weight:700; line-height:1; margin-bottom:3px; }
         .agc-stat-lbl { font-size:11px; color:var(--fg3); }
+
+        /* Pending Questions Banner */
+        .agc-questions { margin-bottom:16px; }
+        .agc-questions-title {
+          font-size:11.5px; font-weight:700; color:var(--yellow,#f59e0b);
+          text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;
+          display:flex; align-items:center; gap:6px;
+        }
+        .agq-card {
+          background:var(--bg2); border:1px solid var(--yellow,#f59e0b);
+          border-radius:var(--radius); padding:14px 16px; margin-bottom:8px;
+          display:flex; gap:12px; align-items:flex-start;
+        }
+        .agq-icon { font-size:20px; flex-shrink:0; margin-top:2px; }
+        .agq-body { flex:1; min-width:0; }
+        .agq-ticket-id { font-size:10px; color:var(--fg3); font-family:monospace; margin-bottom:3px; }
+        .agq-title { font-size:12px; font-weight:600; color:var(--fg); margin-bottom:4px; }
+        .agq-question {
+          font-size:12px; color:var(--fg2); line-height:1.5;
+          margin-bottom:8px; word-break:break-word;
+          white-space:pre-wrap;
+          max-height:60px; overflow:hidden; position:relative;
+        }
+        .agq-question::after {
+          content:''; position:absolute; bottom:0; left:0; right:0; height:20px;
+          background:linear-gradient(transparent, var(--bg2));
+        }
+        .agq-answer-btn {
+          font-size:11.5px; font-weight:600; padding:5px 14px;
+          background:transparent; border:1px solid var(--yellow,#f59e0b);
+          color:var(--yellow,#f59e0b); border-radius:var(--radius-sm);
+          cursor:pointer; transition:background .15s, color .15s;
+        }
+        .agq-answer-btn:hover { background:var(--yellow,#f59e0b); color:#000; }
+
+        /* Answer Modal */
+        .agc-answer-modal-box {
+          background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+          width:100%; max-width:560px; padding:24px; position:relative;
+        }
+
+        /* needs_clarification badge on agent card */
+        .ac-question-badge {
+          position:absolute; top:8px; left:8px;
+          background:var(--yellow,#f59e0b); color:#000;
+          font-size:9px; font-weight:700; padding:2px 7px;
+          border-radius:3px; letter-spacing:.03em; text-transform:uppercase;
+        }
       </style>
 
       <div class="page-header">
@@ -1803,6 +1851,9 @@ tr:hover td { background: var(--bg3); }
         <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-today">—</div><div class="agc-stat-lbl">Runs today</div></div>
         <div class="agc-stat"><div class="agc-stat-val" id="agc-stat-tokens">—</div><div class="agc-stat-lbl">Tokens today</div></div>
       </div>
+
+      <!-- Pending Agent Questions (shown when needs_clarification tickets exist) -->
+      <div id="agc-questions-section" class="agc-questions" style="display:none"></div>
 
       <div class="agc-layout">
         <!-- Left: Agent Cards -->
@@ -1833,6 +1884,33 @@ tr:hover td { background: var(--bg3); }
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:680px;padding:24px;position:relative">
           <button onclick="closeAgentDetail()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--fg2);cursor:pointer;font-size:18px;line-height:1">✕</button>
           <div id="agent-detail-content"></div>
+        </div>
+      </div>
+
+      <!-- Answer Modal (for needs_clarification tickets) -->
+      <div id="agent-answer-modal" hidden style="position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:24px 16px">
+        <div class="agc-answer-modal-box">
+          <button onclick="closeAnswerModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--fg2);cursor:pointer;font-size:18px;line-height:1">✕</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <div style="font-size:24px">❓</div>
+            <div>
+              <div style="font-size:15px;font-weight:700" id="aam-ticket-id">—</div>
+              <div style="font-size:11.5px;color:var(--fg3);margin-top:2px">Developer Agent needs your answer to continue</div>
+            </div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px">
+            <div style="font-size:10.5px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">Question from Agent</div>
+            <div id="aam-question" style="font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+          </div>
+          <label style="display:block;font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Your Answer</label>
+          <textarea id="aam-answer" class="agent-prompt-textarea" style="min-height:100px"
+            placeholder="Provide the missing details so the agent can continue…"
+            onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();submitAnswer()}"></textarea>
+          <div style="font-size:10.5px;color:var(--fg3);text-align:right;margin-top:4px">⌘ Enter to submit</div>
+          <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+            <button onclick="closeAnswerModal()" class="btn btn-secondary btn-sm">Cancel</button>
+            <button onclick="submitAnswer()" class="btn btn-primary btn-sm" id="aam-submit-btn">✅ Submit Answer</button>
+          </div>
         </div>
       </div>
 
@@ -3254,8 +3332,9 @@ const MOCK_TRACES = [
 ];
 
 let _agentsRefreshTimer = null;
-let _agentsExecCache = {};   // wfId → letzte n8n Executions (live)
+let _agentsExecCache = {};         // wfId → letzte n8n Executions (live)
 let _agentsN8nLoaded = false;
+let _agentsPendingQuestions = [];  // needs_clarification tickets
 
 // ── Agents: Haupt-Load ────────────────────────────────────────────────────────
 async function loadAgentsPage() {
@@ -3266,29 +3345,40 @@ async function loadAgentsPage() {
   renderLLMFeed(MOCK_TRACES);
   _updateAgentStats(MOCK_TRACES);
 
-  // Dann echte n8n Execution-Daten holen (GET /admin/n8n/executions)
-  if (CONFIG.authToken && CONFIG.authToken !== 'dev-preview-token') {
-    try {
-      const execs = await api('/admin/n8n/executions?limit=50');
-      if (Array.isArray(execs) && execs.length > 0) {
-        // Executions nach wfId gruppieren
-        _agentsExecCache = {};
-        execs.forEach(e => {
-          const wfId = e.workflowId || e.workflow_id;
-          if (!_agentsExecCache[wfId]) _agentsExecCache[wfId] = [];
-          _agentsExecCache[wfId].push(e);
-        });
-        _agentsN8nLoaded = true;
-        _renderAgentGridFromCache();
-        // Stats aktualisieren
-        const running = execs.filter(e => e.status === 'running').length;
-        document.getElementById('agc-stat-running').textContent = running;
-        document.getElementById('agc-stat-today').textContent = execs.length;
-      }
-    } catch (e) {
-      // API nicht erreichbar — bleibt bei Mock
+  if (!CONFIG.authToken || CONFIG.authToken === 'dev-preview-token') return;
+
+  // Alle drei API-Calls parallel starten
+  const [execsResult, questionsResult] = await Promise.allSettled([
+    api('/admin/n8n/executions?limit=50'),
+    api('/data/tickets?status=needs_clarification')
+  ]);
+
+  // n8n Executions verarbeiten
+  if (execsResult.status === 'fulfilled') {
+    const execs = execsResult.value;
+    if (Array.isArray(execs) && execs.length > 0) {
+      _agentsExecCache = {};
+      execs.forEach(e => {
+        const wfId = e.workflowId || e.workflow_id;
+        if (!_agentsExecCache[wfId]) _agentsExecCache[wfId] = [];
+        _agentsExecCache[wfId].push(e);
+      });
+      _agentsN8nLoaded = true;
+      const running = execs.filter(e => e.status === 'running').length;
+      document.getElementById('agc-stat-running').textContent = running;
+      document.getElementById('agc-stat-today').textContent = execs.length;
     }
   }
+
+  // Pending questions (needs_clarification tickets)
+  if (questionsResult.status === 'fulfilled') {
+    const tickets = questionsResult.value;
+    _agentsPendingQuestions = Array.isArray(tickets) ? tickets : [];
+  }
+
+  // Grid neu rendern (mit question badges + live status)
+  _renderAgentGridFromCache();
+  renderPendingQuestions(_agentsPendingQuestions);
 }
 
 function _updateAgentStats(traces) {
@@ -3329,12 +3419,13 @@ function _renderAgentGridFromCache() {
       lastOut = lastTrace?.response ? lastTrace.response.substring(0,120) : (lastTrace?.error ? '⚠ Error: ' + lastTrace.error : '');
     }
 
-    const status = running ? 'running' : hasError ? 'error' : a.active ? 'active' : 'paused';
+    const hasQuestion = _agentsPendingQuestions.length > 0 && a.id === 'VlWgEiwV6LItYaVX';
+    const status = running ? 'running' : hasQuestion ? 'error' : hasError ? 'error' : a.active ? 'active' : 'paused';
     const dotClass = { running:'asd-running', error:'asd-error', active:'asd-active', paused:'asd-paused' }[status];
     const statusLabel = { running:'▶ Running', error:'⚠ Error', active:'● Active', paused:'⏸ Paused' }[status];
 
     return `
-      <div class="agent-card${running?' ac-running':hasError?' ac-error':''}"
+      <div class="agent-card${running?' ac-running':hasQuestion?' ac-error':hasError?' ac-error':''}"
            data-agent-id="${a.id}"
            draggable="true"
            onclick="openAgentDetail('${a.id}')"
@@ -3343,6 +3434,7 @@ function _renderAgentGridFromCache() {
            ondragleave="agentDragLeave(event)"
            ondrop="agentDrop(event,'${a.id}')"
            ondragend="agentDragEnd(event)">
+        ${hasQuestion ? `<div class="ac-question-badge">❓ ${_agentsPendingQuestions.length} question${_agentsPendingQuestions.length>1?'s':''}</div>` : ''}
         <div class="ac-drag-handle" title="Verschieben" onclick="event.stopPropagation()">⠿</div>
         <div class="ac-top">
           <div class="ac-icon">${a.icon}</div>
@@ -3422,6 +3514,91 @@ function toggleTrace(id) {
 
 function loadMoreTraces() {
   showToast('Langfuse integration coming next sprint', 'info');
+}
+
+// ── Pending Questions (needs_clarification tickets) ───────────────────────────
+function renderPendingQuestions(tickets) {
+  const section = document.getElementById('agc-questions-section');
+  if (!section) return;
+  if (!tickets || tickets.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  section.innerHTML = `
+    <div class="agc-questions-title">❓ ${tickets.length} Pending Question${tickets.length>1?'s':''} — Agent waiting for answers</div>
+    ${tickets.map(t => {
+      // description starts with "❓ QUESTION (Agent):\n<question text>"
+      const rawDesc = t.description || '';
+      const qMatch = rawDesc.match(/QUESTION \(Agent\):\n?([\s\S]+)/);
+      const questionText = qMatch ? qMatch[1].trim() : rawDesc.trim() || '(no details)';
+      const title = t.title || t.ticket_id || '—';
+      return `
+        <div class="agq-card">
+          <div class="agq-icon">❓</div>
+          <div class="agq-body">
+            <div class="agq-ticket-id">${escHtml(t.ticket_id || '—')}</div>
+            <div class="agq-title">${escHtml(title)}</div>
+            <div class="agq-question">${escHtml(questionText)}</div>
+            <button class="agq-answer-btn" onclick="event.stopPropagation();openAnswerModal('${escHtml(t.ticket_id||'')}','${escAttr(questionText)}','${escAttr(title)}')">✎ Answer</button>
+          </div>
+        </div>`;
+    }).join('')}`;
+}
+
+function escAttr(s) {
+  return String(s).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
+// ── Answer Modal ───────────────────────────────────────────────────────────────
+let _answerTicketId = null;
+let _answerOrigQuestion = '';
+
+function openAnswerModal(ticketId, question, title) {
+  _answerTicketId = ticketId;
+  _answerOrigQuestion = question;
+  document.getElementById('aam-ticket-id').textContent = title || ticketId;
+  document.getElementById('aam-question').textContent = question;
+  document.getElementById('aam-answer').value = '';
+  document.getElementById('aam-submit-btn').textContent = '✅ Submit Answer';
+  document.getElementById('aam-submit-btn').disabled = false;
+  const modal = document.getElementById('agent-answer-modal');
+  modal.hidden = false; modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('aam-answer').focus(), 80);
+}
+
+function closeAnswerModal() {
+  const modal = document.getElementById('agent-answer-modal');
+  modal.hidden = true; modal.style.display = 'none';
+  _answerTicketId = null;
+}
+
+async function submitAnswer() {
+  const ticketId = _answerTicketId;
+  const answer = (document.getElementById('aam-answer').value || '').trim();
+  if (!ticketId) return;
+  if (!answer) {
+    const ta = document.getElementById('aam-answer');
+    ta.focus(); ta.style.borderColor = 'var(--red)';
+    setTimeout(() => ta.style.borderColor = '', 1200);
+    return;
+  }
+  const btn = document.getElementById('aam-submit-btn');
+  btn.textContent = '⏳ Saving…'; btn.disabled = true;
+  try {
+    // Update ticket: set status back to backlog, append answer to description
+    const newDesc = '❓ QUESTION (Agent):\n' + _answerOrigQuestion + '\n\n✅ ANSWER:\n' + answer;
+    await api('/data/tickets/by-ticket-id/' + ticketId, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'backlog', description: newDesc })
+    });
+    showToast('✅ Answer submitted — Agent will continue on next run', 'success');
+    closeAnswerModal();
+    setTimeout(loadAgentsPage, 500);
+  } catch (e) {
+    btn.textContent = '✅ Submit Answer'; btn.disabled = false;
+    showToast('Error: ' + e.message, 'error');
+  }
 }
 
 // ── Agent Detail Modal ────────────────────────────────────────────────────────
