@@ -349,8 +349,8 @@ body {
 /* ── Component: Stat cards ─────────────────────────────────────────────────── */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
   margin-bottom: 24px;
 }
 .stat-card {
@@ -1176,16 +1176,16 @@ tr:hover td { background: var(--bg3); }
 
       <!-- KPI Row -->
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card accent"><div class="stat-label">Active Orders</div><div class="stat-value" id="kpi-active">—</div><div class="stat-sub">In progress</div></div>
-        <div class="stat-card yellow"><div class="stat-label">Delivery Invoiceable</div><div class="stat-value" id="kpi-invoiceable">—</div><div class="stat-sub">Ready to invoice</div></div>
-        <div class="stat-card green"><div class="stat-label">Pre-Payment Done</div><div class="stat-value" id="kpi-prepaid">—</div><div class="stat-sub">Funds received</div></div>
-        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value" id="kpi-done">—</div><div class="stat-sub">Sep–Nov 2026</div></div>
-        <div class="stat-card"><div class="stat-label">Total Pipeline</div><div class="stat-value" id="kpi-revenue" style="font-size:18px">—</div><div class="stat-sub">EUR equivalent</div></div>
+        <div class="stat-card accent" style="padding:12px"><div class="stat-label">Active Orders</div><div class="stat-value" id="kpi-active" style="font-size:24px">—</div><div class="stat-sub">In progress</div></div>
+        <div class="stat-card yellow" style="padding:12px"><div class="stat-label">Delivery Invoiceable</div><div class="stat-value" id="kpi-invoiceable" style="font-size:24px">—</div><div class="stat-sub">Ready to invoice</div></div>
+        <div class="stat-card green" style="padding:12px"><div class="stat-label">Pre-Payment Done</div><div class="stat-value" id="kpi-prepaid" style="font-size:24px">—</div><div class="stat-sub">Funds received</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-label">Completed</div><div class="stat-value" id="kpi-done" style="font-size:24px">—</div><div class="stat-sub">Sep–Nov 2026</div></div>
+        <div class="stat-card" style="padding:12px;border-color:rgba(99,102,241,.3)"><div class="stat-label" style="color:var(--accent)">Total Pipeline</div><div class="stat-value" id="kpi-revenue" style="font-size:16px;color:var(--accent)">—</div><div class="stat-sub">EUR equivalent</div></div>
       </div>
 
       <!-- Filter Bar -->
       <div class="card" style="margin-bottom:16px">
-        <div class="card-body" style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="card-body" style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto">
           <input type="text" id="ob-search" placeholder="Search by order, customer, training…"
             style="flex:1;min-width:200px;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:13px">
           <select id="ob-status-filter" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:13px">
@@ -1388,8 +1388,8 @@ tr:hover td { background: var(--bg3); }
             return `<tr ondblclick="showDetail(${origIdx})" data-idx="${origIdx}" title="Double-click to open">
               <td style="font-family:monospace;font-size:11px;color:var(--accent)">${o.seq}</td>
               <td style="font-size:11px;color:var(--fg3)">${o.region||'—'}</td>
-              <td style="font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.customer}">${o.customer}</td>
-              <td style="color:var(--fg2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${o.training}">${o.training}</td>
+              <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)" title="${o.customer}">${o.customer}</td>
+              <td style="color:var(--fg);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${o.training}">${o.training}</td>
               <td style="font-size:12px">${o.delivery||'—'}</td>
               <td style="font-weight:600;font-size:12px">${o.amount}</td>
               <td><span class="ob-stage ${STAGE_CSS[o.status]||'sp04'}">${STAGE_LABEL[o.status]||o.status}</span></td>
