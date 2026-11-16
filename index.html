@@ -3393,6 +3393,15 @@ function toggleAgentsRefresh(on) {
   if (on) _agentsRefreshTimer = setInterval(loadAgentsPage, 10000);
 }
 
+function toggleCardRuns(agentId, btn) {
+  const panel = document.getElementById('card-runs-' + agentId);
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  const arrow = btn.querySelector('.acr-arrow');
+  if (arrow) arrow.textContent = open ? '▸' : '▾';
+}
+
 // ── Agent Card Grid ───────────────────────────────────────────────────────────
 function _renderAgentGridFromCache() {
   const grid = document.getElementById('agent-grid');
@@ -3451,6 +3460,25 @@ function _renderAgentGridFromCache() {
           <button class="ac-btn-run" onclick="triggerAgentNow('${a.id}',this)" title="Run now">▶ Run</button>
           <button class="ac-btn-prompt" onclick="openAgentPrompt('${a.id}')" title="Run with custom prompt">✎ with Prompt</button>
         </div>
+        ${(() => {
+          const execs = (_agentsN8nLoaded ? liveExecs : []).slice(0,10);
+          if (!execs.length) return '';
+          const rows = execs.map(e => {
+            const st = e.status === 'error' ? 'error' : e.status === 'running' || e.status === 'waiting' ? 'running' : 'done';
+            const icon = { error:'✕', running:'▶', done:'✓' }[st];
+            const cls  = { error:'lts-error', running:'lts-running', done:'lts-done' }[st];
+            const dur  = e.stoppedAt && e.startedAt ? ((new Date(e.stoppedAt)-new Date(e.startedAt))/1000).toFixed(1)+'s' : '…';
+            return `<div class="acr-row" onclick="event.stopPropagation();toggleTrace('${e.id}')" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border2);cursor:pointer">
+              <span class="llt-status ${cls}" style="font-size:9px;padding:1px 5px">${icon} ${st}</span>
+              <span style="font-size:11px;color:var(--fg2);flex:1">${relTime(new Date(e.startedAt||e.started_at))}</span>
+              <span style="font-size:11px;color:var(--fg3)">${dur}</span>
+            </div>`;
+          }).join('');
+          return `<div class="ac-runs-toggle" onclick="event.stopPropagation();toggleCardRuns('${a.id}',this)" style="margin-top:8px;font-size:11px;color:var(--fg3);cursor:pointer;display:flex;align-items:center;gap:4px;user-select:none">
+            <span class="acr-arrow">▸</span> Last ${execs.length} runs
+          </div>
+          <div id="card-runs-${a.id}" style="display:none;margin-top:4px">${rows}</div>`;
+        })()}
       </div>`;
   }).join('');
 }
