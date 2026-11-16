@@ -1221,56 +1221,78 @@ tr:hover td { background: var(--bg3); }
         </div>
       </div>
 
-      <!-- Table -->
-      <div class="card">
-        <div class="card-body" style="padding:0">
-          <div class="table-wrap">
-            <table id="orders-table" style="font-size:13px">
-              <thead>
-                <tr>
-                  <th data-col="seq" style="width:70px;cursor:pointer" title="Sort"># <span class="ob-sort-icon"></span></th>
-                  <th data-col="region" style="width:40px;cursor:pointer" title="Sort">Rg <span class="ob-sort-icon"></span></th>
-                  <th data-col="customer" style="cursor:pointer" title="Sort">Customer <span class="ob-sort-icon"></span></th>
-                  <th>Training</th>
-                  <th data-col="delivery" style="width:110px;cursor:pointer" title="Sort">Delivery <span class="ob-sort-icon"></span></th>
-                  <th data-col="amountNum" style="width:105px;cursor:pointer" title="Sort">Value <span class="ob-sort-icon"></span></th>
-                  <th data-col="status" style="width:170px;cursor:pointer" title="Sort">Status <span class="ob-sort-icon"></span></th>
-                  <th style="width:36px" title="PO">PO</th>
-                  <th style="width:36px"></th>
-                </tr>
-              </thead>
-              <tbody id="orders-tbody"></tbody>
-            </table>
-            <div style="padding:8px 16px;font-size:11px;color:var(--fg3);border-top:1px solid var(--border)">
-              💡 Double-click a row to open order details
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Master-Detail Layout -->
+      <div class="od-layout" id="od-layout">
 
-      <!-- Order Detail Modal -->
-      <div id="ob-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center">
-        <div id="ob-modal" style="background:var(--bg2);border-radius:12px;border:1px solid var(--border);width:min(640px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative">
-          <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg2);z-index:1">
-            <div>
-              <span id="ob-modal-id" style="font-family:monospace;font-size:11px;color:var(--accent);font-weight:700"></span>
-              <div id="ob-modal-title" style="font-size:16px;font-weight:600;margin-top:2px"></div>
+        <!-- Left: Order List -->
+        <div class="od-list" id="od-list">
+          <div class="card">
+            <div class="card-body" style="padding:0">
+              <div class="table-wrap">
+                <table id="orders-table" style="font-size:13px">
+                  <thead>
+                    <tr>
+                      <th data-col="seq" style="width:70px;cursor:pointer" title="Sort"># <span class="ob-sort-icon"></span></th>
+                      <th data-col="region" style="width:40px;cursor:pointer" title="Sort">Rg <span class="ob-sort-icon"></span></th>
+                      <th data-col="customer" style="cursor:pointer" title="Sort">Customer <span class="ob-sort-icon"></span></th>
+                      <th class="od-col-training">Training</th>
+                      <th data-col="delivery" class="od-col-delivery" style="width:110px;cursor:pointer" title="Sort">Delivery <span class="ob-sort-icon"></span></th>
+                      <th data-col="amountNum" style="width:105px;cursor:pointer" title="Sort">Value <span class="ob-sort-icon"></span></th>
+                      <th data-col="status" style="cursor:pointer" title="Sort">Status <span class="ob-sort-icon"></span></th>
+                      <th style="width:36px" title="PO">PO</th>
+                      <th style="width:28px"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="orders-tbody"></tbody>
+                </table>
+              </div>
             </div>
-            <button onclick="closeOrderModal()" style="background:none;border:none;color:var(--fg3);cursor:pointer;font-size:22px;line-height:1;padding:0 4px">×</button>
           </div>
-          <div id="ob-modal-body" style="padding:24px"></div>
-        </div>
-      </div>
+        </div><!-- end od-list -->
+
+        <!-- Right: Detail Panel -->
+        <div class="od-detail" id="od-detail">
+          <div class="od-dh">
+            <div class="od-dh-left">
+              <div class="od-dh-id" id="od-det-id"></div>
+              <div class="od-dh-title" id="od-det-title"></div>
+              <div id="od-det-stage" style="margin-top:6px"></div>
+            </div>
+            <button class="od-close" onclick="closeOrderDetail()" title="Close (Esc)">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="od-ribbon" id="od-ribbon"></div>
+          <div class="od-step-body" id="od-step-body"></div>
+        </div><!-- end od-detail -->
+
+      </div><!-- end od-layout -->
 
       <style>
+        /* Master-Detail Layout */
+        .od-layout { display:flex; gap:0; align-items:flex-start; }
+        .od-list { flex:1; min-width:0; transition:flex .25s ease; }
+        .od-layout.detail-open .od-list { flex:0 0 42%; }
+        .od-detail { flex:0 0 0; overflow:hidden; opacity:0; transition:flex .25s ease, opacity .2s ease; display:none; flex-direction:column; border-left:1px solid var(--border); min-height:400px; }
+        .od-layout.detail-open .od-detail { flex:0 0 58%; opacity:1; display:flex !important; overflow:visible; }
+
+        /* Table */
         #orders-table th { background:var(--bg2); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; padding:9px 12px; user-select:none; }
         #orders-table th[data-col]:hover { color:var(--fg); }
         #orders-table th.ob-sorted { color:var(--accent); }
         .ob-sort-icon { opacity:.4; }
         th.ob-sorted .ob-sort-icon { opacity:1; color:var(--accent); }
         #orders-table td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
-        #orders-table tbody tr:hover { background:var(--bg2); cursor:pointer; }
+        #orders-table tbody tr { cursor:pointer; }
+        #orders-table tbody tr:hover { background:var(--bg2); }
+        #orders-table tbody tr.selected { background:rgba(99,102,241,.1) !important; }
+        #orders-table tbody tr.selected td:first-child { border-left:3px solid var(--accent); padding-left:9px; }
         #orders-table tbody tr:last-child td { border-bottom:none; }
+        .od-layout.detail-open .od-col-training { display:none; }
+        .od-layout.detail-open .od-col-delivery { display:none; }
+        .od-layout.detail-open #orders-table tbody td:nth-child(5) { display:none; }
+
+        /* Stage badges */
         .ob-stage { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap; }
         .ob-stage.sp04  { background:rgba(99,102,241,.14); color:#818cf8; }
         .ob-stage.sp04b { background:rgba(139,92,246,.14); color:#a78bfa; }
@@ -1282,19 +1304,174 @@ tr:hover td { background: var(--bg3); }
         .ob-bool { font-size:13px; }
         .ob-bool.yes { color:var(--green); }
         .ob-bool.no  { color:var(--fg3); }
-        .ob-dl { font-size:11px; color:var(--fg3); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
-        .ob-section { padding-top:16px; border-top:1px solid var(--border); margin-top:4px; }
-        #ob-modal-bg.open { display:flex!important; }
-        .ob-flow { display:flex; gap:0; margin:12px 0 4px; }
-        .ob-flow-step { flex:1; height:4px; background:var(--border); border-radius:2px; margin:0 2px; transition:background .2s; }
-        .ob-flow-step.active { background:var(--accent); }
-        .ob-flow-step.done   { background:var(--green); }
         .ob-link { color:var(--accent); text-decoration:none; font-size:12px; word-break:break-all; }
         .ob-link:hover { text-decoration:underline; }
+
+        /* Detail Panel Header */
+        .od-dh { display:flex; justify-content:space-between; align-items:flex-start; padding:14px 18px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
+        .od-dh-left { flex:1; min-width:0; }
+        .od-dh-id { font-family:monospace; font-size:11px; color:var(--accent); font-weight:700; margin-bottom:2px; }
+        .od-dh-title { font-size:15px; font-weight:600; color:var(--fg); line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:calc(100% - 8px); }
+        .od-close { background:none; border:none; color:var(--fg3); cursor:pointer; padding:4px 6px; border-radius:4px; display:flex; align-items:center; margin-top:-2px; }
+        .od-close:hover { background:var(--bg2); color:var(--fg); }
+
+        /* Process Ribbon */
+        .od-ribbon { display:flex; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; }
+        .od-ribbon::-webkit-scrollbar { display:none; }
+        .od-ribbon-step { flex:0 0 auto; padding:8px 12px 6px; font-size:10px; font-weight:700; cursor:pointer; color:var(--fg3); border-bottom:2px solid transparent; white-space:nowrap; transition:all .15s; text-transform:uppercase; letter-spacing:.05em; display:flex; flex-direction:column; align-items:center; gap:1px; }
+        .od-ribbon-step:hover { color:var(--fg); background:rgba(255,255,255,.04); }
+        .od-ribbon-step .od-rsp-id { font-size:9px; letter-spacing:.04em; }
+        .od-ribbon-step .od-rsp-cnt { font-size:9px; opacity:.5; font-weight:400; }
+        .od-ribbon-step.rib-done { color:#34d399; }
+        .od-ribbon-step.rib-active { color:var(--accent); border-bottom-color:var(--accent); background:rgba(99,102,241,.07); }
+        .od-ribbon-step.rib-viewing { background:var(--bg); border-bottom-color:var(--fg2) !important; color:var(--fg) !important; }
+
+        /* Step Body */
+        .od-step-body { padding:18px 20px; overflow-y:auto; flex:1; }
+        .od-step-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+        .od-step-heading-name { font-size:14px; font-weight:600; color:var(--fg); }
+        .od-step-status { font-size:11px; color:var(--fg3); }
+        .od-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; }
+        .od-fields { display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; margin-bottom:20px; }
+        .od-field-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); font-weight:600; margin-bottom:3px; }
+        .od-field-value { font-size:13px; color:var(--fg); line-height:1.4; }
+        .od-field-value.is-link { color:var(--accent); text-decoration:none; font-size:11px; word-break:break-all; display:block; }
+        .od-field-value.is-link:hover { text-decoration:underline; }
+        .od-tasks-wrap { border-top:1px solid var(--border); padding-top:14px; }
+        .od-task { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+        .od-task:last-child { border-bottom:none; }
+        .od-task input[type=checkbox] { width:15px; height:15px; cursor:pointer; accent-color:var(--accent); flex-shrink:0; margin-top:1px; }
+        .od-task-label { font-size:13px; color:var(--fg); line-height:1.4; cursor:pointer; flex:1; }
+        .od-task.checked .od-task-label { text-decoration:line-through; color:var(--fg3); }
       </style>
 
       <script>
       (function(){
+        const PROCESS_STEPS = [
+          { id:'SP-01', label:'Anfrage',
+            fields:[
+              {key:'contact', label:'Contact Person'},
+              {key:'sales',   label:'Sales Rep'},
+              {key:'region',  label:'Region / Country'},
+              {key:'training',label:'Requested Training'},
+            ],
+            tasks:[
+              {id:'t1', label:'Inquiry received & logged'},
+              {id:'t2', label:'Initial response sent (<24h)'},
+              {id:'t3', label:'Training requirements clarified'},
+              {id:'t4', label:'Budget & timeline confirmed'},
+            ]
+          },
+          { id:'SP-02', label:'Angebot',
+            fields:[
+              {key:'amount',       label:'Quote Amount'},
+              {key:'paymentTerms', label:'Payment Terms'},
+              {key:'days',         label:'Duration (days)'},
+              {key:'participants', label:'Est. Participants'},
+            ],
+            tasks:[
+              {id:'t1', label:'Quote prepared & reviewed'},
+              {id:'t2', label:'Quote sent to customer'},
+              {id:'t3', label:'Follow-up done'},
+              {id:'t4', label:'Quote accepted by customer'},
+            ]
+          },
+          { id:'SP-03', label:'Buchung',
+            fields:[
+              {key:'link',   label:'Booking Link', isLink:true},
+              {key:'entity', label:'Entity'},
+              {key:'seq',    label:'Order Nr.'},
+            ],
+            tasks:[
+              {id:'t1', label:'Booking confirmed by customer'},
+              {id:'t2', label:'Booking reference issued'},
+              {id:'t3', label:'Invoice address received'},
+              {id:'t4', label:'Booking confirmation email sent'},
+            ]
+          },
+          { id:'SP-04', label:'Auftrag',
+            fields:[
+              {key:'seq',          label:'Order Nr.'},
+              {key:'amount',       label:'Order Value'},
+              {key:'paymentTerms', label:'Payment Terms'},
+              {key:'po',           label:'PO Received', isBool:true},
+            ],
+            tasks:[
+              {id:'t1', label:'Order created in system'},
+              {id:'t2', label:'Order confirmation sent to customer'},
+              {id:'t3', label:'Pre-payment invoice sent (if req.)'},
+              {id:'t4', label:'Pre-payment received (if req.)'},
+            ]
+          },
+          { id:'SP-05', label:'Trainer',
+            fields:[
+              {key:'delivery',     label:'Delivery Date'},
+              {key:'location',     label:'Location / Format'},
+              {key:'participants', label:'Participants'},
+              {key:'days',         label:'Duration (days)'},
+            ],
+            tasks:[
+              {id:'t1', label:'Trainer identified'},
+              {id:'t2', label:'Trainer confirmed & briefed'},
+              {id:'t3', label:'Travel / hotel arranged'},
+              {id:'t4', label:'Training materials sent to customer'},
+              {id:'t5', label:'Desktop & software setup done'},
+              {id:'t6', label:'Participant machines prepared'},
+            ]
+          },
+          { id:'SP-06', label:'Training',
+            fields:[
+              {key:'delivery',     label:'Delivery Date'},
+              {key:'location',     label:'Location / Format'},
+              {key:'participants', label:'Participants (actual)'},
+              {key:'days',         label:'Duration'},
+            ],
+            tasks:[
+              {id:'t1', label:'Training delivered'},
+              {id:'t2', label:'Attendance list collected & signed'},
+              {id:'t3', label:'Participant feedback survey sent'},
+              {id:'t4', label:'Delivery report completed'},
+              {id:'t5', label:'Full invoice issued'},
+            ]
+          },
+          { id:'SP-07', label:'Rechnung',
+            fields:[
+              {key:'amount',       label:'Invoice Amount'},
+              {key:'paymentTerms', label:'Payment Terms'},
+              {key:'entity',       label:'Invoicing Entity'},
+            ],
+            tasks:[
+              {id:'t1', label:'Invoice created in system'},
+              {id:'t2', label:'Invoice sent to customer'},
+              {id:'t3', label:'Invoice accepted (no disputes)'},
+              {id:'t4', label:'Payment reminder sent (if overdue)'},
+            ]
+          },
+          { id:'SP-08', label:'Zahlung',
+            fields:[
+              {key:'amount', label:'Amount Expected'},
+              {key:'date',   label:'Payment Date'},
+              {key:'entity', label:'Entity'},
+            ],
+            tasks:[
+              {id:'t1', label:'Payment received & matched'},
+              {id:'t2', label:'Payment reconciled in accounting'},
+              {id:'t3', label:'Order marked as completed'},
+            ]
+          },
+        ];
+
+        // Map order status → PROCESS_STEPS index (0-7)
+        const STATUS_SP_IDX = {
+          ORDER_CREATED:         3,
+          PRE_PAYMENT_INVOICED:  3,
+          PRE_PAYMENT_DONE:      3,
+          DELIVERY_INVOICEABLE:  4,
+          FULL_PAYMENT_INVOICED: 5,
+          FULL_PAYMENT_DONE:     5,
+          ORDER_COMPLETED:       7,
+        };
+
         const MOCK = [
           { seq:'00001', customer:'Frequentis', region:'A', entity:'NP GER', sales:'DK', training:'Erweitertes Python: Best Practices und Design Patterns', days:'5', delivery:'', amount:'€12,500', amountNum:12500, status:'FULL_PAYMENT_DONE', location:'Online', contact:'Welling', po:false, paymentTerms:'', participants:'', date:'', link:'https://sube.nobleprog.com/en/lead/booking_v2/13a59d-15125a-69fc8bfcc9af0-at' },
           { seq:'00002', customer:'Cellere Group', region:'CH', entity:'NP GER', sales:'DK', training:'Overview of Financials in SAP S/4HANA', days:'', delivery:'14.09.2026', amount:'CHF 5,500', amountNum:5000, status:'FULL_PAYMENT_DONE', location:'Online', contact:'Marcel Hausamann', po:false, paymentTerms:'', participants:'', date:'14.09.2026', link:'https://sube.nobleprog.com/en/lead/booking_v2/845fdd-dd63f9-6a509d280f45b-ch' },
@@ -1351,18 +1528,20 @@ tr:hover td { background: var(--bg3); }
         ];
 
         const STATUS_META = {
-          ORDER_CREATED:          { phase:'SP-04', label:'Order Created',          css:'sp04',  step:0 },
-          PRE_PAYMENT_INVOICED:   { phase:'SP-04', label:'Pre-Payment Invoiced',   css:'sp04b', step:1 },
-          PRE_PAYMENT_DONE:       { phase:'SP-04', label:'Pre-Payment Done',       css:'sp04c', step:2 },
-          DELIVERY_INVOICEABLE:   { phase:'SP-05', label:'Delivery Invoiceable',   css:'sp05',  step:3 },
-          FULL_PAYMENT_INVOICED:  { phase:'SP-06', label:'Full Payment Invoiced',  css:'sp06',  step:4 },
-          FULL_PAYMENT_DONE:      { phase:'SP-06', label:'Full Payment Done',      css:'sp06b', step:5 },
-          ORDER_COMPLETED:        { phase:'SP-08', label:'Order Completed',        css:'done',  step:6 },
+          ORDER_CREATED:          { phase:'SP-04', label:'Order Created',          css:'sp04'  },
+          PRE_PAYMENT_INVOICED:   { phase:'SP-04', label:'Pre-Payment Invoiced',   css:'sp04b' },
+          PRE_PAYMENT_DONE:       { phase:'SP-04', label:'Pre-Payment Done',       css:'sp04c' },
+          DELIVERY_INVOICEABLE:   { phase:'SP-05', label:'Delivery Invoiceable',   css:'sp05'  },
+          FULL_PAYMENT_INVOICED:  { phase:'SP-06', label:'Full Payment Invoiced',  css:'sp06'  },
+          FULL_PAYMENT_DONE:      { phase:'SP-06', label:'Full Payment Done',       css:'sp06b' },
+          ORDER_COMPLETED:        { phase:'SP-08', label:'Order Completed',         css:'done'  },
         };
         const STAGE_CSS   = Object.fromEntries(Object.entries(STATUS_META).map(([k,v])=>[k,v.css]));
         const STAGE_LABEL = Object.fromEntries(Object.entries(STATUS_META).map(([k,v])=>[k,`${v.phase} · ${v.label}`]));
 
         let sortCol = 'seq', sortDir = 1;
+        let currentOrderIdx = -1;
+        let viewingStepIdx  = -1;
 
         function bool(v){ return `<span class="ob-bool ${v?'yes':'no'}">${v?'✓':'—'}</span>`; }
 
@@ -1383,14 +1562,15 @@ tr:hover td { background: var(--bg3); }
             tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--fg3);padding:40px">No orders found</td></tr>`;
             return;
           }
-          tbody.innerHTML = sorted.map((o,i)=>{
+          tbody.innerHTML = sorted.map(o=>{
             const origIdx = MOCK.indexOf(o);
-            return `<tr ondblclick="showDetail(${origIdx})" data-idx="${origIdx}" title="Double-click to open">
+            const sel = origIdx===currentOrderIdx ? ' selected' : '';
+            return `<tr onclick="showDetail(${origIdx})" data-idx="${origIdx}" class="${sel}">
               <td style="font-family:monospace;font-size:11px;color:var(--accent)">${o.seq}</td>
               <td style="font-size:11px;color:var(--fg3)">${o.region||'—'}</td>
               <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)" title="${o.customer}">${o.customer}</td>
-              <td style="color:var(--fg);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${o.training}">${o.training}</td>
-              <td style="font-size:12px">${o.delivery||'—'}</td>
+              <td class="od-col-training" style="color:var(--fg);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${o.training}">${o.training}</td>
+              <td class="od-col-delivery" style="font-size:12px">${o.delivery||'—'}</td>
               <td style="font-weight:600;font-size:12px">${o.amount}</td>
               <td><span class="ob-stage ${STAGE_CSS[o.status]||'sp04'}">${STAGE_LABEL[o.status]||o.status}</span></td>
               <td>${bool(o.po)}</td>
@@ -1399,7 +1579,6 @@ tr:hover td { background: var(--bg3); }
               </td>
             </tr>`;
           }).join('');
-          // update sort indicators
           document.querySelectorAll('#orders-table th[data-col]').forEach(th=>{
             th.classList.toggle('ob-sorted', th.dataset.col===sortCol);
             const ic = th.querySelector('.ob-sort-icon');
@@ -1407,91 +1586,120 @@ tr:hover td { background: var(--bg3); }
           });
         }
 
+        // ── Task persistence ──────────────────────────────────────────────────
+        function taskKey(oIdx, spId, tId){ return `npch_t_${MOCK[oIdx].seq}_${oIdx}_${spId}_${tId}`; }
+        function getTask(oIdx, spId, tId){ try{ return localStorage.getItem(taskKey(oIdx,spId,tId))==='1'; }catch(e){ return false; } }
+        function setTask(oIdx, spId, tId, v){ try{ v ? localStorage.setItem(taskKey(oIdx,spId,tId),'1') : localStorage.removeItem(taskKey(oIdx,spId,tId)); }catch(e){} }
+
+        // ── Ribbon ────────────────────────────────────────────────────────────
+        function renderRibbon(oIdx){
+          const currentSp = STATUS_SP_IDX[MOCK[oIdx].status] ?? 3;
+          document.getElementById('od-ribbon').innerHTML = PROCESS_STEPS.map((sp,i)=>{
+            const done = sp.tasks.filter(t=>getTask(oIdx,sp.id,t.id)).length;
+            let cls = 'od-ribbon-step';
+            if(i < currentSp)   cls += ' rib-done';
+            else if(i===currentSp) cls += ' rib-active';
+            if(i===viewingStepIdx) cls += ' rib-viewing';
+            return `<div class="${cls}" onclick="viewStep(${i})">
+              <span class="od-rsp-id">${sp.id}</span>
+              <span>${sp.label}</span>
+              <span class="od-rsp-cnt">${done}/${sp.tasks.length}</span>
+            </div>`;
+          }).join('');
+        }
+
+        window.viewStep = function(si){
+          if(currentOrderIdx<0) return;
+          viewingStepIdx = si;
+          renderRibbon(currentOrderIdx);
+          renderStepBody(currentOrderIdx, si);
+        };
+
+        // ── Step body ─────────────────────────────────────────────────────────
+        function renderStepBody(oIdx, si){
+          const o  = MOCK[oIdx];
+          const sp = PROCESS_STEPS[si];
+          const currentSp = STATUS_SP_IDX[o.status] ?? 3;
+          const statusLabel = si < currentSp ? '✅ Completed' : si===currentSp ? '🔄 In Progress' : '⏳ Upcoming';
+
+          const fieldsHtml = sp.fields.map(f=>{
+            let val = o[f.key];
+            let valHtml;
+            if(f.isBool)      valHtml = `<div class="od-field-value">${bool(val)}</div>`;
+            else if(f.isLink && val) valHtml = `<a href="${val}" target="_blank" rel="noopener" class="od-field-value is-link">${val}</a>`;
+            else valHtml = `<div class="od-field-value">${val||'—'}</div>`;
+            return `<div><div class="od-field-label">${f.label}</div>${valHtml}</div>`;
+          }).join('');
+
+          const tasksHtml = sp.tasks.map(t=>{
+            const ck = getTask(oIdx,sp.id,t.id);
+            return `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}">
+              <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
+              <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}</label>
+            </div>`;
+          }).join('');
+
+          document.getElementById('od-step-body').innerHTML = `
+            <div class="od-step-heading">
+              <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
+              <span class="od-step-status">${statusLabel}</span>
+            </div>
+            <div class="od-section-label">Fields</div>
+            <div class="od-fields">${fieldsHtml}</div>
+            <div class="od-tasks-wrap">
+              <div class="od-section-label">Tasks</div>
+              ${tasksHtml}
+            </div>`;
+        }
+
+        window.toggleTask = function(oIdx, spId, tId, checked){
+          setTask(oIdx, spId, tId, checked);
+          const el = document.getElementById(`odt_${spId}_${tId}`);
+          if(el) el.classList.toggle('checked', checked);
+          renderRibbon(oIdx);
+        };
+
+        // ── Show / Close detail ───────────────────────────────────────────────
         window.showDetail = function(idx){
           const o = MOCK[idx]; if(!o) return;
-          const meta = STATUS_META[o.status]||{phase:'?',label:o.status,css:'sp04',step:0};
-          const steps = Object.values(STATUS_META);
-          const flowHtml = steps.map(s=>`<div class="ob-flow-step ${s.step<meta.step?'done':s.step===meta.step?'active':''}" title="${s.phase}·${s.label}"></div>`).join('');
-          document.getElementById('ob-modal-id').textContent = `Order #${o.seq}`;
-          document.getElementById('ob-modal-title').textContent = o.customer;
-          document.getElementById('ob-modal-body').innerHTML = `
-            <div style="display:grid;gap:16px">
-              <!-- Status flow -->
-              <div>
-                <div class="ob-dl">Progress</div>
-                <div class="ob-flow">${flowHtml}</div>
-                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg3);margin-top:4px">
-                  <span>SP-04 Created</span><span>SP-05 Delivery</span><span>SP-06 Invoice</span><span>SP-08 Done</span>
-                </div>
-                <div style="margin-top:10px">
-                  <span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>
-                </div>
-              </div>
-              <!-- Training -->
-              <div class="ob-section">
-                <div class="ob-dl">Training</div>
-                <div style="font-size:14px;font-weight:500;line-height:1.4">${o.training}</div>
-              </div>
-              <!-- Grid: Contact + Sales -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div><div class="ob-dl">Key Contact</div><div>${o.contact||'—'}</div></div>
-                <div><div class="ob-dl">Sales</div><div>${o.sales||'—'}</div></div>
-              </div>
-              <!-- Grid: Region + Entity + Location -->
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                <div><div class="ob-dl">Region</div><div>${o.region||'—'}</div></div>
-                <div><div class="ob-dl">Entity</div><div>${o.entity||'—'}</div></div>
-                <div><div class="ob-dl">Location</div><div>${o.location||'—'}</div></div>
-              </div>
-              <!-- Grid: Delivery + Duration + Participants -->
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                <div><div class="ob-dl">Delivery Date</div><div>${o.delivery||'—'}</div></div>
-                <div><div class="ob-dl">Duration</div><div>${o.days||'—'}</div></div>
-                <div><div class="ob-dl">Participants</div><div>${o.participants||'—'}</div></div>
-              </div>
-              <!-- Value + Payment -->
-              <div class="ob-section" style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start">
-                <div>
-                  <div class="ob-dl">Order Value</div>
-                  <div style="font-size:26px;font-weight:700;color:var(--green);line-height:1.1">${o.amount}</div>
-                  ${o.date?`<div style="font-size:11px;color:var(--fg3);margin-top:4px">Booked ${o.date}</div>`:''}
-                </div>
-                <div>
-                  <div class="ob-dl">Payment Terms</div>
-                  <div style="font-size:13px">${o.paymentTerms||'—'}</div>
-                  <div style="margin-top:8px"><div class="ob-dl">PO Received</div>${bool(o.po)}</div>
-                </div>
-              </div>
-              ${o.link?`
-              <div class="ob-section">
-                <div class="ob-dl">Booking Link</div>
-                <a href="${o.link}" target="_blank" rel="noopener" class="ob-link">${o.link}</a>
-              </div>`:''}
-              <!-- Actions -->
-              <div class="ob-section">
-                <div class="ob-dl" style="margin-bottom:10px">Actions</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <button class="btn btn-sm" style="opacity:.45;cursor:not-allowed" title="API follows">Transition Status</button>
-                  <button class="btn btn-sm" style="opacity:.45;cursor:not-allowed" title="API follows">Assign Trainer</button>
-                  <button class="btn btn-sm" style="opacity:.45;cursor:not-allowed" title="API follows">Create Invoice</button>
-                </div>
-              </div>
-            </div>`;
-          const bg = document.getElementById('ob-modal-bg');
-          bg.style.display='flex';
-          requestAnimationFrame(()=>bg.classList.add('open'));
+          currentOrderIdx = idx;
+          viewingStepIdx  = STATUS_SP_IDX[o.status] ?? 3;
+
+          const meta = STATUS_META[o.status]||{phase:'?',label:o.status,css:'sp04'};
+          document.getElementById('od-det-id').textContent    = `Order #${o.seq}`;
+          document.getElementById('od-det-title').textContent = o.customer;
+          document.getElementById('od-det-stage').innerHTML   = `<span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>`;
+
+          renderRibbon(idx);
+          renderStepBody(idx, viewingStepIdx);
+
+          const layout = document.getElementById('od-layout');
+          const detail = document.getElementById('od-detail');
+          detail.style.display = 'flex';
+          requestAnimationFrame(()=>layout.classList.add('detail-open'));
+
+          document.querySelectorAll('#orders-tbody tr').forEach(tr=>{
+            tr.classList.toggle('selected', +tr.dataset.idx===idx);
+          });
+
+          // Scroll ribbon to current step
+          setTimeout(()=>{
+            const rib = document.getElementById('od-ribbon');
+            const active = rib.querySelector('.rib-active,.rib-viewing');
+            if(active) active.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+          }, 60);
         };
 
-        window.closeOrderModal = function(){
-          const bg = document.getElementById('ob-modal-bg');
-          bg.classList.remove('open');
-          setTimeout(()=>{ bg.style.display='none'; }, 150);
+        window.closeOrderDetail = function(){
+          currentOrderIdx = -1; viewingStepIdx = -1;
+          const layout = document.getElementById('od-layout');
+          const detail = document.getElementById('od-detail');
+          layout.classList.remove('detail-open');
+          setTimeout(()=>{ detail.style.display='none'; }, 260);
+          document.querySelectorAll('#orders-tbody tr').forEach(tr=>tr.classList.remove('selected'));
         };
 
-        document.getElementById('ob-modal-bg').addEventListener('click', e=>{
-          if(e.target===e.currentTarget) closeOrderModal();
-        });
-        document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOrderModal(); });
+        document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOrderDetail(); });
 
         // Sortable headers
         document.querySelectorAll('#orders-table th[data-col]').forEach(th=>{
@@ -1509,10 +1717,7 @@ tr:hover td { background: var(--bg3); }
           const l = document.getElementById('ob-location-filter').value;
           const filtered = MOCK.filter(o=>{
             const matchQ = !q || [o.seq,o.customer,o.training,o.contact,o.region,o.sales].some(x=>(x||'').toLowerCase().includes(q));
-            const matchS = !s || o.status===s;
-            const matchR = !r || o.region===r;
-            const matchL = !l || o.location===l;
-            return matchQ && matchS && matchR && matchL;
+            return matchQ && (!s||o.status===s) && (!r||o.region===r) && (!l||o.location===l);
           });
           render(filtered);
         }
