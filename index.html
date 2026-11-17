@@ -45,7 +45,7 @@
   --radius:   8px;
   --radius-sm:5px;
   --sidebar-w:240px;
-  --ai-panel-w: 320px;
+  --ai-panel-w: 340px;
   --header-h: 52px;
   --topnav-h: 44px;
   /* Sidebar — always dark */
@@ -568,6 +568,53 @@ body.sidebar-collapsed .hdr-brand {
   flex-shrink: 0; transition: opacity .12s;
 }
 .ai-send-btn:hover { opacity: .85; }
+/* ── AI Panel sessions list ─────────────────────────────────────────────────── */
+.ai-sessions {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  max-height: 210px;
+  overflow: hidden;
+}
+.ai-sessions-hdr {
+  display: flex; align-items: center; padding: 8px 12px 6px;
+  gap: 6px; flex-shrink: 0;
+}
+.ai-sessions-label { font-size: 10px; font-weight: 700; color: var(--fg3); letter-spacing: .06em; text-transform: uppercase; flex: 1; }
+.ai-sessions-new {
+  background: none; border: none; color: var(--fg3); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 2px 5px; border-radius: 4px;
+  display: flex; align-items: center;
+}
+.ai-sessions-new:hover { background: var(--border); color: var(--accent); }
+.ai-sessions-list { overflow-y: auto; flex: 1; padding: 0 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.ai-session-item {
+  display: flex; align-items: center; gap: 7px; padding: 6px 8px;
+  border-radius: 6px; cursor: pointer; transition: background .12s;
+  min-width: 0;
+}
+.ai-session-item:hover { background: var(--bg3); }
+.ai-session-item.active { background: rgba(99,102,241,.13); }
+.ai-session-item.active .ai-sess-name { color: var(--accent); }
+.ai-sess-icon { font-size: 12px; flex-shrink: 0; color: var(--fg3); }
+.ai-sess-info { flex: 1; min-width: 0; }
+.ai-sess-name { font-size: 11px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-sess-meta { font-size: 10px; color: var(--fg3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-sess-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: var(--accent); color: var(--accent-fg); flex-shrink: 0; }
+/* ── AI chat context pill ───────────────────────────────────────────────────── */
+.ai-context-pill {
+  margin: 8px 12px 0;
+  padding: 5px 10px;
+  background: rgba(99,102,241,.1);
+  border: 1px solid rgba(99,102,241,.25);
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--accent);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.ai-context-pill svg { flex-shrink: 0; }
 
 /* ── Sprint Navigator ──────────────────────────────────────────────────────── */
 .sprint-nav {
@@ -789,18 +836,42 @@ tr:hover td { background: var(--bg3); }
 
 <!-- ── AI Chat Panel (global, right) ──────────────────────────────────────── -->
 <div id="ai-panel">
+  <!-- Header -->
   <div class="ai-hdr">
     <div class="ai-hdr-icon">✦</div>
-    <span class="ai-hdr-title">KI-Assistent</span>
-    <button class="ai-hdr-btn" onclick="toggleAiPanel()" title="Schließen">✕</button>
+    <span class="ai-hdr-title">AI Assistant</span>
+    <button class="ai-hdr-btn" onclick="toggleAiPanel()" title="Close">✕</button>
   </div>
-  <div class="ai-messages" id="ai-messages">
-    <div class="ai-msg ai">
-      <div class="ai-bubble">Hallo! 👋 Ich bin dein KI-Assistent für das NPCH Ops Hub.<br><br>Ich kenne den aktuellen Kontext — welche Seite offen ist, Tickets, Sprints. Frag mich einfach!</div>
+
+  <!-- Sessions list -->
+  <div class="ai-sessions" id="ai-sessions">
+    <div class="ai-sessions-hdr">
+      <span class="ai-sessions-label">Sessions</span>
+      <button class="ai-sessions-new" onclick="aiNewSession()" title="New session">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+      </button>
+    </div>
+    <div class="ai-sessions-list" id="ai-sessions-list">
+      <!-- populated by renderAiSessions() -->
     </div>
   </div>
+
+  <!-- Context pill (shows active order / page context) -->
+  <div class="ai-context-pill" id="ai-context-pill" style="display:none">
+    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="4"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="6" y1="6" x2="9" y2="6"/></svg>
+    <span id="ai-context-text">Orderbook</span>
+  </div>
+
+  <!-- Messages -->
+  <div class="ai-messages" id="ai-messages">
+    <div class="ai-msg ai">
+      <div class="ai-bubble">Hi! 👋 I'm your NPCH Ops AI assistant.<br><br>I have context about the current page, orders, and sprint. Just ask!</div>
+    </div>
+  </div>
+
+  <!-- Input -->
   <div class="ai-footer">
-    <input id="ai-input" type="text" placeholder="Frag mich etwas…" onkeydown="if(event.key==='Enter'){aiSend()}">
+    <input id="ai-input" type="text" placeholder="Ask me anything…" onkeydown="if(event.key==='Enter'){aiSend()}">
     <button class="ai-send-btn" onclick="aiSend()">↑</button>
   </div>
 </div>
@@ -5117,6 +5188,14 @@ function navigate(page) {
   // Load data
   if (PAGES[key].load) PAGES[key].load();
 
+  // Auto-open AI panel on orders page; close on others
+  if (key === 'orders') {
+    openAiPanel();
+    updateAiContext('Orderbook · ' + (typeof MOCK !== 'undefined' ? MOCK.length + ' orders' : ''));
+  } else {
+    updateAiContext('');
+  }
+
   // Persist
   try { localStorage.setItem('npch_page', key); } catch {}
   closeSidebar();
@@ -5679,6 +5758,54 @@ function parseBlockedBy(ac) {
 let _aiOpen = false;
 let _aiHistory = [];
 
+// ── AI Sessions ───────────────────────────────────────────────────────────────
+const AI_SESSIONS = [
+  { id: 1, name: 'Orderbook review', meta: 'Today · 3 messages', active: true },
+  { id: 2, name: 'SP-04 backlog check', meta: 'Yesterday · 7 messages', active: false },
+  { id: 3, name: 'Invoice query Q4', meta: 'Nov 14 · 2 messages', active: false },
+  { id: 4, name: 'Trainer availability', meta: 'Nov 11 · 5 messages', active: false },
+];
+let _activeSessionId = 1;
+
+function renderAiSessions() {
+  const list = document.getElementById('ai-sessions-list');
+  if (!list) return;
+  list.innerHTML = AI_SESSIONS.map(s => `
+    <div class="ai-session-item${s.id === _activeSessionId ? ' active' : ''}" onclick="aiSelectSession(${s.id})">
+      <span class="ai-sess-icon">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2h8v7H2z"/><line x1="4" y1="5" x2="8" y2="5"/><line x1="4" y1="7" x2="6" y2="7"/></svg>
+      </span>
+      <div class="ai-sess-info">
+        <div class="ai-sess-name">${s.name}</div>
+        <div class="ai-sess-meta">${s.meta}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.aiSelectSession = function(id) {
+  _activeSessionId = id;
+  AI_SESSIONS.forEach(s => s.active = s.id === id);
+  renderAiSessions();
+  // Clear messages and show session greeting
+  const msgs = document.getElementById('ai-messages');
+  if (msgs) msgs.innerHTML = `<div class="ai-msg ai"><div class="ai-bubble">Session: <strong>${AI_SESSIONS.find(s=>s.id===id)?.name}</strong><br><br>What would you like to know?</div></div>`;
+};
+
+window.aiNewSession = function() {
+  const id = Date.now();
+  AI_SESSIONS.unshift({ id, name: 'New session', meta: 'Just now · 0 messages', active: false });
+  aiSelectSession(id);
+};
+
+function updateAiContext(text) {
+  const pill = document.getElementById('ai-context-pill');
+  const label = document.getElementById('ai-context-text');
+  if (!pill || !label) return;
+  if (text) { label.textContent = text; pill.style.display = 'flex'; }
+  else { pill.style.display = 'none'; }
+}
+
 function toggleAiPanel() {
   _aiOpen = !_aiOpen;
   const panel = document.getElementById('ai-panel');
@@ -5686,10 +5813,20 @@ function toggleAiPanel() {
   if (_aiOpen) {
     panel.classList.add('open');
     main.classList.add('ai-open');
+    renderAiSessions();
     setTimeout(() => document.getElementById('ai-input')?.focus(), 250);
   } else {
     panel.classList.remove('open');
     main.classList.remove('ai-open');
+  }
+}
+
+function openAiPanel() {
+  if (!_aiOpen) {
+    _aiOpen = true;
+    document.getElementById('ai-panel')?.classList.add('open');
+    document.getElementById('main')?.classList.add('ai-open');
+    renderAiSessions();
   }
 }
 
