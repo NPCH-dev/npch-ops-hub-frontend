@@ -47,11 +47,35 @@ API-URL kann in Einstellungen (`#settings`) überschrieben werden (gespeichert i
 | Route | Funktion | Status |
 |-------|----------|--------|
 | `#dashboard` | KPI-Übersicht | Layout ✅ / API ⏳ |
-| `#orders` | Auftragsliste | Layout ✅ / API ⏳ |
+| `#orders` | Auftragsliste — HubSpot master-detail + AI Insights Tab | Layout ✅ / API live ✅ |
 | `#sprint` | Sprint Board | Layout ✅ / API ⏳ |
 | `#users` | Benutzerverwaltung | Layout ✅ / API ⏳ |
 | `#settings` | Einstellungen + Profil | Layout ✅ / API ⏳ |
 | `#approvals` | Freigaben | Layout ✅ / API ⏳ |
+
+## Orders-Seite (`#orders`) — aktueller Stand (Stand: 2026-11-17)
+
+**Layout:** HubSpot-Style Master-Detail — linke Tabelle (52 Aufträge live), rechtes Panel mit:
+- **Overview Tab:** SP-Stepper (SP-01..SP-08), Stage-Fields, Task-Checkboxen
+- **AI Insights Tab:** Skeleton-Loader → Mock-Daten (Summary, Action Items, Emails)
+  - Wartet auf Backend `GET /orders/{seq}/insights` (Ticket BE-012)
+  - Mock ersetzen: `api('/orders/'+o.seq+'/insights')` statt `setTimeout`
+
+**Datenquellen:**
+- Tabelle: `GET /api/v1/orders` → live
+- Detail: `GET /api/v1/orders/{seq}` → live
+- Insights: Mock → Backend-Ticket BE-012 nötig
+
+## Nächste Schritte
+
+| # | Was | Abhängigkeit |
+|---|-----|-------------|
+| 1 | Ticket BE-012 anlegen (`GET /orders/{seq}/insights`) | n8n Workflow `Btn0JZ205bKDIQQp` ausführen |
+| 2 | Developer Agent triggern (Workflow `VlWgEiwV6LItYaVX`) | BE-012 im Backlog |
+| 3 | Mock in AI Insights durch echten API-Call ersetzen | Backend-Endpoint live |
+| 4 | Gmail-Integration in Settings verdrahten | BE-012 |
+
+**Bekanntes Problem:** POST `/api/v1/tickets` gibt 500 → Backend-Container `npch-b7` hat alten Code (pre-Nov 13 Fix). Container-Neustart in aaPanel nötig, dann läuft `Btn0JZ205bKDIQQp` durch.
 
 ## Sprint 1 — Auth & Benutzerverwaltung
 
@@ -59,12 +83,12 @@ Tickets: `sprint-1-tickets.md` (16 SP total)
 
 | Ticket | Titel | SP | Status |
 |--------|-------|----|----|
-| fe-001 | Login Screen | 3 | ✅ Layout done |
-| fe-002 | Auth-Guard + Token-Management | 2 | ✅ Layout done |
-| fe-003 | Benutzerliste | 3 | ✅ Layout done |
-| fe-004 | Benutzer erstellen/bearbeiten | 3 | ✅ Layout done |
+| fe-001 | Login Screen | 3 | ✅ done |
+| fe-002 | Auth-Guard + Token-Management | 2 | ✅ done |
+| fe-003 | Benutzerliste | 3 | ✅ done |
+| fe-004 | Benutzer erstellen/bearbeiten | 3 | ✅ done |
 | fe-005 | Rollenverwaltung | 2 | ⏳ API connect |
-| fe-006 | Benutzereinstellungen | 3 | ✅ Layout done |
+| fe-006 | Benutzereinstellungen | 3 | ✅ done |
 
 ## Backend-Repo
 
@@ -139,7 +163,7 @@ SP-01 Anfrage → SP-02 Angebot → SP-03 Buchungsbestätigung → SP-04 Auftrag
 |------------|--------|
 | Frontend-URL | `https://dev.processengine.de` |
 | API-Base | `https://api.processengine.de/api/v1` |
-| Backend-Container | `npch-b7` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) — **aktuell: npch-b7, Nummer steigt mit jedem Deploy** |
+| Backend-Container | `npch-b7` (Image: `ghcr.io/npch-dev/npch-ops-hub:backend`) — **Nummer steigt mit jedem Deploy, immer per `docker ps` prüfen. ACHTUNG: Container hat alten Code → Neustart nötig!** |
 | DB-Container | `npch-postgres` (PostgreSQL — NICHT Supabase) |
 | n8n-Container | `n8n` auf Port `8008` |
 | Server-Zugang | aaPanel Browser-UI (kein SSH auf `hpde-serv1.nobleprog.de`!) |
