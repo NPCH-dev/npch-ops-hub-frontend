@@ -1332,12 +1332,17 @@ tr:hover td { background: var(--bg3); }
             <button class="od-tab" data-tab="costs" onclick="switchDetailTab('costs')">Cost Breakdown</button>
             <button class="od-tab" data-tab="liquidity" onclick="switchDetailTab('liquidity')">Liquidity</button>
             <button class="od-tab" data-tab="enquiry" onclick="switchDetailTab('enquiry')">Enquiry</button>
+            <button class="od-tab" data-tab="comments" onclick="switchDetailTab('comments')">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Comments
+            </button>
           </div>
           <div class="od-step-body" id="od-step-body"></div>
           <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
           <div id="od-costs-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-liquidity-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-enquiry-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
+          <div id="od-comments-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
@@ -1426,6 +1431,29 @@ tr:hover td { background: var(--bg3); }
         .od-sm-value { font-size:12px; color:var(--fg); line-height:1.4; word-break:break-word; }
         .od-sm-link { color:var(--accent); text-decoration:none; }
         .od-sm-link:hover { text-decoration:underline; }
+        /* Comments Tab */
+        .od-comments-wrap { display:flex; flex-direction:column; height:100%; }
+        .od-comments-feed { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+        .od-comment { display:flex; gap:10px; align-items:flex-start; }
+        .od-comment-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; color:#fff; }
+        .od-comment-bubble { flex:1; min-width:0; }
+        .od-comment-meta { display:flex; align-items:baseline; gap:6px; margin-bottom:4px; }
+        .od-comment-author { font-size:12px; font-weight:600; color:var(--fg); }
+        .od-comment-role { font-size:10px; color:var(--fg3); }
+        .od-comment-time { font-size:10px; color:var(--fg3); margin-left:auto; }
+        .od-comment-text { font-size:12px; color:var(--fg2); line-height:1.5; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:7px 10px; word-break:break-word; }
+        .od-comment-text a { color:var(--accent); }
+        /* Status change event (no bubble) */
+        .od-comment.is-event .od-comment-text { background:transparent; border:none; padding:0; color:var(--fg3); font-size:11px; font-style:italic; }
+        .od-comment-compose { flex-shrink:0; border-top:1px solid var(--border); padding:10px 12px; display:flex; gap:8px; align-items:flex-end; background:var(--bg); }
+        .od-comment-input { flex:1; min-height:34px; max-height:90px; resize:none; background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; font-size:12px; color:var(--fg); font-family:inherit; line-height:1.4; outline:none; transition:border-color .15s; overflow-y:auto; }
+        .od-comment-input:focus { border-color:var(--accent); }
+        .od-comment-input::placeholder { color:var(--fg3); }
+        .od-comment-send { padding:6px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; flex-shrink:0; height:34px; }
+        .od-comment-send:hover { opacity:.88; }
+        .od-comment-send:disabled { opacity:.4; cursor:default; }
+        .od-comments-empty { text-align:center; color:var(--fg3); font-size:12px; padding:32px 16px; }
+
         /* Detail Panel Tabs */
         .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
         .od-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px 8px; font-size:12px; font-weight:600; color:var(--fg3); cursor:pointer; display:flex; align-items:center; transition:all .15s; white-space:nowrap; }
@@ -1962,6 +1990,11 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-costs-body').style.display     = 'none';
           document.getElementById('od-liquidity-body').style.display = 'none';
           document.getElementById('od-enquiry-body').style.display   = 'none';
+          const cb2 = document.getElementById('od-comments-body');
+          if(cb2) cb2.style.display = 'none';
+          // Init comment store + update badge
+          if(!COMMENTS_STORE[o.seq]) COMMENTS_STORE[o.seq] = initMockComments(o.seq);
+          _updateCommentBadge(o.seq);
           // Role-based action buttons
           const editable = canEdit();
           const actEl = document.getElementById('od-dh-actions');
@@ -2093,12 +2126,128 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-costs-body').style.display     = tab==='costs'     ? '' : 'none';
           document.getElementById('od-liquidity-body').style.display = tab==='liquidity' ? '' : 'none';
           document.getElementById('od-enquiry-body').style.display   = tab==='enquiry'   ? '' : 'none';
+          const cb = document.getElementById('od-comments-body');
+          if(cb) cb.style.display = tab==='comments' ? 'flex' : 'none';
           if(currentOrderIdx < 0) return;
           if(tab==='insights')  renderInsights(currentOrderIdx);
           if(tab==='costs')     renderCosts(currentOrderIdx);
           if(tab==='liquidity') renderLiquidity(currentOrderIdx);
           if(tab==='enquiry')   renderEnquiry(currentOrderIdx);
+          if(tab==='comments')  renderComments(currentOrderIdx);
         };
+
+        // ── Comments / Activity Log ──────────────────────────────────────────
+        // In-memory store: { [orderSeq]: [{id, author, role, color, text, ts, type}] }
+        const COMMENTS_STORE = {};
+
+        const ROLE_COLORS = {
+          management:'#6366f1', admin:'#6366f1', coordination:'#f59e0b',
+          finance:'#10b981', sales:'#3b82f6', recruitment:'#8b5cf6',
+          system:'#64748b', trainer:'#ec4899'
+        };
+
+        function initMockComments(seq){
+          const now = Date.now();
+          return [
+            { id:1, author:'Sarah M.', role:'coordination', color:ROLE_COLORS.coordination,
+              text:'Order confirmed with client. Delivery date agreed for '+new Date(now-5*86400000).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})+'. Trainer assignment in progress.',
+              ts: now - 5*86400000, type:'comment' },
+            { id:2, author:'System', role:'system', color:ROLE_COLORS.system,
+              text:'Status changed: ORDER_CREATED → PRE_PAYMENT_INVOICED',
+              ts: now - 4*86400000, type:'event' },
+            { id:3, author:'Tom K.', role:'finance', color:ROLE_COLORS.finance,
+              text:'Pre-payment invoice sent (30%). Awaiting bank transfer.',
+              ts: now - 3*86400000, type:'comment' },
+          ];
+        }
+
+        function avatarInitials(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2); }
+
+        function fmtCommentTime(ts){
+          const diff = Date.now() - ts;
+          if(diff < 60000) return 'just now';
+          if(diff < 3600000) return Math.floor(diff/60000)+'m ago';
+          if(diff < 86400000) return Math.floor(diff/3600000)+'h ago';
+          if(diff < 7*86400000) return Math.floor(diff/86400000)+'d ago';
+          return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+        }
+
+        function renderComments(oIdx){
+          const el = document.getElementById('od-comments-body');
+          if(!el || oIdx < 0) return;
+          const o = MOCK[oIdx];
+          if(!COMMENTS_STORE[o.seq]) COMMENTS_STORE[o.seq] = initMockComments(o.seq);
+          const list = COMMENTS_STORE[o.seq];
+
+          const userRole = DEV_ROLE || 'management';
+          const userColor = ROLE_COLORS[userRole] || '#6366f1';
+
+          el.innerHTML = `
+            <div class="od-comments-wrap">
+              <div class="od-comments-feed" id="od-comments-feed">
+                ${list.length === 0 ? '<div class="od-comments-empty">No comments yet. Be the first to add an update.</div>' :
+                  list.map(c => `
+                    <div class="od-comment${c.type==='event'?' is-event':''}">
+                      <div class="od-comment-avatar" style="background:${c.color}">${avatarInitials(c.author)}</div>
+                      <div class="od-comment-bubble">
+                        <div class="od-comment-meta">
+                          <span class="od-comment-author">${c.author}</span>
+                          <span class="od-comment-role">${c.role}</span>
+                          <span class="od-comment-time">${fmtCommentTime(c.ts)}</span>
+                        </div>
+                        <div class="od-comment-text">${c.text}</div>
+                      </div>
+                    </div>`).join('')}
+              </div>
+              <div class="od-comment-compose">
+                <div class="od-comment-avatar" style="background:${userColor};flex-shrink:0">${avatarInitials('Me .')}</div>
+                <textarea class="od-comment-input" id="od-comment-input-${o.seq}" placeholder="Add a comment or status update…" rows="1"
+                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"
+                  onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')submitComment('${o.seq}')"></textarea>
+                <button class="od-comment-send" onclick="submitComment('${o.seq}')">Post</button>
+              </div>
+            </div>`;
+
+          // Scroll feed to bottom
+          const feed = document.getElementById('od-comments-feed');
+          if(feed) feed.scrollTop = feed.scrollHeight;
+        }
+
+        window.submitComment = function(seq){
+          const inp = document.getElementById('od-comment-input-'+seq);
+          if(!inp || !inp.value.trim()) return;
+          if(!COMMENTS_STORE[seq]) COMMENTS_STORE[seq] = [];
+          const userRole = DEV_ROLE || 'management';
+          COMMENTS_STORE[seq].push({
+            id: Date.now(),
+            author: 'You',
+            role: userRole,
+            color: ROLE_COLORS[userRole] || '#6366f1',
+            text: inp.value.trim(),
+            ts: Date.now(),
+            type: 'comment'
+          });
+          // Re-render
+          if(currentOrderIdx >= 0) renderComments(currentOrderIdx);
+          // Update badge
+          _updateCommentBadge(seq);
+        };
+
+        function _updateCommentBadge(seq){
+          const count = (COMMENTS_STORE[seq]||[]).filter(c=>c.type==='comment').length;
+          const btn = document.querySelector('.od-tab[data-tab="comments"]');
+          if(btn){
+            const existing = btn.querySelector('.od-tab-badge');
+            if(existing) existing.remove();
+            if(count > 0){
+              const b = document.createElement('span');
+              b.className = 'od-tab-badge';
+              b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--accent);color:#fff;border-radius:8px;font-size:9px;font-weight:700;padding:0 4px;margin-left:4px;';
+              b.textContent = count;
+              btn.appendChild(b);
+            }
+          }
+        }
 
         // ── AI Insights ───────────────────────────────────────────────────────
         // Skeleton loader shown while "fetching"
@@ -2140,7 +2289,7 @@ tr:hover td { background: var(--bg3); }
             ${f('Prepayment', o.prepayment ? '✅ Yes' : 'No')}
             ${f('Sales Owner', o.sales)}
             ${f('Coordinator', o.coordinator)}
-            ${o.link ? f('HubSpot Link', '🔗 Open', o.link) : f('HubSpot Link', '—')}
+            ${o.link ? f('NP Backend', '🔗 Open', o.link) : f('NP Backend', '—')}
           </div>`;
         }
 
@@ -2771,136 +2920,6 @@ tr:hover td { background: var(--bg3); }
       })();
       </script>
 
-      <!-- ── New Order / Edit Order slide-in panel ───────────────────────── -->
-      <div id="no-backdrop"></div>
-      <div id="no-panel" onclick="event.target===this&&closeNewOrderPanel()">
-        <div class="no-panel-inner">
-        <div class="no-panel-head">
-          <span class="no-panel-title" id="no-panel-title">New Order</span>
-          <button class="no-panel-close" onclick="closeNewOrderPanel()">✕</button>
-        </div>
-        <div class="no-panel-body">
-          <form id="no-order-form" onsubmit="event.preventDefault(); saveNewOrder()">
-            <div class="no-section-title">Order Identity</div>
-            <div class="no-fields">
-              <div class="no-field">
-                <label>Order ID</label>
-                <input id="no-f-id" type="text" placeholder="auto-generated" readonly style="opacity:.5;cursor:not-allowed">
-              </div>
-              <div class="no-field">
-                <label>Entity</label>
-                <select id="no-f-entity">
-                  <option value="NP GER">NP GER</option>
-                  <option value="NP CH">NP CH</option>
-                  <option value="NP AT">NP AT</option>
-                </select>
-              </div>
-              <div class="no-field">
-                <label>Status</label>
-                <select id="no-f-status">
-                  <option value="ORDER_CREATED">ORDER_CREATED</option>
-                  <option value="TRAINER_ASSIGNED">TRAINER_ASSIGNED</option>
-                  <option value="TRAINING_CONFIRMED">TRAINING_CONFIRMED</option>
-                  <option value="INVOICE_SENT">INVOICE_SENT</option>
-                  <option value="PAID">PAID</option>
-                  <option value="CANCELLED">CANCELLED</option>
-                </select>
-              </div>
-              <div class="no-field">
-                <label>Order Date</label>
-                <input id="no-f-orderdate" type="date">
-              </div>
-            </div>
-
-            <div class="no-section-title">Customer</div>
-            <div class="no-fields">
-              <div class="no-field full">
-                <label>Customer / Organisation <span style="color:#f87171">*</span></label>
-                <input id="no-f-customer" type="text" placeholder="Company name" oninput="this.classList.remove('invalid')">
-              </div>
-              <div class="no-field full">
-                <label>Key Contact</label>
-                <input id="no-f-contact" type="text" placeholder="Contact name">
-              </div>
-              <div class="no-field">
-                <label>Region</label>
-                <select id="no-f-region">
-                  <option value="D">Germany (D)</option>
-                  <option value="CH">Switzerland (CH)</option>
-                  <option value="AT">Austria (AT)</option>
-                </select>
-              </div>
-              <div class="no-field">
-                <label>Sales Owner</label>
-                <input id="no-f-sales" type="text" placeholder="e.g. john.doe">
-              </div>
-            </div>
-
-            <div class="no-section-title">Training</div>
-            <div class="no-fields">
-              <div class="no-field full">
-                <label>Training Title <span style="color:#f87171">*</span></label>
-                <input id="no-f-training" type="text" placeholder="Course or project name" oninput="this.classList.remove('invalid')">
-              </div>
-              <div class="no-field">
-                <label>Delivery Date</label>
-                <input id="no-f-delivery" type="date">
-              </div>
-              <div class="no-field">
-                <label>Location</label>
-                <select id="no-f-location">
-                  <option value="Online">Online</option>
-                  <option value="Inhouse">Inhouse</option>
-                  <option value="Client Site">Client Site</option>
-                  <option value="NobleProg Office">NobleProg Office</option>
-                </select>
-              </div>
-              <div class="no-field">
-                <label>No. of Days</label>
-                <input id="no-f-days" type="number" min="1" placeholder="1">
-              </div>
-              <div class="no-field">
-                <label>Participants</label>
-                <input id="no-f-participants" type="number" min="1" placeholder="1">
-              </div>
-            </div>
-
-            <div class="no-section-title">Financials</div>
-            <div class="no-fields">
-              <div class="no-field">
-                <label>Contract Value</label>
-                <input id="no-f-amount" type="number" min="0" step="0.01" placeholder="0.00">
-              </div>
-              <div class="no-field">
-                <label>Payment Terms</label>
-                <select id="no-f-terms">
-                  <option value="30 days net">30 days net</option>
-                  <option value="14 days net">14 days net</option>
-                  <option value="immediate">Immediate</option>
-                  <option value="prepayment 50%">Prepayment 50%</option>
-                </select>
-              </div>
-              <div class="no-field" style="display:flex;align-items:center;gap:8px;margin-top:18px">
-                <input id="no-f-prepayment" type="checkbox" style="width:16px;height:16px;accent-color:var(--accent)">
-                <label style="margin:0;font-size:12px;color:var(--fg2);cursor:pointer" for="no-f-prepayment">Pre-payment required</label>
-              </div>
-            </div>
-
-            <div class="no-section-title">Reference</div>
-            <div class="no-fields">
-              <div class="no-field full">
-                <label>HubSpot / CRM Link</label>
-                <input id="no-f-link" type="url" placeholder="https://...">
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="no-panel-footer">
-          <button class="btn-secondary" onclick="closeNewOrderPanel()">Cancel</button>
-          <button class="btn-primary" onclick="saveNewOrder()">Save Order</button>
-        </div>
-        </div><!-- end no-panel-inner -->
-      </div>
 
       <!-- ── Confirm Delete dialog ────────────────────────────────────────── -->
       <div class="confirm-overlay" id="confirm-dialog">
@@ -7065,5 +7084,137 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
 </script>
+
+
+<!-- ── New Order / Edit Order slide-in panel ───────────────────────── -->
+<div id="no-backdrop"></div>
+<div id="no-panel" onclick="event.target===this&&closeNewOrderPanel()">
+  <div class="no-panel-inner">
+  <div class="no-panel-head">
+    <span class="no-panel-title" id="no-panel-title">New Order</span>
+    <button class="no-panel-close" onclick="closeNewOrderPanel()">✕</button>
+  </div>
+  <div class="no-panel-body">
+    <form id="no-order-form" onsubmit="event.preventDefault(); saveNewOrder()">
+      <div class="no-section-title">Order Identity</div>
+      <div class="no-fields">
+        <div class="no-field">
+          <label>Order ID</label>
+          <input id="no-f-id" type="text" placeholder="auto-generated" readonly style="opacity:.5;cursor:not-allowed">
+        </div>
+        <div class="no-field">
+          <label>Entity</label>
+          <select id="no-f-entity">
+            <option value="NP GER">NP GER</option>
+            <option value="NP CH">NP CH</option>
+            <option value="NP AT">NP AT</option>
+          </select>
+        </div>
+        <div class="no-field">
+          <label>Status</label>
+          <select id="no-f-status">
+            <option value="ORDER_CREATED">ORDER_CREATED</option>
+            <option value="TRAINER_ASSIGNED">TRAINER_ASSIGNED</option>
+            <option value="TRAINING_CONFIRMED">TRAINING_CONFIRMED</option>
+            <option value="INVOICE_SENT">INVOICE_SENT</option>
+            <option value="PAID">PAID</option>
+            <option value="CANCELLED">CANCELLED</option>
+          </select>
+        </div>
+        <div class="no-field">
+          <label>Order Date</label>
+          <input id="no-f-orderdate" type="date">
+        </div>
+      </div>
+
+      <div class="no-section-title">Customer</div>
+      <div class="no-fields">
+        <div class="no-field full">
+          <label>Customer / Organisation <span style="color:#f87171">*</span></label>
+          <input id="no-f-customer" type="text" placeholder="Company name" oninput="this.classList.remove('invalid')">
+        </div>
+        <div class="no-field full">
+          <label>Key Contact</label>
+          <input id="no-f-contact" type="text" placeholder="Contact name">
+        </div>
+        <div class="no-field">
+          <label>Region</label>
+          <select id="no-f-region">
+            <option value="D">Germany (D)</option>
+            <option value="CH">Switzerland (CH)</option>
+            <option value="AT">Austria (AT)</option>
+          </select>
+        </div>
+        <div class="no-field">
+          <label>Sales Owner</label>
+          <input id="no-f-sales" type="text" placeholder="e.g. john.doe">
+        </div>
+      </div>
+
+      <div class="no-section-title">Training</div>
+      <div class="no-fields">
+        <div class="no-field full">
+          <label>Training Title <span style="color:#f87171">*</span></label>
+          <input id="no-f-training" type="text" placeholder="Course or project name" oninput="this.classList.remove('invalid')">
+        </div>
+        <div class="no-field">
+          <label>Delivery Date</label>
+          <input id="no-f-delivery" type="date">
+        </div>
+        <div class="no-field">
+          <label>Location</label>
+          <select id="no-f-location">
+            <option value="Online">Online</option>
+            <option value="Inhouse">Inhouse</option>
+            <option value="Client Site">Client Site</option>
+            <option value="NobleProg Office">NobleProg Office</option>
+          </select>
+        </div>
+        <div class="no-field">
+          <label>No. of Days</label>
+          <input id="no-f-days" type="number" min="1" placeholder="1">
+        </div>
+        <div class="no-field">
+          <label>Participants</label>
+          <input id="no-f-participants" type="number" min="1" placeholder="1">
+        </div>
+      </div>
+
+      <div class="no-section-title">Financials</div>
+      <div class="no-fields">
+        <div class="no-field">
+          <label>Contract Value</label>
+          <input id="no-f-amount" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="no-field">
+          <label>Payment Terms</label>
+          <select id="no-f-terms">
+            <option value="30 days net">30 days net</option>
+            <option value="14 days net">14 days net</option>
+            <option value="immediate">Immediate</option>
+            <option value="prepayment 50%">Prepayment 50%</option>
+          </select>
+        </div>
+        <div class="no-field" style="display:flex;align-items:center;gap:8px;margin-top:18px">
+          <input id="no-f-prepayment" type="checkbox" style="width:16px;height:16px;accent-color:var(--accent)">
+          <label style="margin:0;font-size:12px;color:var(--fg2);cursor:pointer" for="no-f-prepayment">Pre-payment required</label>
+        </div>
+      </div>
+
+      <div class="no-section-title">Reference</div>
+      <div class="no-fields">
+        <div class="no-field full">
+          <label>NP Backend Link</label>
+          <input id="no-f-link" type="url" placeholder="https://...">
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="no-panel-footer">
+    <button class="btn-secondary" onclick="closeNewOrderPanel()">Cancel</button>
+    <button class="btn-primary" onclick="saveNewOrder()">Save Order</button>
+  </div>
+  </div><!-- end no-panel-inner -->
+</div>
 </body>
 </html>
