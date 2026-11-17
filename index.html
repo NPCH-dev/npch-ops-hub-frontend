@@ -2097,7 +2097,7 @@ tr:hover td { background: var(--bg3); }
       <script>
       (function(){
         const PROCESS_STEPS = [
-          { id:'SP-01', label:'Anfrage',
+          { id:'SP-01', label:'Booking',
             fields:[
               {key:'contact', label:'Contact Person'},
               {key:'sales',   label:'Sales Rep'},
@@ -2111,7 +2111,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t4', label:'Budget & timeline confirmed'},
             ]
           },
-          { id:'SP-02', label:'Angebot',
+          { id:'SP-02', label:'Planning',
             fields:[
               {key:'amount',       label:'Quote Amount'},
               {key:'paymentTerms', label:'Payment Terms'},
@@ -2125,7 +2125,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t4', label:'Quote accepted by customer'},
             ]
           },
-          { id:'SP-03', label:'Buchung',
+          { id:'SP-03', label:'Confirm',
             fields:[
               {key:'link',   label:'Booking Link', isLink:true},
               {key:'entity', label:'Entity'},
@@ -2138,7 +2138,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t4', label:'Booking confirmation email sent'},
             ]
           },
-          { id:'SP-04', label:'Auftrag',
+          { id:'SP-04', label:'Order',
             fields:[
               {key:'seq',          label:'Order Nr.'},
               {key:'amount',       label:'Order Value'},
@@ -2152,7 +2152,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t4', label:'Pre-payment received (if req.)'},
             ]
           },
-          { id:'SP-05', label:'Trainer',
+          { id:'SP-05', label:'Delivery',
             fields:[
               {key:'delivery',     label:'Delivery Date'},
               {key:'location',     label:'Location / Format'},
@@ -2168,7 +2168,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t6', label:'Participant machines prepared'},
             ]
           },
-          { id:'SP-06', label:'Training',
+          { id:'SP-06', label:'Invoice',
             fields:[
               {key:'delivery',     label:'Delivery Date'},
               {key:'location',     label:'Location / Format'},
@@ -2183,7 +2183,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t5', label:'Full invoice issued'},
             ]
           },
-          { id:'SP-07', label:'Rechnung',
+          { id:'SP-07', label:'Closeout',
             fields:[
               {key:'amount',       label:'Invoice Amount'},
               {key:'paymentTerms', label:'Payment Terms'},
@@ -2196,7 +2196,7 @@ tr:hover td { background: var(--bg3); }
               {id:'t4', label:'Payment reminder sent (if overdue)'},
             ]
           },
-          { id:'SP-08', label:'Zahlung',
+          { id:'SP-08', label:'Complete',
             fields:[
               {key:'amount', label:'Amount Expected'},
               {key:'date',   label:'Payment Date'},
@@ -2220,7 +2220,7 @@ tr:hover td { background: var(--bg3); }
               { key:'CONTRACT_SIGNED',            label:'Contract Signed',            optional:true  },
               { key:'PO_RECEIVED',                label:'PO Received',                optional:true  },
             ]},
-          { id:'SP-02', label:'Trainer',    statuses:[
+          { id:'SP-02', label:'Planning',    statuses:[
               { key:'TRAINER_SELECTION',          label:'Trainer Selection',          optional:false },
               { key:'TRAINER_RECRUITMENT',        label:'Trainer Recruitment',        optional:true  },
               { key:'CANDIDATES_IDENTIFIED',      label:'Candidates Identified',      optional:false },
