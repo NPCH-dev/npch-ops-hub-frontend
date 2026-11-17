@@ -366,6 +366,9 @@ body {
 .stat-card.green   { border-color: rgba(34,197,94,.25); }
 .stat-card.yellow  { border-color: rgba(234,179,8,.25); }
 .stat-card.red     { border-color: rgba(239,68,68,.25); }
+.stat-card.kpi-clickable { transition:box-shadow .15s, border-color .15s; }
+.stat-card.kpi-clickable:hover { box-shadow:0 0 0 1px var(--accent); }
+.stat-card.kpi-active-filter { box-shadow:0 0 0 2px var(--accent) !important; }
 
 /* ── Component: Card / Panel ───────────────────────────────────────────────── */
 .card {
@@ -1176,11 +1179,31 @@ tr:hover td { background: var(--bg3); }
 
       <!-- KPI Row -->
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card accent" style="padding:12px"><div class="stat-label">Active Orders</div><div class="stat-value" id="kpi-active" style="font-size:24px">—</div><div class="stat-sub">In progress</div></div>
-        <div class="stat-card yellow" style="padding:12px"><div class="stat-label">Delivery Invoiceable</div><div class="stat-value" id="kpi-invoiceable" style="font-size:24px">—</div><div class="stat-sub">Ready to invoice</div></div>
-        <div class="stat-card green" style="padding:12px"><div class="stat-label">Pre-Payment Done</div><div class="stat-value" id="kpi-prepaid" style="font-size:24px">—</div><div class="stat-sub">Funds received</div></div>
-        <div class="stat-card" style="padding:12px"><div class="stat-label">Completed</div><div class="stat-value" id="kpi-done" style="font-size:24px">—</div><div class="stat-sub">Sep–Nov 2026</div></div>
-        <div class="stat-card" style="padding:12px;border-color:rgba(99,102,241,.3)"><div class="stat-label" style="color:var(--accent)">Total Pipeline</div><div class="stat-value" id="kpi-revenue" style="font-size:16px;color:var(--accent)">—</div><div class="stat-sub">EUR equivalent</div></div>
+        <div class="stat-card accent kpi-clickable" id="kpi-tile-active" style="padding:12px;cursor:pointer" onclick="kpiFilter('active')" title="Click to filter by active orders">
+          <div class="stat-label">Active Orders</div>
+          <div class="stat-value" id="kpi-active" style="font-size:24px">—</div>
+          <div class="stat-sub" id="kpi-active-val">In progress</div>
+        </div>
+        <div class="stat-card yellow kpi-clickable" id="kpi-tile-invoiceable" style="padding:12px;cursor:pointer" onclick="kpiFilter('invoiceable')" title="Click to filter">
+          <div class="stat-label">Delivery Invoiceable</div>
+          <div class="stat-value" id="kpi-invoiceable" style="font-size:24px">—</div>
+          <div class="stat-sub" id="kpi-invoiceable-val">Ready to invoice</div>
+        </div>
+        <div class="stat-card green kpi-clickable" id="kpi-tile-prepaid" style="padding:12px;cursor:pointer" onclick="kpiFilter('prepaid')" title="Click to filter">
+          <div class="stat-label">Pre-Payment Done</div>
+          <div class="stat-value" id="kpi-prepaid" style="font-size:24px">—</div>
+          <div class="stat-sub" id="kpi-prepaid-val">Funds received</div>
+        </div>
+        <div class="stat-card kpi-clickable" id="kpi-tile-done" style="padding:12px;cursor:pointer" onclick="kpiFilter('done')" title="Click to filter">
+          <div class="stat-label">Completed</div>
+          <div class="stat-value" id="kpi-done" style="font-size:24px">—</div>
+          <div class="stat-sub" id="kpi-done-val">Sep–Nov 2026</div>
+        </div>
+        <div class="stat-card kpi-clickable" id="kpi-tile-all" style="padding:12px;cursor:pointer;border-color:rgba(99,102,241,.3)" onclick="kpiFilter('all')" title="Show all orders">
+          <div class="stat-label" style="color:var(--accent)">Total Pipeline</div>
+          <div class="stat-value" id="kpi-revenue" style="font-size:16px;color:var(--accent)">—</div>
+          <div class="stat-sub">EUR equivalent</div>
+        </div>
       </div>
 
       <!-- Filter Bar -->
@@ -1233,6 +1256,7 @@ tr:hover td { background: var(--bg3); }
           </div>
           <div id="ob-bulk-actions" style="display:none;gap:6px;align-items:center;flex-shrink:0">
             <span id="ob-sel-count" style="font-size:11px;color:var(--fg3)"></span>
+            <span id="ob-sel-sum" style="display:none;font-size:11px;font-weight:600;color:var(--accent);background:rgba(99,102,241,.12);padding:2px 8px;border-radius:4px;"></span>
             <button class="ob-btn-danger" onclick="confirmDeleteSelected()">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
               Delete Selected
@@ -1296,6 +1320,8 @@ tr:hover td { background: var(--bg3); }
             </button>
           </div>
           <div class="od-ribbon" id="od-ribbon"></div>
+          <!-- Stammdaten block -->
+          <div id="od-stammdaten" class="od-stammdaten"></div>
           <!-- Tab bar -->
           <div class="od-tabs" id="od-tabs">
             <button class="od-tab active" data-tab="overview" onclick="switchDetailTab('overview')">Overview</button>
@@ -1392,6 +1418,14 @@ tr:hover td { background: var(--bg3); }
         .od-task-label { font-size:13px; color:var(--fg); line-height:1.4; cursor:pointer; flex:1; }
         .od-task.checked .od-task-label { text-decoration:line-through; color:var(--fg3); }
 
+        /* Stammdaten */
+        .od-stammdaten { padding:12px 16px 10px; border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0; }
+        .od-sm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px 16px; }
+        .od-sm-field { display:flex; flex-direction:column; gap:2px; }
+        .od-sm-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); }
+        .od-sm-value { font-size:12px; color:var(--fg); line-height:1.4; word-break:break-word; }
+        .od-sm-link { color:var(--accent); text-decoration:none; }
+        .od-sm-link:hover { text-decoration:underline; }
         /* Detail Panel Tabs */
         .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
         .od-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px 8px; font-size:12px; font-weight:600; color:var(--fg3); cursor:pointer; display:flex; align-items:center; transition:all .15s; white-space:nowrap; }
@@ -1497,16 +1531,17 @@ tr:hover td { background: var(--bg3); }
         .od-enq-field textarea { resize:vertical; min-height:60px; }
 
         /* ── New Order slide-in panel ──────────────────────────────────────── */
-        .no-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; }
-        .no-backdrop.open { display:block; }
-        .no-panel { position:fixed; top:0; right:0; bottom:0; width:540px; max-width:100vw; background:var(--bg2); border-left:1px solid var(--border); box-shadow:-8px 0 32px rgba(0,0,0,.35); z-index:201; display:flex; flex-direction:column; transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); }
-        .no-panel.open { transform:translateX(0); }
-        .no-panel-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--bg); flex-shrink:0; }
+        .no-backdrop { display:none; }
+        /* New Order / Edit Order — centered modal */
+        .no-panel { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300; align-items:center; justify-content:center; }
+        .no-panel.open { display:flex !important; }
+        .no-panel-inner { background:var(--bg2); border:1px solid var(--border); border-radius:10px; width:620px; max-width:calc(100vw - 32px); max-height:90vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,.55); }
+        .no-panel-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--bg); flex-shrink:0; border-radius:10px 10px 0 0; }
         .no-panel-title { font-size:15px; font-weight:700; color:var(--fg); }
-        .no-panel-close { background:none; border:none; color:var(--fg3); cursor:pointer; padding:4px 7px; border-radius:4px; }
-        .no-panel-close:hover { background:var(--bg2); color:var(--fg); }
+        .no-panel-close { background:none; border:none; color:var(--fg3); cursor:pointer; padding:4px 7px; border-radius:4px; font-size:16px; }
+        .no-panel-close:hover { background:rgba(255,255,255,.08); color:var(--fg); }
         .no-panel-body { flex:1; overflow-y:auto; padding:20px; }
-        .no-panel-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-shrink:0; background:var(--bg); }
+        .no-panel-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-shrink:0; background:var(--bg); border-radius:0 0 10px 10px; }
         .no-section { margin-bottom:22px; }
         .no-section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
         .no-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
@@ -1917,6 +1952,7 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-det-stage').innerHTML   = `<span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>`;
 
           renderRibbon(idx);
+          renderStammdaten(idx);
           renderStepBody(idx, viewingStepIdx);
 
           // Reset to Overview tab on new order open
@@ -1985,15 +2021,69 @@ tr:hover td { background: var(--bg3); }
           el.addEventListener(id==='ob-search'?'input':'change', filter);
         });
 
+        const FMT_EUR = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+        function fmtVal(orders){ const s=orders.reduce((a,o)=>a+(o.amountNum||0),0); return s ? FMT_EUR.format(s) : ''; }
+
         function updateKPIs(){
-          const active = ['ORDER_CREATED','PRE_PAYMENT_INVOICED','PRE_PAYMENT_DONE','DELIVERY_INVOICEABLE','FULL_PAYMENT_INVOICED'];
-          document.getElementById('kpi-active').textContent = MOCK.filter(o=>active.includes(o.status)).length;
-          document.getElementById('kpi-invoiceable').textContent = MOCK.filter(o=>o.status==='DELIVERY_INVOICEABLE').length;
-          document.getElementById('kpi-prepaid').textContent = MOCK.filter(o=>o.status==='PRE_PAYMENT_DONE').length;
-          document.getElementById('kpi-done').textContent = MOCK.filter(o=>['FULL_PAYMENT_DONE','ORDER_COMPLETED'].includes(o.status)).length;
+          const ACTIVE_ST = ['ORDER_CREATED','PRE_PAYMENT_INVOICED','PRE_PAYMENT_DONE','DELIVERY_INVOICEABLE','FULL_PAYMENT_INVOICED'];
+          const activeOrds = MOCK.filter(o=>ACTIVE_ST.includes(o.status));
+          const invOrds    = MOCK.filter(o=>o.status==='DELIVERY_INVOICEABLE');
+          const prepOrds   = MOCK.filter(o=>o.status==='PRE_PAYMENT_DONE');
+          const doneOrds   = MOCK.filter(o=>['FULL_PAYMENT_DONE','ORDER_COMPLETED'].includes(o.status));
+          document.getElementById('kpi-active').textContent        = activeOrds.length;
+          document.getElementById('kpi-invoiceable').textContent   = invOrds.length;
+          document.getElementById('kpi-prepaid').textContent       = prepOrds.length;
+          document.getElementById('kpi-done').textContent          = doneOrds.length;
+          const aVal=fmtVal(activeOrds), iVal=fmtVal(invOrds), pVal=fmtVal(prepOrds), dVal=fmtVal(doneOrds);
+          const subA=document.getElementById('kpi-active-val');     if(subA) subA.textContent = aVal||'In progress';
+          const subI=document.getElementById('kpi-invoiceable-val');if(subI) subI.textContent = iVal||'Ready to invoice';
+          const subP=document.getElementById('kpi-prepaid-val');    if(subP) subP.textContent = pVal||'Funds received';
+          const subD=document.getElementById('kpi-done-val');       if(subD) subD.textContent = dVal||'Sep–Nov 2026';
           const total = MOCK.reduce((s,o)=>s+(o.amountNum||0),0);
-          document.getElementById('kpi-revenue').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(total);
+          document.getElementById('kpi-revenue').textContent = FMT_EUR.format(total);
         }
+
+        let _activeKpiFilter = null;
+        window.kpiFilter = function(key){
+          const STATUS_MAP = {
+            active:      ['ORDER_CREATED','PRE_PAYMENT_INVOICED','PRE_PAYMENT_DONE','DELIVERY_INVOICEABLE','FULL_PAYMENT_INVOICED'],
+            invoiceable: ['DELIVERY_INVOICEABLE'],
+            prepaid:     ['PRE_PAYMENT_DONE'],
+            done:        ['FULL_PAYMENT_DONE','ORDER_COMPLETED'],
+            all:         null
+          };
+          // Toggle off if same key clicked again
+          if(_activeKpiFilter===key && key!=='all'){ key='all'; }
+          _activeKpiFilter = key;
+          // Visual active state
+          document.querySelectorAll('.kpi-clickable').forEach(el=>el.classList.remove('kpi-active-filter'));
+          if(key!=='all'){
+            const tileId = {active:'kpi-tile-active',invoiceable:'kpi-tile-invoiceable',prepaid:'kpi-tile-prepaid',done:'kpi-tile-done'}[key];
+            if(tileId) document.getElementById(tileId)?.classList.add('kpi-active-filter');
+          }
+          // Apply as filter — set the status dropdown and trigger filter()
+          const sel = document.getElementById('ob-status-filter');
+          if(!sel) return;
+          const statuses = STATUS_MAP[key];
+          if(!statuses){
+            sel.value = '';
+          } else if(statuses.length===1){
+            sel.value = statuses[0];
+          } else {
+            // multi-status: filter programmatically
+            sel.value = '';
+            const q = document.getElementById('ob-search').value.toLowerCase();
+            const r = document.getElementById('ob-region-filter')?.value||'';
+            const l = document.getElementById('ob-location-filter')?.value||'';
+            const filtered = MOCK.filter(o=>{
+              const matchQ = !q || [o.seq,o.customer,o.training,o.contact,o.region,o.sales].some(x=>(x||'').toLowerCase().includes(q));
+              return matchQ && statuses.includes(o.status) && (!r||o.region===r) && (!l||o.location===l);
+            });
+            render(filtered);
+            return;
+          }
+          filter();
+        };
 
         // ── Tab switching ─────────────────────────────────────────────────────
         window.switchDetailTab = function(tab){
@@ -2021,6 +2111,36 @@ tr:hover td { background: var(--bg3); }
             <div class="od-skel" style="width:50%;margin-top:8px;height:10px"></div>
             <div class="od-skel" style="width:88%"></div>
             <div class="od-skel" style="width:70%"></div>
+          </div>`;
+        }
+
+        // ── Stammdaten ────────────────────────────────────────────────────────
+        function renderStammdaten(oIdx){
+          const el = document.getElementById('od-stammdaten');
+          if(!el) return;
+          const o = MOCK[oIdx];
+          const fmtAmt = v => v ? v.toLocaleString('de-DE',{maximumFractionDigits:0}) : '—';
+          const currency = o.region==='CH' ? 'CHF' : '€';
+          const f = (label, value, href) => {
+            const val = href
+              ? `<a href="${href}" target="_blank" rel="noopener" class="od-sm-link">${value||'—'}</a>`
+              : (value||'—');
+            return `<div class="od-sm-field"><div class="od-sm-label">${label}</div><div class="od-sm-value">${val}</div></div>`;
+          };
+          el.innerHTML = `<div class="od-sm-grid">
+            ${f('Customer', o.customer)}
+            ${f('Entity', o.entity)}
+            ${f('Region', o.region)}
+            ${f('Key Contact', o.keyContact||o.contact)}
+            ${f('Order Date', o.orderDate)}
+            ${f('Delivery', o.delivery)}
+            ${f('Confirmed Del.', o.confirmedDelivery||'—')}
+            ${f('Value', o.amountNum ? currency+' '+fmtAmt(o.amountNum) : '—')}
+            ${f('Payment Terms', o.paymentTerms)}
+            ${f('Prepayment', o.prepayment ? '✅ Yes' : 'No')}
+            ${f('Sales Owner', o.sales)}
+            ${f('Coordinator', o.coordinator)}
+            ${o.link ? f('HubSpot Link', '🔗 Open', o.link) : f('HubSpot Link', '—')}
           </div>`;
         }
 
@@ -2101,13 +2221,79 @@ tr:hover td { background: var(--bg3); }
         let _pendingDeleteIdxs = null;
         let _editingOrderIdx = -1;
 
-        function setDevRole(r){ DEV_ROLE=r; updateRoleUI(); }
+        // ── Role-Based Access Control ─────────────────────────────────────────
+        // page → roles that may access it (read)
+        const PAGE_ACCESS = {
+          dashboard:   ['management','admin','coordination','finance','sales','recruitment','system'],
+          orders:      ['management','admin','coordination','finance','sales'],
+          bookings:    ['management','admin','coordination','finance','sales'],
+          inquiries:   ['management','admin','coordination','finance','sales'],
+          delivery:    ['management','admin','coordination','recruitment'],
+          trainers:    ['management','admin','coordination','recruitment'],
+          approvals:   ['management','admin','coordination'],
+          invoices:    ['management','admin','finance'],
+          payments:    ['management','admin','finance'],
+          finance:     ['management','admin','finance'],
+          campaigns:   ['management','admin','sales'],
+          leads:       ['management','admin','sales'],
+          'trainer-db':['management','admin','recruitment','coordination'],
+          team:        ['management','admin'],
+          sprint:      ['management','admin','system'],
+          backlog:     ['management','admin','system'],
+          agents:      ['management','admin','system'],
+          status:      ['management','admin','system'],
+          admin:       ['management','admin'],
+          tasks:       ['management','admin','coordination','finance','sales','recruitment','system'],
+          todos:       ['management','admin','coordination','finance','sales','recruitment','system'],
+          notes:       ['management','admin','coordination','finance','sales','recruitment','system'],
+          prompts:     ['management','admin','coordination','finance','sales','recruitment','system'],
+          users:       ['management','admin'],
+          settings:    ['management','admin','coordination','finance','sales','recruitment','system'],
+        };
+        // pages where the current role may write (create/edit)
+        const PAGE_WRITE = {
+          orders:      ['management','admin','coordination'],
+          bookings:    ['management','admin','coordination'],
+          inquiries:   ['management','admin','coordination','sales'],
+          delivery:    ['management','admin','coordination'],
+          trainers:    ['management','admin','coordination','recruitment'],
+          approvals:   ['management','admin','coordination'],
+          invoices:    ['management','admin','finance'],
+          payments:    ['management','admin','finance'],
+          finance:     ['management','admin','finance'],
+          users:       ['management','admin'],
+          settings:    ['management','admin'],
+        };
+
+        function canAccess(page){ const r=PAGE_ACCESS[page]; return !r || r.includes(DEV_ROLE); }
+        function canWrite(page){  const r=PAGE_WRITE[page];  return !r || r.includes(DEV_ROLE); }
+        function setDevRole(r){
+          DEV_ROLE=r;
+          updateRoleUI();
+          applyNavAccess();
+        }
         function canEdit(){ return ['coordination','admin','management'].includes(DEV_ROLE); }
+
+        function applyNavAccess(){
+          document.querySelectorAll('.nav-item[data-page]').forEach(a=>{
+            const page = a.dataset.page;
+            const allowed = canAccess(page);
+            a.style.opacity   = allowed ? '' : '0.35';
+            a.style.pointerEvents = allowed ? '' : 'none';
+            a.title = allowed ? '' : 'Access restricted for your role';
+          });
+        }
 
         function updateRoleUI(){
           const editable = canEdit();
           const actEl = document.getElementById('od-dh-actions');
           if(actEl) actEl.style.display = currentOrderIdx>=0 && editable ? 'flex':'none';
+          // Hide New Order button if write not allowed for orders page
+          const btnNew = document.querySelector('.ob-btn-new');
+          if(btnNew) btnNew.style.display = canWrite('orders') ? '' : 'none';
+          // Hide bulk delete if no write access
+          const btnDel = document.querySelector('.ob-btn-danger');
+          if(btnDel) btnDel.style.display = canWrite('orders') ? '' : 'none';
         }
 
         // ── Multi-select ──────────────────────────────────────────────────────
@@ -2137,9 +2323,17 @@ tr:hover td { background: var(--bg3); }
           const cnt = document.getElementById('ob-sel-count');
           if(!bar) return;
           const n = selectedIdxs.size;
-          if(n>0 && canEdit()){
+          if(n>0){
             bar.style.display = 'flex';
             if(cnt) cnt.textContent = n+' selected';
+            // Excel-style sum of selected order values
+            const sum = [...selectedIdxs].reduce((acc,i)=>acc+(MOCK[i]?.amountNum||0),0);
+            const sumEl = document.getElementById('ob-sel-sum');
+            if(sumEl && n>1){
+              const currency = [...selectedIdxs].some(i=>MOCK[i]?.region==='CH') ? '' : '€';
+              sumEl.textContent = `Sum: ${currency}${sum.toLocaleString('de-DE',{maximumFractionDigits:0})}`;
+              sumEl.style.display = '';
+            } else if(sumEl){ sumEl.style.display='none'; }
           } else {
             bar.style.display = 'none';
           }
@@ -2572,14 +2766,15 @@ tr:hover td { background: var(--bg3); }
             </div>`;
         }
 
-        window._ordersInit = function(){ render(MOCK); updateKPIs(); };
+        window._ordersInit = function(){ render(MOCK); updateKPIs(); applyNavAccess(); };
         window._ordersInit();
       })();
       </script>
 
       <!-- ── New Order / Edit Order slide-in panel ───────────────────────── -->
-      <div id="no-backdrop" onclick="closeNewOrderPanel()"></div>
-      <div id="no-panel">
+      <div id="no-backdrop"></div>
+      <div id="no-panel" onclick="event.target===this&&closeNewOrderPanel()">
+        <div class="no-panel-inner">
         <div class="no-panel-head">
           <span class="no-panel-title" id="no-panel-title">New Order</span>
           <button class="no-panel-close" onclick="closeNewOrderPanel()">✕</button>
@@ -2704,6 +2899,7 @@ tr:hover td { background: var(--bg3); }
           <button class="btn-secondary" onclick="closeNewOrderPanel()">Cancel</button>
           <button class="btn-primary" onclick="saveNewOrder()">Save Order</button>
         </div>
+        </div><!-- end no-panel-inner -->
       </div>
 
       <!-- ── Confirm Delete dialog ────────────────────────────────────────── -->
