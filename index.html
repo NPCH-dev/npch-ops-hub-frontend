@@ -1528,6 +1528,9 @@ tr:hover td { background: var(--bg3); }
           </div>
         </div><!-- end od-list -->
 
+        <!-- Resize handle between list and detail -->
+        <div id="od-resize-handle" title="Drag to resize"></div>
+
         <!-- Right: Detail Panel -->
         <div class="od-detail" id="od-detail">
           <div class="od-dh">
@@ -1580,11 +1583,27 @@ tr:hover td { background: var(--bg3); }
 
       <style>
         /* Master-Detail Layout */
-        .od-layout { display:flex; gap:12px; align-items:flex-start; }
-        .od-list { flex:1; min-width:0; transition:flex .25s ease; }
-        .od-layout.detail-open .od-list { flex:0 0 40%; }
-        .od-detail { flex:0 0 0; overflow:hidden; opacity:0; transition:flex .25s ease, opacity .2s ease; display:none; flex-direction:column; border:1px solid var(--border); border-radius:8px; background:var(--bg2); min-height:400px; box-shadow:0 2px 16px rgba(0,0,0,.18); }
-        .od-layout.detail-open .od-detail { flex:0 0 59%; opacity:1; display:flex !important; overflow:visible; }
+        .od-layout { display:flex; gap:0; align-items:stretch; min-height:0; }
+        .od-list { flex:0 0 40%; min-width:200px; max-width:80%; overflow:hidden; transition:flex-basis .22s cubic-bezier(.4,0,.2,1); }
+        .od-layout:not(.detail-open) .od-list { flex:1 1 100% !important; max-width:100%; transition:none; }
+        #od-resize-handle.dragging ~ #od-detail,
+        body.od-resizing .od-list,
+        body.od-resizing .od-detail { transition:none !important; }
+        .od-detail { flex:1 1 0; overflow:hidden; opacity:0; transition:opacity .2s ease; display:none; flex-direction:column; border:1px solid var(--border); border-radius:8px; background:var(--bg2); min-height:400px; box-shadow:0 2px 16px rgba(0,0,0,.18); margin-left:0; }
+        .od-layout.detail-open .od-detail { opacity:1; display:flex !important; overflow:visible; }
+        /* Resize handle between list and detail */
+        #od-resize-handle {
+          display:none; width:8px; cursor:col-resize; flex-shrink:0;
+          position:relative; z-index:5; align-self:stretch;
+          background:transparent; transition:background .15s;
+        }
+        #od-resize-handle::after {
+          content:''; position:absolute; top:0; bottom:0; left:3px; width:2px;
+          background:var(--border); border-radius:1px; transition:background .15s;
+        }
+        .od-layout.detail-open #od-resize-handle { display:flex; align-items:center; justify-content:center; }
+        #od-resize-handle:hover::after, #od-resize-handle.dragging::after { background:var(--accent); }
+        #od-resize-handle.dragging { background:rgba(99,102,241,.08); }
 
         /* Table */
         #orders-table th { background:var(--bg2); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; padding:9px 12px; user-select:none; }
@@ -2416,6 +2435,85 @@ tr:hover td { background: var(--bg3); }
         };
 
         document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOrderDetail(); });
+
+        // ── Resizable master-detail split ──────────────────────────────────
+        (function initOdResize(){
+          const handle  = document.getElementById('od-resize-handle');
+          const layout  = document.getElementById('od-layout');
+          const listEl  = document.getElementById('od-list');
+          if(!handle || !layout || !listEl) return;
+
+          // Restore saved split (default 40%)
+          const STORAGE_KEY = 'od-list-pct';
+          let savedPct = parseFloat(localStorage.getItem(STORAGE_KEY)) || 40;
+          listEl.style.flexBasis = savedPct + '%';
+
+          let dragging = false, startX = 0, startW = 0, totalW = 0;
+
+          handle.addEventListener('mousedown', e=>{
+            if(!layout.classList.contains('detail-open')) return;
+            dragging = true;
+            startX   = e.clientX;
+            startW   = listEl.getBoundingClientRect().width;
+            totalW   = layout.getBoundingClientRect().width;
+            handle.classList.add('dragging');
+            document.body.classList.add('od-resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+          });
+
+          document.addEventListener('mousemove', e=>{
+            if(!dragging) return;
+            const delta   = e.clientX - startX;
+            const newW    = Math.max(200, Math.min(startW + delta, totalW * 0.8));
+            const newPct  = (newW / totalW * 100).toFixed(2);
+            listEl.style.flexBasis = newPct + '%';
+          });
+
+          document.addEventListener('mouseup', e=>{
+            if(!dragging) return;
+            dragging = false;
+            handle.classList.remove('dragging');
+            document.body.classList.remove('od-resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            // Persist
+            const pct = parseFloat(listEl.style.flexBasis);
+            if(!isNaN(pct)){
+              localStorage.setItem(STORAGE_KEY, pct.toFixed(2));
+            }
+          });
+
+          // Touch support
+          handle.addEventListener('touchstart', e=>{
+            if(!layout.classList.contains('detail-open')) return;
+            const t = e.touches[0];
+            dragging = true;
+            startX   = t.clientX;
+            startW   = listEl.getBoundingClientRect().width;
+            totalW   = layout.getBoundingClientRect().width;
+            handle.classList.add('dragging');
+            e.preventDefault();
+          }, {passive:false});
+
+          document.addEventListener('touchmove', e=>{
+            if(!dragging) return;
+            const t = e.touches[0];
+            const delta  = t.clientX - startX;
+            const newW   = Math.max(200, Math.min(startW + delta, totalW * 0.8));
+            listEl.style.flexBasis = (newW / totalW * 100).toFixed(2) + '%';
+          }, {passive:true});
+
+          document.addEventListener('touchend', ()=>{
+            if(!dragging) return;
+            dragging = false;
+            handle.classList.remove('dragging');
+            const pct = parseFloat(listEl.style.flexBasis);
+            if(!isNaN(pct)) localStorage.setItem(STORAGE_KEY, pct.toFixed(2));
+          });
+        })();
+        // ──────────────────────────────────────────────────────────────────
 
         // Sortable headers
         document.querySelectorAll('#orders-table th[data-col]').forEach(th=>{
