@@ -1262,12 +1262,26 @@ tr:hover td { background: var(--bg3); }
               Delete Selected
             </button>
           </div>
-          <button class="ob-btn-new" onclick="openNewOrderPanel()">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Order
-          </button>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+            <!-- Board/Table toggle -->
+            <div class="ob-view-toggle" id="ob-view-toggle">
+              <button class="ob-view-btn active" id="ob-view-table" onclick="setOrderView('table')" title="Table view">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
+              </button>
+              <button class="ob-view-btn" id="ob-view-board" onclick="setOrderView('board')" title="Board view">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="18" rx="1"/><rect x="17" y="3" width="5" height="18" rx="1"/></svg>
+              </button>
+            </div>
+            <button class="ob-btn-new" onclick="openNewOrderPanel()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Order
+            </button>
+          </div>
         </div>
       </div>
+
+      <!-- Board View -->
+      <div id="od-board-view" style="display:none;overflow-x:auto;padding-bottom:16px"></div>
 
       <!-- Master-Detail Layout -->
       <div class="od-layout" id="od-layout">
@@ -1332,9 +1346,9 @@ tr:hover td { background: var(--bg3); }
             <button class="od-tab" data-tab="costs" onclick="switchDetailTab('costs')">Cost Breakdown</button>
             <button class="od-tab" data-tab="liquidity" onclick="switchDetailTab('liquidity')">Liquidity</button>
             <button class="od-tab" data-tab="enquiry" onclick="switchDetailTab('enquiry')">Enquiry</button>
-            <button class="od-tab" data-tab="comments" onclick="switchDetailTab('comments')">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Comments
+            <button class="od-tab" data-tab="activities" onclick="switchDetailTab('activities')">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Activities
             </button>
           </div>
           <div class="od-step-body" id="od-step-body"></div>
@@ -1342,7 +1356,7 @@ tr:hover td { background: var(--bg3); }
           <div id="od-costs-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-liquidity-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-enquiry-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
-          <div id="od-comments-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
+          <div id="od-activities-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
@@ -1431,28 +1445,77 @@ tr:hover td { background: var(--bg3); }
         .od-sm-value { font-size:12px; color:var(--fg); line-height:1.4; word-break:break-word; }
         .od-sm-link { color:var(--accent); text-decoration:none; }
         .od-sm-link:hover { text-decoration:underline; }
-        /* Comments Tab */
-        .od-comments-wrap { display:flex; flex-direction:column; height:100%; }
-        .od-comments-feed { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
-        .od-comment { display:flex; gap:10px; align-items:flex-start; }
-        .od-comment-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; color:#fff; }
-        .od-comment-bubble { flex:1; min-width:0; }
-        .od-comment-meta { display:flex; align-items:baseline; gap:6px; margin-bottom:4px; }
-        .od-comment-author { font-size:12px; font-weight:600; color:var(--fg); }
-        .od-comment-role { font-size:10px; color:var(--fg3); }
-        .od-comment-time { font-size:10px; color:var(--fg3); margin-left:auto; }
-        .od-comment-text { font-size:12px; color:var(--fg2); line-height:1.5; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:7px 10px; word-break:break-word; }
-        .od-comment-text a { color:var(--accent); }
-        /* Status change event (no bubble) */
-        .od-comment.is-event .od-comment-text { background:transparent; border:none; padding:0; color:var(--fg3); font-size:11px; font-style:italic; }
-        .od-comment-compose { flex-shrink:0; border-top:1px solid var(--border); padding:10px 12px; display:flex; gap:8px; align-items:flex-end; background:var(--bg); }
-        .od-comment-input { flex:1; min-height:34px; max-height:90px; resize:none; background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; font-size:12px; color:var(--fg); font-family:inherit; line-height:1.4; outline:none; transition:border-color .15s; overflow-y:auto; }
-        .od-comment-input:focus { border-color:var(--accent); }
-        .od-comment-input::placeholder { color:var(--fg3); }
-        .od-comment-send { padding:6px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; flex-shrink:0; height:34px; }
-        .od-comment-send:hover { opacity:.88; }
-        .od-comment-send:disabled { opacity:.4; cursor:default; }
-        .od-comments-empty { text-align:center; color:var(--fg3); font-size:12px; padding:32px 16px; }
+        /* ── Activities Tab ── */
+        .od-act-wrap { display:flex; flex-direction:column; height:100%; min-height:0; }
+        .od-act-subnav { display:flex; gap:0; border-bottom:1px solid var(--border); padding:0 12px; flex-shrink:0; background:var(--bg2); overflow-x:auto; }
+        .od-act-subbtn { padding:8px 11px; font-size:11px; font-weight:600; color:var(--fg3); border:none; background:none; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:color .15s, border-color .15s; }
+        .od-act-subbtn.active { color:var(--accent); border-bottom-color:var(--accent); }
+        .od-act-subbtn:hover { color:var(--fg); }
+        .od-act-toolbar { padding:8px 12px; display:flex; gap:8px; align-items:center; flex-shrink:0; border-bottom:1px solid var(--border); }
+        .od-act-search { flex:1; padding:5px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--fg); outline:none; }
+        .od-act-search:focus { border-color:var(--accent); }
+        .od-act-feed { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:0; }
+        .od-act-month { font-size:11px; font-weight:700; color:var(--fg3); text-transform:uppercase; letter-spacing:.06em; padding:10px 0 6px; }
+        .od-act-entry { background:var(--bg); border:1px solid var(--border); border-radius:7px; margin-bottom:6px; padding:10px 12px; cursor:default; transition:border-color .12s; }
+        .od-act-entry:hover { border-color:rgba(99,102,241,.4); }
+        .od-act-entry-head { display:flex; align-items:center; gap:7px; margin-bottom:4px; }
+        .od-act-type-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px; }
+        .od-act-type-label { font-size:11px; font-weight:600; color:var(--fg3); }
+        .od-act-time { font-size:10px; color:var(--fg3); margin-left:auto; }
+        .od-act-body { font-size:12px; color:var(--fg2); line-height:1.5; padding-left:29px; }
+        .od-act-body a { color:var(--accent); text-decoration:none; }
+        .od-act-body strong { color:var(--fg); }
+        .od-act-body .act-author { color:var(--accent); font-weight:600; }
+        /* Task entries inside Activities */
+        .od-act-task { display:flex; gap:8px; align-items:flex-start; padding-left:29px; margin-top:2px; }
+        .od-act-task-cb { width:14px; height:14px; border:2px solid var(--border); border-radius:3px; flex-shrink:0; margin-top:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .12s, border-color .12s; }
+        .od-act-task-cb.done { background:var(--accent); border-color:var(--accent); }
+        .od-act-task-info { flex:1; min-width:0; }
+        .od-act-task-title { font-size:12px; color:var(--fg); line-height:1.4; }
+        .od-act-task-title.done { text-decoration:line-through; color:var(--fg3); }
+        .od-act-task-meta { display:flex; gap:8px; margin-top:2px; flex-wrap:wrap; }
+        .od-act-task-badge { font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; text-transform:uppercase; }
+        .od-act-task-badge.mandatory { background:rgba(239,68,68,.15); color:#ef4444; }
+        .od-act-task-badge.role { background:rgba(99,102,241,.12); color:var(--accent); }
+        .od-act-task-badge.done { background:rgba(16,185,129,.12); color:#10b981; }
+        .od-act-compose { flex-shrink:0; border-top:1px solid var(--border); padding:10px 12px; background:var(--bg); }
+        .od-act-compose-btns { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+        .od-act-compose-btn { display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border:1px solid var(--border); border-radius:5px; font-size:11px; font-weight:600; color:var(--fg3); background:var(--bg2); cursor:pointer; transition:border-color .12s, color .12s; }
+        .od-act-compose-btn:hover, .od-act-compose-btn.active { border-color:var(--accent); color:var(--accent); }
+        .od-act-compose-area { display:none; flex-direction:column; gap:6px; }
+        .od-act-compose-area.open { display:flex; }
+        .od-act-textarea { width:100%; min-height:60px; resize:none; background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:12px; color:var(--fg); font-family:inherit; outline:none; box-sizing:border-box; }
+        .od-act-textarea:focus { border-color:var(--accent); }
+        .od-act-compose-row { display:flex; gap:6px; justify-content:flex-end; }
+        .od-act-cancel { padding:5px 12px; border:1px solid var(--border); border-radius:5px; background:none; color:var(--fg3); font-size:12px; cursor:pointer; }
+        .od-act-submit { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
+
+        /* ── Board View ── */
+        .ob-view-toggle { display:flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+        .ob-view-btn { padding:5px 9px; border:none; background:var(--bg2); color:var(--fg3); cursor:pointer; display:flex; align-items:center; transition:background .12s, color .12s; }
+        .ob-view-btn.active { background:var(--accent); color:#fff; }
+        .ob-view-btn:hover:not(.active) { background:var(--bg); color:var(--fg); }
+        .od-board { display:flex; gap:10px; align-items:flex-start; min-width:max-content; padding:4px 0 12px; }
+        .od-board-col { width:238px; flex-shrink:0; display:flex; flex-direction:column; border:1px solid var(--border); border-radius:8px; background:var(--bg2); overflow:hidden; }
+        .od-board-col-head { padding:10px 12px 8px; border-bottom:1px solid var(--border); }
+        .od-board-col-name { font-size:11px; font-weight:700; color:var(--fg); letter-spacing:.03em; }
+        .od-board-col-count { font-size:10px; color:var(--fg3); margin-top:1px; }
+        .od-board-cards { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:7px; min-height:60px; max-height:calc(100vh - 320px); }
+        .od-board-card { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:9px 10px; cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+        .od-board-card:hover { border-color:var(--accent); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+        .od-board-card-title { font-size:11px; font-weight:700; color:var(--accent); line-height:1.3; margin-bottom:3px; }
+        .od-board-card-sub { font-size:10px; color:var(--fg2); line-height:1.3; margin-bottom:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+        .od-board-card-row { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+        .od-board-card-amt { font-size:11px; font-weight:700; color:var(--fg); }
+        .od-board-card-date { font-size:10px; color:var(--fg3); }
+        .od-board-card-footer { display:flex; align-items:center; gap:6px; margin-top:6px; padding-top:6px; border-top:1px solid var(--border); }
+        .od-board-card-owner { font-size:9px; color:var(--fg3); flex:1; }
+        .od-board-card-tasks { font-size:9px; padding:1px 5px; border-radius:3px; font-weight:700; }
+        .od-board-card-tasks.has-open { background:rgba(239,68,68,.12); color:#ef4444; }
+        .od-board-card-tasks.all-done { background:rgba(16,185,129,.12); color:#10b981; }
+        .od-board-col-foot { padding:8px 12px; border-top:1px solid var(--border); background:var(--bg); }
+        .od-board-col-total { font-size:11px; font-weight:700; color:var(--fg); }
+        .od-board-col-wtotal { font-size:10px; color:var(--fg3); margin-top:1px; }
 
         /* Detail Panel Tabs */
         .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
@@ -1990,11 +2053,11 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-costs-body').style.display     = 'none';
           document.getElementById('od-liquidity-body').style.display = 'none';
           document.getElementById('od-enquiry-body').style.display   = 'none';
-          const cb2 = document.getElementById('od-comments-body');
+          const cb2 = document.getElementById('od-activities-body');
           if(cb2) cb2.style.display = 'none';
-          // Init comment store + update badge
-          if(!COMMENTS_STORE[o.seq]) COMMENTS_STORE[o.seq] = initMockComments(o.seq);
-          _updateCommentBadge(o.seq);
+          // Init activity store + update badge
+          if(!ACTIVITIES_STORE[o.seq]) ACTIVITIES_STORE[o.seq] = initMockActivities(o.seq);
+          _updateActivitiesBadge(o.seq);
           // Role-based action buttons
           const editable = canEdit();
           const actEl = document.getElementById('od-dh-actions');
@@ -2121,24 +2184,22 @@ tr:hover td { background: var(--bg3); }
         // ── Tab switching ─────────────────────────────────────────────────────
         window.switchDetailTab = function(tab){
           document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-          document.getElementById('od-step-body').style.display      = tab==='overview'  ? '' : 'none';
-          document.getElementById('od-insights-body').style.display  = tab==='insights'  ? '' : 'none';
-          document.getElementById('od-costs-body').style.display     = tab==='costs'     ? '' : 'none';
-          document.getElementById('od-liquidity-body').style.display = tab==='liquidity' ? '' : 'none';
-          document.getElementById('od-enquiry-body').style.display   = tab==='enquiry'   ? '' : 'none';
-          const cb = document.getElementById('od-comments-body');
-          if(cb) cb.style.display = tab==='comments' ? 'flex' : 'none';
+          document.getElementById('od-step-body').style.display      = tab==='overview'    ? '' : 'none';
+          document.getElementById('od-insights-body').style.display  = tab==='insights'    ? '' : 'none';
+          document.getElementById('od-costs-body').style.display     = tab==='costs'       ? '' : 'none';
+          document.getElementById('od-liquidity-body').style.display = tab==='liquidity'   ? '' : 'none';
+          document.getElementById('od-enquiry-body').style.display   = tab==='enquiry'     ? '' : 'none';
+          const ab = document.getElementById('od-activities-body');
+          if(ab) ab.style.display = tab==='activities' ? 'flex' : 'none';
           if(currentOrderIdx < 0) return;
-          if(tab==='insights')  renderInsights(currentOrderIdx);
-          if(tab==='costs')     renderCosts(currentOrderIdx);
-          if(tab==='liquidity') renderLiquidity(currentOrderIdx);
-          if(tab==='enquiry')   renderEnquiry(currentOrderIdx);
-          if(tab==='comments')  renderComments(currentOrderIdx);
+          if(tab==='insights')    renderInsights(currentOrderIdx);
+          if(tab==='costs')       renderCosts(currentOrderIdx);
+          if(tab==='liquidity')   renderLiquidity(currentOrderIdx);
+          if(tab==='enquiry')     renderEnquiry(currentOrderIdx);
+          if(tab==='activities')  renderActivities(currentOrderIdx);
         };
 
-        // ── Comments / Activity Log ──────────────────────────────────────────
-        // In-memory store: { [orderSeq]: [{id, author, role, color, text, ts, type}] }
-        const COMMENTS_STORE = {};
+        // ── Activities / Task Management / Board ─────────────────────────────
 
         const ROLE_COLORS = {
           management:'#6366f1', admin:'#6366f1', coordination:'#f59e0b',
@@ -2146,24 +2207,52 @@ tr:hover td { background: var(--bg3); }
           system:'#64748b', trainer:'#ec4899'
         };
 
-        function initMockComments(seq){
-          const now = Date.now();
-          return [
-            { id:1, author:'Sarah M.', role:'coordination', color:ROLE_COLORS.coordination,
-              text:'Order confirmed with client. Delivery date agreed for '+new Date(now-5*86400000).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})+'. Trainer assignment in progress.',
-              ts: now - 5*86400000, type:'comment' },
-            { id:2, author:'System', role:'system', color:ROLE_COLORS.system,
-              text:'Status changed: ORDER_CREATED → PRE_PAYMENT_INVOICED',
-              ts: now - 4*86400000, type:'event' },
-            { id:3, author:'Tom K.', role:'finance', color:ROLE_COLORS.finance,
-              text:'Pre-payment invoice sent (30%). Awaiting bank transfer.',
-              ts: now - 3*86400000, type:'comment' },
-          ];
-        }
+        // ── TASK TEMPLATES per SP-status ─────────────────────────────────────
+        // mandatory: true = blocks status advancement (bypassed by admin/management)
+        // role: default assignee role
+        const TASK_TEMPLATES = {
+          'ORDER_CREATED':         [{ title:'Verify order details with client', mandatory:true,  role:'coordination' },
+                                    { title:'Create order in NP Backend',       mandatory:true,  role:'coordination' },
+                                    { title:'Send order confirmation to client', mandatory:true,  role:'coordination' }],
+          'PRE_PAYMENT_INVOICED':  [{ title:'Issue pre-payment invoice (30%)',   mandatory:true,  role:'finance' },
+                                    { title:'Log invoice in accounting system',  mandatory:false, role:'finance' }],
+          'PRE_PAYMENT_RECEIVED':  [{ title:'Confirm bank transfer received',    mandatory:true,  role:'finance' },
+                                    { title:'Update payment status',             mandatory:false, role:'finance' }],
+          'TRAINER_SEARCH':        [{ title:'Search suitable trainers',          mandatory:true,  role:'recruitment' },
+                                    { title:'Check trainer availability',        mandatory:true,  role:'recruitment' },
+                                    { title:'Get trainer quote',                 mandatory:false, role:'recruitment' }],
+          'TRAINER_BRIEFING':      [{ title:'Send training materials to trainer',mandatory:true,  role:'coordination' },
+                                    { title:'Conduct trainer briefing call',     mandatory:false, role:'coordination' }],
+          'TRAINING_CONFIRMED':    [{ title:'Send logistics info to participants',mandatory:true, role:'coordination' },
+                                    { title:'Confirm venue/remote setup',        mandatory:true,  role:'coordination' }],
+          'TRAINING_DELIVERED':    [{ title:'Collect participant feedback',      mandatory:true,  role:'coordination' },
+                                    { title:'Mark training as completed',        mandatory:true,  role:'coordination' }],
+          'FINAL_INVOICE_SENT':    [{ title:'Issue final invoice',               mandatory:true,  role:'finance' },
+                                    { title:'Send invoice to client',            mandatory:true,  role:'finance' }],
+          'PAYMENT_RECEIVED':      [{ title:'Confirm full payment received',     mandatory:true,  role:'finance' },
+                                    { title:'Archive order documents',           mandatory:false, role:'coordination' }],
+        };
+
+        // ── In-memory stores ─────────────────────────────────────────────────
+        // Activities: { [seq]: [{id, type, subtype, author, role, body, ts, done?, mandatory?, assignee?, taskTitle?}] }
+        const ACTIVITIES_STORE = {};
+        // Current activities sub-filter
+        let _actFilter = 'all';
+
+        const ACT_TYPE_META = {
+          note:            { icon:'📝', label:'Note',            color:'#6366f1', bg:'rgba(99,102,241,.15)' },
+          email:           { icon:'✉️',  label:'Email',           color:'#3b82f6', bg:'rgba(59,130,246,.15)' },
+          call:            { icon:'📞', label:'Call',            color:'#10b981', bg:'rgba(16,185,129,.15)' },
+          task:            { icon:'✅', label:'Task',            color:'#f59e0b', bg:'rgba(245,158,11,.15)' },
+          meeting:         { icon:'👥', label:'Meeting',         color:'#8b5cf6', bg:'rgba(139,92,246,.15)' },
+          status_change:   { icon:'🔄', label:'Status change',   color:'#64748b', bg:'rgba(100,116,139,.15)' },
+          workflow_activity:{ icon:'⚡', label:'Workflow',       color:'#ec4899', bg:'rgba(236,72,153,.15)' },
+          created:         { icon:'🆕', label:'Created',         color:'#64748b', bg:'rgba(100,116,139,.15)' },
+        };
 
         function avatarInitials(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2); }
 
-        function fmtCommentTime(ts){
+        function fmtActTime(ts){
           const diff = Date.now() - ts;
           if(diff < 60000) return 'just now';
           if(diff < 3600000) return Math.floor(diff/60000)+'m ago';
@@ -2172,81 +2261,347 @@ tr:hover td { background: var(--bg3); }
           return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
         }
 
-        function renderComments(oIdx){
-          const el = document.getElementById('od-comments-body');
+        function fmtMonthGroup(ts){
+          return new Date(ts).toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+        }
+
+        function initMockActivities(seq){
+          const now = Date.now();
+          const D = 86400000;
+          return [
+            { id:1,  type:'created',          author:'System',   role:'system',       body:'Order <strong>'+seq+'</strong> created in NPCH Ops Hub.', ts:now-14*D },
+            { id:2,  type:'email',            author:'Sarah M.', role:'coordination', body:'Sent order confirmation email to client. CC: Tom K. (finance).', ts:now-13*D },
+            { id:3,  type:'task',             author:'System',   role:'system',       body:'', ts:now-13*D,
+              taskTitle:'Verify order details with client', done:true, mandatory:true, assignee:'Sarah M.' },
+            { id:4,  type:'status_change',    author:'System',   role:'system',       body:'Status advanced: <strong>ORDER_CREATED</strong> → <strong>PRE_PAYMENT_INVOICED</strong>', ts:now-12*D },
+            { id:5,  type:'task',             author:'System',   role:'system',       body:'', ts:now-12*D,
+              taskTitle:'Issue pre-payment invoice (30%)', done:true, mandatory:true, assignee:'Tom K.' },
+            { id:6,  type:'email',            author:'Tom K.',   role:'finance',      body:'Pre-payment invoice sent (EUR '+Math.round(Math.random()*8000+2000).toLocaleString('de-DE')+') — 30% of total. Payment due in 14 days.', ts:now-11*D },
+            { id:7,  type:'note',             author:'Sarah M.', role:'coordination', body:'Client confirmed receipt of invoice. Expected transfer within the week.', ts:now-9*D },
+            { id:8,  type:'call',             author:'Sarah M.', role:'coordination', body:'30 min call with client contact. Discussed delivery logistics and participant count (confirmed: 12). Follow-up: send agenda by Friday.', ts:now-7*D },
+            { id:9,  type:'status_change',    author:'System',   role:'system',       body:'Status advanced: <strong>PRE_PAYMENT_INVOICED</strong> → <strong>PRE_PAYMENT_RECEIVED</strong>', ts:now-6*D },
+            { id:10, type:'workflow_activity',author:'n8n',      role:'system',       body:'Workflow <em>Payment Received Notify</em> triggered — Slack notification sent to #finance-dach.', ts:now-6*D },
+            { id:11, type:'task',             author:'System',   role:'system',       body:'', ts:now-5*D,
+              taskTitle:'Search suitable trainers', done:false, mandatory:true, assignee:'Unassigned' },
+            { id:12, type:'note',             author:'You',      role:DEV_ROLE||'coordination', body:'Reached out to 3 trainers. Waiting on availability confirmation.', ts:now-2*D },
+          ];
+        }
+
+        // Auto-create tasks when order status changes
+        function createTasksForStatus(seq, status){
+          const templates = TASK_TEMPLATES[status] || [];
+          if(!ACTIVITIES_STORE[seq]) ACTIVITIES_STORE[seq] = [];
+          const now = Date.now();
+          templates.forEach((tpl, i) => {
+            ACTIVITIES_STORE[seq].push({
+              id: now + i,
+              type: 'task',
+              author: 'System',
+              role: 'system',
+              body: '',
+              ts: now + i,
+              taskTitle: tpl.title,
+              done: false,
+              mandatory: tpl.mandatory,
+              assignee: tpl.role,
+            });
+          });
+        }
+
+        // Check if mandatory tasks are blocking a status push
+        function hasMandatoryBlockers(seq){
+          const list = ACTIVITIES_STORE[seq] || [];
+          return list.some(e => e.type==='task' && e.mandatory && !e.done);
+        }
+
+        function canBypassMandatory(){
+          const r = DEV_ROLE || 'management';
+          return r === 'admin' || r === 'management';
+        }
+
+        window.toggleTask = function(seq, taskId){
+          const list = ACTIVITIES_STORE[seq] || [];
+          const task = list.find(e => e.id === taskId);
+          if(!task) return;
+          task.done = !task.done;
+          task.completedBy = task.done ? 'You' : null;
+          task.completedAt = task.done ? Date.now() : null;
+          if(currentOrderIdx >= 0) renderActivities(currentOrderIdx);
+          _updateActivitiesBadge(seq);
+        };
+
+        window.openComposeAct = function(type){
+          document.querySelectorAll('.od-act-compose-btn').forEach(b=>b.classList.toggle('active', b.dataset.type===type));
+          const area = document.getElementById('od-act-compose-area');
+          if(area){
+            area.classList.add('open');
+            area.dataset.ctype = type;
+            const ph = {note:'Write a note…', email:'Email subject / body…', call:'Call notes…', task:'Task description…', meeting:'Meeting notes…'}[type] || 'Add activity…';
+            const ta = document.getElementById('od-act-textarea');
+            if(ta){ ta.placeholder = ph; ta.focus(); }
+          }
+        };
+
+        window.closeComposeAct = function(){
+          document.querySelectorAll('.od-act-compose-btn').forEach(b=>b.classList.remove('active'));
+          const area = document.getElementById('od-act-compose-area');
+          if(area){ area.classList.remove('open'); }
+          const ta = document.getElementById('od-act-textarea');
+          if(ta) ta.value = '';
+        };
+
+        window.submitActivity = function(seq){
+          const area = document.getElementById('od-act-compose-area');
+          const ta   = document.getElementById('od-act-textarea');
+          if(!area || !ta || !ta.value.trim()) return;
+          const type = area.dataset.ctype || 'note';
+          const userRole = DEV_ROLE || 'management';
+          if(!ACTIVITIES_STORE[seq]) ACTIVITIES_STORE[seq] = [];
+          ACTIVITIES_STORE[seq].push({
+            id: Date.now(),
+            type,
+            author: 'You',
+            role: userRole,
+            body: ta.value.trim(),
+            ts: Date.now(),
+          });
+          closeComposeAct();
+          if(currentOrderIdx >= 0) renderActivities(currentOrderIdx);
+          _updateActivitiesBadge(seq);
+        };
+
+        window.setActFilter = function(f){
+          _actFilter = f;
+          document.querySelectorAll('.od-act-subbtn').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
+          if(currentOrderIdx >= 0) renderActivities(currentOrderIdx);
+        };
+
+        function renderActivities(oIdx){
+          const el = document.getElementById('od-activities-body');
           if(!el || oIdx < 0) return;
           const o = MOCK[oIdx];
-          if(!COMMENTS_STORE[o.seq]) COMMENTS_STORE[o.seq] = initMockComments(o.seq);
-          const list = COMMENTS_STORE[o.seq];
+          if(!ACTIVITIES_STORE[o.seq]) ACTIVITIES_STORE[o.seq] = initMockActivities(o.seq);
 
-          const userRole = DEV_ROLE || 'management';
-          const userColor = ROLE_COLORS[userRole] || '#6366f1';
+          const filterMap = { all:null, notes:'note', emails:'email', calls:'call', tasks:'task', meetings:'meeting' };
+          const ftype = filterMap[_actFilter] || null;
+          const list = (ACTIVITIES_STORE[o.seq] || []).filter(e => !ftype || e.type===ftype);
+
+          // Group by month
+          const groups = {};
+          list.forEach(e => {
+            const mk = fmtMonthGroup(e.ts);
+            if(!groups[mk]) groups[mk] = [];
+            groups[mk].push(e);
+          });
+
+          const feedHtml = Object.entries(groups).reverse().map(([month, entries]) => `
+            <div class="od-act-month">${month}</div>
+            ${entries.map(e => renderActEntry(e, o.seq)).join('')}
+          `).join('') || '<div style="text-align:center;color:var(--fg3);font-size:12px;padding:32px">No activities yet.</div>';
 
           el.innerHTML = `
-            <div class="od-comments-wrap">
-              <div class="od-comments-feed" id="od-comments-feed">
-                ${list.length === 0 ? '<div class="od-comments-empty">No comments yet. Be the first to add an update.</div>' :
-                  list.map(c => `
-                    <div class="od-comment${c.type==='event'?' is-event':''}">
-                      <div class="od-comment-avatar" style="background:${c.color}">${avatarInitials(c.author)}</div>
-                      <div class="od-comment-bubble">
-                        <div class="od-comment-meta">
-                          <span class="od-comment-author">${c.author}</span>
-                          <span class="od-comment-role">${c.role}</span>
-                          <span class="od-comment-time">${fmtCommentTime(c.ts)}</span>
-                        </div>
-                        <div class="od-comment-text">${c.text}</div>
-                      </div>
-                    </div>`).join('')}
+            <div class="od-act-wrap">
+              <div class="od-act-subnav">
+                ${['all','notes','emails','calls','tasks','meetings'].map(f=>`
+                  <button class="od-act-subbtn${_actFilter===f?' active':''}" data-f="${f}" onclick="setActFilter('${f}')">${f.charAt(0).toUpperCase()+f.slice(1)}</button>
+                `).join('')}
               </div>
-              <div class="od-comment-compose">
-                <div class="od-comment-avatar" style="background:${userColor};flex-shrink:0">${avatarInitials('Me .')}</div>
-                <textarea class="od-comment-input" id="od-comment-input-${o.seq}" placeholder="Add a comment or status update…" rows="1"
-                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"
-                  onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')submitComment('${o.seq}')"></textarea>
-                <button class="od-comment-send" onclick="submitComment('${o.seq}')">Post</button>
+              <div class="od-act-feed" id="od-act-feed">${feedHtml}</div>
+              <div class="od-act-compose">
+                <div class="od-act-compose-btns">
+                  ${['note','email','call','task','meeting'].map(t=>{
+                    const m = ACT_TYPE_META[t];
+                    return `<button class="od-act-compose-btn" data-type="${t}" onclick="openComposeAct('${t}')">${m.icon} ${m.label}</button>`;
+                  }).join('')}
+                </div>
+                <div class="od-act-compose-area" id="od-act-compose-area">
+                  <textarea class="od-act-textarea" id="od-act-textarea" rows="3" placeholder="Write a note…"
+                    onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')submitActivity('${o.seq}')"></textarea>
+                  <div class="od-act-compose-row">
+                    <button class="od-act-cancel" onclick="closeComposeAct()">Cancel</button>
+                    <button class="od-act-submit" onclick="submitActivity('${o.seq}')">Save</button>
+                  </div>
+                </div>
               </div>
             </div>`;
 
-          // Scroll feed to bottom
-          const feed = document.getElementById('od-comments-feed');
+          const feed = document.getElementById('od-act-feed');
           if(feed) feed.scrollTop = feed.scrollHeight;
         }
 
-        window.submitComment = function(seq){
-          const inp = document.getElementById('od-comment-input-'+seq);
-          if(!inp || !inp.value.trim()) return;
-          if(!COMMENTS_STORE[seq]) COMMENTS_STORE[seq] = [];
-          const userRole = DEV_ROLE || 'management';
-          COMMENTS_STORE[seq].push({
-            id: Date.now(),
-            author: 'You',
-            role: userRole,
-            color: ROLE_COLORS[userRole] || '#6366f1',
-            text: inp.value.trim(),
-            ts: Date.now(),
-            type: 'comment'
-          });
-          // Re-render
-          if(currentOrderIdx >= 0) renderComments(currentOrderIdx);
-          // Update badge
-          _updateCommentBadge(seq);
-        };
+        function renderActEntry(e, seq){
+          const m = ACT_TYPE_META[e.type] || ACT_TYPE_META.note;
+          if(e.type === 'task'){
+            const doneClass = e.done ? ' done' : '';
+            return `<div class="od-act-entry">
+              <div class="od-act-entry-head">
+                <div class="od-act-type-icon" style="background:${m.bg};color:${m.color}">${m.icon}</div>
+                <span class="od-act-type-label">${m.label}</span>
+                <span class="od-act-time">${fmtActTime(e.ts)}</span>
+              </div>
+              <div class="od-act-task">
+                <div class="od-act-task-cb${e.done?' done':''}" onclick="toggleTask('${seq}',${e.id})" title="${e.done?'Mark incomplete':'Mark complete'}">
+                  ${e.done ? '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>' : ''}
+                </div>
+                <div class="od-act-task-info">
+                  <div class="od-act-task-title${doneClass}">${e.taskTitle||'Task'}</div>
+                  <div class="od-act-task-meta">
+                    ${e.mandatory ? '<span class="od-act-task-badge mandatory">mandatory</span>' : ''}
+                    <span class="od-act-task-badge role">${e.assignee||'—'}</span>
+                    ${e.done ? '<span class="od-act-task-badge done">✓ Done</span>' : ''}
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          }
+          return `<div class="od-act-entry">
+            <div class="od-act-entry-head">
+              <div class="od-act-type-icon" style="background:${m.bg};color:${m.color}">${m.icon}</div>
+              <span class="od-act-type-label">${m.label}</span>
+              <span style="font-size:11px;color:var(--fg3);margin-left:4px">· <span class="act-author">${e.author}</span></span>
+              <span class="od-act-time">${fmtActTime(e.ts)}</span>
+            </div>
+            <div class="od-act-body">${e.body}</div>
+          </div>`;
+        }
 
-        function _updateCommentBadge(seq){
-          const count = (COMMENTS_STORE[seq]||[]).filter(c=>c.type==='comment').length;
-          const btn = document.querySelector('.od-tab[data-tab="comments"]');
+        function _updateActivitiesBadge(seq){
+          const list = ACTIVITIES_STORE[seq] || [];
+          const openTasks = list.filter(e => e.type==='task' && !e.done).length;
+          const btn = document.querySelector('.od-tab[data-tab="activities"]');
           if(btn){
             const existing = btn.querySelector('.od-tab-badge');
             if(existing) existing.remove();
-            if(count > 0){
+            if(openTasks > 0){
               const b = document.createElement('span');
               b.className = 'od-tab-badge';
-              b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--accent);color:#fff;border-radius:8px;font-size:9px;font-weight:700;padding:0 4px;margin-left:4px;';
-              b.textContent = count;
+              b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:700;padding:0 4px;margin-left:4px;';
+              b.textContent = openTasks;
               btn.appendChild(b);
             }
           }
+        }
+
+        // ── Board View ───────────────────────────────────────────────────────
+        let _currentView = 'table'; // 'table' | 'board'
+
+        const SP_PHASES = [
+          { id:'SP-01', label:'Enquiry',       statuses:['ENQUIRY_RECEIVED','ENQUIRY_IN_PROGRESS'] },
+          { id:'SP-02', label:'Quote',          statuses:['QUOTE_DRAFT','QUOTE_SENT','QUOTE_NEGOTIATION'] },
+          { id:'SP-03', label:'Booking',        statuses:['BOOKING_CONFIRMED','BOOKING_PENDING_DOCS'] },
+          { id:'SP-04', label:'Order',          statuses:['ORDER_CREATED','ORDER_ON_HOLD'] },
+          { id:'SP-05', label:'Assignment',     statuses:['TRAINER_SEARCH','TRAINER_BRIEFING','TRAINER_CONFIRMED'] },
+          { id:'SP-06', label:'Training',       statuses:['TRAINING_CONFIRMED','TRAINING_IN_PROGRESS','TRAINING_DELIVERED'] },
+          { id:'SP-07', label:'Invoice',        statuses:['FINAL_INVOICE_SENT','INVOICE_DISPUTED'] },
+          { id:'SP-08', label:'Payment',        statuses:['PAYMENT_PARTIAL','PAYMENT_RECEIVED','ORDER_COMPLETED','ORDER_CANCELLED'] },
+        ];
+
+        function getPhaseForStatus(status){
+          for(const ph of SP_PHASES){
+            if(ph.statuses.includes(status)) return ph.id;
+          }
+          // Fallback: use PRE_PAYMENT statuses → SP-04
+          if(status && status.includes('PRE_PAYMENT')) return 'SP-04';
+          return 'SP-04';
+        }
+
+        window.setOrderView = function(view){
+          _currentView = view;
+          document.getElementById('ob-view-table').classList.toggle('active', view==='table');
+          document.getElementById('ob-view-board').classList.toggle('active', view==='board');
+          const layout  = document.getElementById('od-layout');
+          const board   = document.getElementById('od-board-view');
+          const toolbar = document.querySelector('.ob-toolbar');
+          if(view==='table'){
+            if(layout) layout.style.display = '';
+            if(board)  board.style.display  = 'none';
+          } else {
+            if(layout) layout.style.display = 'none';
+            if(board)  board.style.display  = '';
+            renderBoard();
+          }
+        };
+
+        function renderBoard(){
+          const el = document.getElementById('od-board-view');
+          if(!el) return;
+
+          // Group orders by SP phase
+          const cols = {};
+          SP_PHASES.forEach(ph => cols[ph.id] = []);
+
+          // Apply current filters (same logic as table)
+          let filtered = [...MOCK];
+          const search = (document.getElementById('ob-search')||{}).value||'';
+          if(search){
+            const q = search.toLowerCase();
+            filtered = filtered.filter(o => (o.customer||'').toLowerCase().includes(q) ||
+              (o.training||'').toLowerCase().includes(q) || (o.seq||'').toLowerCase().includes(q));
+          }
+
+          filtered.forEach(o => {
+            const phase = getPhaseForStatus(o.status);
+            if(cols[phase]) cols[phase].push(o);
+          });
+
+          // KPI bar
+          const totalAmt = filtered.reduce((s,o)=>s+(o.amount||0),0);
+          const openAmt  = filtered.filter(o=>o.status!=='ORDER_COMPLETED'&&o.status!=='ORDER_CANCELLED').reduce((s,o)=>s+(o.amount||0),0);
+          const fmtEur   = n => '€'+Math.round(n).toLocaleString('de-DE');
+
+          const kpiBar = `<div style="display:flex;gap:16px;padding:8px 2px 10px;flex-shrink:0">
+            <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
+              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Pipeline Total</span>
+              <span style="font-size:16px;font-weight:700;color:var(--fg);margin-top:2px">${fmtEur(totalAmt)}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
+              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Open Pipeline</span>
+              <span style="font-size:16px;font-weight:700;color:var(--accent);margin-top:2px">${fmtEur(openAmt)}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
+              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Orders</span>
+              <span style="font-size:16px;font-weight:700;color:var(--fg);margin-top:2px">${filtered.length}</span>
+            </div>
+          </div>`;
+
+          const boardHtml = SP_PHASES.map(ph => {
+            const orders = cols[ph.id];
+            const colTotal = orders.reduce((s,o)=>s+(o.amount||0),0);
+            const cards = orders.map(o => {
+              const oIdx = MOCK.indexOf(o);
+              const acts = ACTIVITIES_STORE[o.seq] || [];
+              const openTasks = acts.filter(e=>e.type==='task'&&!e.done).length;
+              const hasTasks  = acts.some(e=>e.type==='task');
+              const taskBadge = hasTasks
+                ? `<span class="od-board-card-tasks ${openTasks>0?'has-open':'all-done'}">${openTasks>0?openTasks+' open':'✓ done'}</span>`
+                : '';
+              return `<div class="od-board-card" onclick="showDetail(${oIdx})">
+                <div class="od-board-card-title">${o.seq||''}</div>
+                <div class="od-board-card-sub">${o.customer||''} · ${o.training||''}</div>
+                <div class="od-board-card-row">
+                  <span class="od-board-card-amt">${o.amount ? '€'+Math.round(o.amount).toLocaleString('de-DE') : '—'}</span>
+                  <span class="od-board-card-date">${o.delivery||''}</span>
+                </div>
+                <div class="od-board-card-footer">
+                  <span class="od-board-card-owner">${o.owner||o.coordinator||'—'}</span>
+                  ${taskBadge}
+                </div>
+              </div>`;
+            }).join('');
+
+            return `<div class="od-board-col" data-phase="${ph.id}">
+              <div class="od-board-col-head">
+                <div class="od-board-col-name">${ph.id} · ${ph.label}</div>
+                <div class="od-board-col-count">${orders.length} order${orders.length!==1?'s':''}</div>
+              </div>
+              <div class="od-board-cards" data-phase="${ph.id}">${cards||'<div style="text-align:center;color:var(--fg3);font-size:11px;padding:16px 8px">No orders</div>'}</div>
+              <div class="od-board-col-foot">
+                <div class="od-board-col-total">${fmtEur(colTotal)}</div>
+              </div>
+            </div>`;
+          }).join('');
+
+          el.innerHTML = kpiBar + `<div class="od-board">${boardHtml}</div>`;
         }
 
         // ── AI Insights ───────────────────────────────────────────────────────
