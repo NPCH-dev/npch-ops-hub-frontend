@@ -1333,6 +1333,8 @@ tr:hover td { background: var(--bg3); }
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
+          <!-- Order Stage Tracker (table view) -->
+          <div id="od-stage-tracker-table" style="padding:0 0 2px 0"></div>
           <div class="od-ribbon" id="od-ribbon"></div>
           <!-- Stammdaten block -->
           <div id="od-stammdaten" class="od-stammdaten"></div>
@@ -1516,6 +1518,46 @@ tr:hover td { background: var(--bg3); }
         .od-board-col-foot { padding:8px 12px; border-top:1px solid var(--border); background:var(--bg); }
         .od-board-col-total { font-size:11px; font-weight:700; color:var(--fg); }
         .od-board-col-wtotal { font-size:10px; color:var(--fg3); margin-top:1px; }
+        .od-board-card.selected { border-color:var(--accent); box-shadow:0 0 0 2px rgba(99,102,241,.3); }
+        .od-board-card.dragging { opacity:.45; }
+        .od-board-col.drag-over { background:rgba(99,102,241,.07); border-color:var(--accent); }
+        /* ── Order Stage Tracker ── */
+        #od-stage-tracker-board, #od-stage-tracker-table { margin-bottom:10px; }
+        .od-stage-tracker { background:var(--bg2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+        .tracker-header { display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid var(--border); background:var(--bg); }
+        .tracker-title { flex:1; display:flex; flex-direction:column; gap:1px; }
+        .tracker-order-ref { font-size:12px; font-weight:700; color:var(--accent); }
+        .tracker-cust { font-size:10px; color:var(--fg3); }
+        .tracker-cur-badge { font-size:10px; font-weight:600; background:rgba(99,102,241,.12); color:var(--accent); border:1px solid rgba(99,102,241,.25); border-radius:12px; padding:2px 9px; white-space:nowrap; }
+        .tracker-close-btn { border:none; background:transparent; color:var(--fg3); cursor:pointer; font-size:14px; padding:0 4px; line-height:1; }
+        .tracker-close-btn:hover { color:var(--fg); }
+        .tracker-groups { display:flex; flex-wrap:wrap; gap:0; padding:4px 8px 6px; }
+        .tracker-group { width:calc(25% - 2px); min-width:160px; flex-shrink:0; border-right:1px solid var(--border); }
+        .tracker-group:nth-child(4n) { border-right:none; }
+        .tracker-group-head { display:flex; align-items:center; gap:5px; padding:5px 8px; cursor:pointer; user-select:none; list-style:none; border-radius:4px; }
+        .tracker-group-head:hover { background:var(--bg3,rgba(255,255,255,.05)); }
+        .tracker-group-head::-webkit-details-marker { display:none; }
+        .tracker-grp-id { font-size:10px; font-weight:700; color:var(--fg3); min-width:36px; }
+        .tracker-grp-label { font-size:11px; font-weight:600; color:var(--fg); flex:1; }
+        .tracker-grp-dot { font-size:11px; }
+        .tracker-grp-cur .tracker-grp-id, .tracker-grp-cur .tracker-grp-label { color:var(--accent); }
+        .tracker-grp-done .tracker-grp-dot { color:#10b981; }
+        .tracker-grp-cur  .tracker-grp-dot { color:var(--accent); }
+        .tracker-group-body { padding:4px 8px 8px; display:flex; flex-direction:column; gap:3px; }
+        .tracker-status-row { display:flex; align-items:flex-start; gap:7px; padding:3px 4px; border-radius:4px; }
+        .tracker-status-row.tracker-status-cur { background:rgba(99,102,241,.1); }
+        .tracker-status-icon { font-size:10px; min-width:12px; padding-top:1px; }
+        .tracker-status-done .tracker-status-icon { color:#10b981; }
+        .tracker-status-cur  .tracker-status-icon { color:var(--accent); }
+        .tracker-status-fut  .tracker-status-icon { color:var(--fg3); }
+        .tracker-status-label { font-size:11px; }
+        .tracker-status-done  .tracker-status-label { color:var(--fg3); text-decoration:line-through; }
+        .tracker-status-cur   .tracker-status-label { color:var(--fg); font-weight:600; }
+        .tracker-status-fut   .tracker-status-label { color:var(--fg3); }
+        .tracker-footer { padding:8px 14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; background:var(--bg); }
+        .tracker-advance-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
+        .tracker-advance-btn.disabled, .tracker-advance-btn:disabled { background:var(--fg3); cursor:not-allowed; opacity:.6; }
+        .tracker-skip-btn { padding:5px 12px; background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); border-radius:5px; font-size:11px; cursor:pointer; }
 
         /* Detail Panel Tabs */
         .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
@@ -1783,15 +1825,65 @@ tr:hover td { background: var(--bg3); }
         ];
 
         // Map order status → PROCESS_STEPS index (0-7)
-        const STATUS_SP_IDX = {
-          ORDER_CREATED:         3,
-          PRE_PAYMENT_INVOICED:  3,
-          PRE_PAYMENT_DONE:      3,
-          DELIVERY_INVOICEABLE:  4,
-          FULL_PAYMENT_INVOICED: 5,
-          FULL_PAYMENT_DONE:     5,
-          ORDER_COMPLETED:       7,
-        };
+        // ── Single source of truth: SP_GROUPS (Process Wiki v0.7) ───────────────
+        const SP_GROUPS = [
+          { id:'SP-01', label:'Booking',    statuses:[
+              { key:'BOOKING_RECEIVED',          label:'Booking Received',          optional:false },
+              { key:'SALES_CONFIRMED',            label:'Sales Confirmed',            optional:false },
+              { key:'HANDOVER_TO_COORDINATION',   label:'Handover to Coordination',   optional:false },
+              { key:'CONTRACT_SIGNED',            label:'Contract Signed',            optional:true  },
+              { key:'PO_RECEIVED',                label:'PO Received',                optional:true  },
+            ]},
+          { id:'SP-02', label:'Trainer',    statuses:[
+              { key:'TRAINER_SELECTION',          label:'Trainer Selection',          optional:false },
+              { key:'TRAINER_RECRUITMENT',        label:'Trainer Recruitment',        optional:true  },
+              { key:'CANDIDATES_IDENTIFIED',      label:'Candidates Identified',      optional:false },
+              { key:'RECRUITMENT_DONE',           label:'Recruitment Done',           optional:false },
+              { key:'ALIGNMENT_CALL',             label:'Alignment Call',             optional:false },
+              { key:'DELIVERY_CONFIRMED',         label:'Delivery Confirmed',         optional:false },
+            ]},
+          { id:'SP-03', label:'Confirmation', statuses:[
+              { key:'ORDER_CONFIRMATION_SEND',    label:'Order Confirmation Send',    optional:false },
+            ]},
+          { id:'SP-04', label:'Order',      statuses:[
+              { key:'ORDER_CREATED',              label:'Order Created',              optional:false },
+              { key:'PRE_PAYMENT_INVOICED',       label:'Pre-Payment Invoiced',       optional:false },
+              { key:'PRE_PAYMENT_DONE',           label:'Pre-Payment Done',           optional:false },
+            ]},
+          { id:'SP-05', label:'Delivery',   statuses:[
+              { key:'PCQ_DONE',                   label:'PCQ Done',                   optional:false },
+              { key:'DELIVERY_READY',             label:'Delivery Ready',             optional:false },
+              { key:'DELIVERY_IN_PROGRESS',       label:'Delivery in Progress',       optional:false },
+              { key:'POST_EVALUATION',            label:'Post Evaluation',            optional:false },
+              { key:'DELIVERY_INVOICEABLE',       label:'Delivery Invoiceable',       optional:false },
+            ]},
+          { id:'SP-06', label:'Invoice',    statuses:[
+              { key:'FULL_PAYMENT_INVOICED',      label:'Full Payment Invoiced',      optional:false },
+              { key:'FULL_PAYMENT_DONE',          label:'Full Payment Done',          optional:false },
+            ]},
+          { id:'SP-07', label:'Closeout',   statuses:[
+              { key:'CERTIFICATES_SEND',          label:'Certificates Send',          optional:false },
+              { key:'HANDOVER_TO_ACCT_MGMT',      label:'Handover to Acct Mgmt',      optional:false },
+              { key:'DELIVERY_DONE',              label:'Delivery Done',              optional:false },
+            ]},
+          { id:'SP-08', label:'Completion', statuses:[
+              { key:'COMPLETION_CHECK',           label:'Completion Check',           optional:false },
+              { key:'ORDER_COMPLETED',            label:'Order Completed',            optional:false },
+            ]},
+        ];
+
+        // Derived lookups from SP_GROUPS
+        const STATUS_SP_IDX = {};   // status_key → group index (0-based)
+        const STATUS_META   = {};   // status_key → {phase, label, css, groupIdx, statusIdx, optional}
+        const STATUS_SEQUENCE = []; // flat ordered list of all status keys
+        SP_GROUPS.forEach((grp, gi) => {
+          grp.statuses.forEach((s, si) => {
+            STATUS_SP_IDX[s.key] = gi;
+            const css = s.key.toLowerCase().replace(/_/g,'-');
+            STATUS_META[s.key] = { phase:grp.id, label:s.label, css, groupIdx:gi, statusIdx:si, optional:s.optional };
+            STATUS_SEQUENCE.push(s.key);
+          });
+        });
 
         const MOCK = [
           { seq:'00001', customer:'Frequentis', region:'A', entity:'NP GER', sales:'DK', training:'Erweitertes Python: Best Practices und Design Patterns', days:'5', delivery:'', amount:'€12,500', amountNum:12500, status:'FULL_PAYMENT_DONE', location:'Online', contact:'Welling', po:false, paymentTerms:'', participants:'', date:'', link:'https://sube.nobleprog.com/en/lead/booking_v2/13a59d-15125a-69fc8bfcc9af0-at' },
@@ -1895,15 +1987,7 @@ tr:hover td { background: var(--bg3); }
           if(!o.enqTimezone)    o.enqTimezone    = o.region==='CH'?'Europe/Zurich':'Europe/Berlin';
         });
 
-        const STATUS_META = {
-          ORDER_CREATED:          { phase:'SP-04', label:'Order Created',          css:'sp04'  },
-          PRE_PAYMENT_INVOICED:   { phase:'SP-04', label:'Pre-Payment Invoiced',   css:'sp04b' },
-          PRE_PAYMENT_DONE:       { phase:'SP-04', label:'Pre-Payment Done',       css:'sp04c' },
-          DELIVERY_INVOICEABLE:   { phase:'SP-05', label:'Delivery Invoiceable',   css:'sp05'  },
-          FULL_PAYMENT_INVOICED:  { phase:'SP-06', label:'Full Payment Invoiced',  css:'sp06'  },
-          FULL_PAYMENT_DONE:      { phase:'SP-06', label:'Full Payment Done',       css:'sp06b' },
-          ORDER_COMPLETED:        { phase:'SP-08', label:'Order Completed',         css:'done'  },
-        };
+        // STAGE_CSS and STAGE_LABEL derived from SP_GROUPS via STATUS_META
         const STAGE_CSS   = Object.fromEntries(Object.entries(STATUS_META).map(([k,v])=>[k,v.css]));
         const STAGE_LABEL = Object.fromEntries(Object.entries(STATUS_META).map(([k,v])=>[k,`${v.phase} · ${v.label}`]));
 
@@ -2042,6 +2126,7 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-det-title').textContent = o.customer;
           document.getElementById('od-det-stage').innerHTML   = `<span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>`;
 
+          renderOrderStageTracker(idx, 'table');
           renderRibbon(idx);
           renderStammdaten(idx);
           renderStepBody(idx, viewingStepIdx);
@@ -2211,26 +2296,51 @@ tr:hover td { background: var(--bg3); }
         // mandatory: true = blocks status advancement (bypassed by admin/management)
         // role: default assignee role
         const TASK_TEMPLATES = {
-          'ORDER_CREATED':         [{ title:'Verify order details with client', mandatory:true,  role:'coordination' },
-                                    { title:'Create order in NP Backend',       mandatory:true,  role:'coordination' },
-                                    { title:'Send order confirmation to client', mandatory:true,  role:'coordination' }],
-          'PRE_PAYMENT_INVOICED':  [{ title:'Issue pre-payment invoice (30%)',   mandatory:true,  role:'finance' },
-                                    { title:'Log invoice in accounting system',  mandatory:false, role:'finance' }],
-          'PRE_PAYMENT_RECEIVED':  [{ title:'Confirm bank transfer received',    mandatory:true,  role:'finance' },
-                                    { title:'Update payment status',             mandatory:false, role:'finance' }],
-          'TRAINER_SEARCH':        [{ title:'Search suitable trainers',          mandatory:true,  role:'recruitment' },
-                                    { title:'Check trainer availability',        mandatory:true,  role:'recruitment' },
-                                    { title:'Get trainer quote',                 mandatory:false, role:'recruitment' }],
-          'TRAINER_BRIEFING':      [{ title:'Send training materials to trainer',mandatory:true,  role:'coordination' },
-                                    { title:'Conduct trainer briefing call',     mandatory:false, role:'coordination' }],
-          'TRAINING_CONFIRMED':    [{ title:'Send logistics info to participants',mandatory:true, role:'coordination' },
-                                    { title:'Confirm venue/remote setup',        mandatory:true,  role:'coordination' }],
-          'TRAINING_DELIVERED':    [{ title:'Collect participant feedback',      mandatory:true,  role:'coordination' },
-                                    { title:'Mark training as completed',        mandatory:true,  role:'coordination' }],
-          'FINAL_INVOICE_SENT':    [{ title:'Issue final invoice',               mandatory:true,  role:'finance' },
-                                    { title:'Send invoice to client',            mandatory:true,  role:'finance' }],
-          'PAYMENT_RECEIVED':      [{ title:'Confirm full payment received',     mandatory:true,  role:'finance' },
-                                    { title:'Archive order documents',           mandatory:false, role:'coordination' }],
+          'BOOKING_RECEIVED':         [{ title:'Log booking in system',                      mandatory:true,  role:'coordination' },
+                                       { title:'Send booking acknowledgement to client',     mandatory:true,  role:'coordination' }],
+          'SALES_CONFIRMED':          [{ title:'Confirm pricing and scope with sales',        mandatory:true,  role:'sales' },
+                                       { title:'Create deal in CRM (HubSpot)',               mandatory:false, role:'sales' }],
+          'HANDOVER_TO_COORDINATION': [{ title:'Handover briefing with coordinator',         mandatory:true,  role:'coordination' },
+                                       { title:'Share project brief',                        mandatory:true,  role:'coordination' }],
+          'TRAINER_SELECTION':        [{ title:'Identify suitable trainer(s)',               mandatory:true,  role:'recruitment' },
+                                       { title:'Check trainer availability',                 mandatory:true,  role:'recruitment' }],
+          'TRAINER_RECRUITMENT':      [{ title:'Post trainer vacancy if needed',             mandatory:false, role:'recruitment' },
+                                       { title:'Shortlist candidates',                       mandatory:true,  role:'recruitment' }],
+          'CANDIDATES_IDENTIFIED':    [{ title:'Send candidate profiles to client',          mandatory:false, role:'recruitment' },
+                                       { title:'Get internal approval on candidates',        mandatory:true,  role:'recruitment' }],
+          'RECRUITMENT_DONE':         [{ title:'Confirm selected trainer',                   mandatory:true,  role:'recruitment' },
+                                       { title:'Send trainer agreement',                     mandatory:true,  role:'recruitment' }],
+          'ALIGNMENT_CALL':           [{ title:'Schedule alignment call',                    mandatory:true,  role:'coordination' },
+                                       { title:'Send agenda & materials before call',        mandatory:false, role:'coordination' }],
+          'DELIVERY_CONFIRMED':       [{ title:'Confirm delivery date with trainer',         mandatory:true,  role:'coordination' },
+                                       { title:'Confirm delivery date with client',          mandatory:true,  role:'coordination' }],
+          'ORDER_CONFIRMATION_SEND':  [{ title:'Issue order confirmation document',          mandatory:true,  role:'coordination' },
+                                       { title:'Send order confirmation to client',          mandatory:true,  role:'coordination' }],
+          'ORDER_CREATED':            [{ title:'Verify order details with client',           mandatory:true,  role:'coordination' },
+                                       { title:'Create order in NP Backend',                mandatory:true,  role:'coordination' }],
+          'PRE_PAYMENT_INVOICED':     [{ title:'Issue pre-payment invoice (30%)',            mandatory:true,  role:'finance' },
+                                       { title:'Log invoice in accounting system',           mandatory:false, role:'finance' }],
+          'PRE_PAYMENT_DONE':         [{ title:'Confirm pre-payment received',               mandatory:true,  role:'finance' },
+                                       { title:'Update payment status in system',            mandatory:true,  role:'finance' }],
+          'PCQ_DONE':                 [{ title:'Complete pre-course questionnaire',          mandatory:true,  role:'coordination' },
+                                       { title:'Share PCQ results with trainer',            mandatory:false, role:'coordination' }],
+          'DELIVERY_READY':           [{ title:'Confirm room/remote setup ready',           mandatory:true,  role:'coordination' },
+                                       { title:'Send participant joining instructions',      mandatory:true,  role:'coordination' }],
+          'DELIVERY_IN_PROGRESS':     [{ title:'Confirm trainer on-site / online',          mandatory:true,  role:'coordination' }],
+          'POST_EVALUATION':          [{ title:'Distribute evaluation forms to participants',mandatory:true,  role:'coordination' },
+                                       { title:'Collect and review evaluation scores',      mandatory:true,  role:'coordination' }],
+          'DELIVERY_INVOICEABLE':     [{ title:'Mark delivery as invoiceable',              mandatory:true,  role:'finance' }],
+          'FULL_PAYMENT_INVOICED':    [{ title:'Issue final invoice',                        mandatory:true,  role:'finance' },
+                                       { title:'Send invoice to client',                    mandatory:true,  role:'finance' }],
+          'FULL_PAYMENT_DONE':        [{ title:'Confirm full payment received',             mandatory:true,  role:'finance' },
+                                       { title:'Archive order documents',                   mandatory:false, role:'coordination' }],
+          'CERTIFICATES_SEND':        [{ title:'Issue participation certificates',          mandatory:true,  role:'coordination' },
+                                       { title:'Send certificates to participants',         mandatory:true,  role:'coordination' }],
+          'HANDOVER_TO_ACCT_MGMT':    [{ title:'Handover to account management',           mandatory:true,  role:'management' }],
+          'DELIVERY_DONE':            [{ title:'Mark delivery as fully complete',           mandatory:true,  role:'coordination' }],
+          'COMPLETION_CHECK':         [{ title:'Review all tasks are completed',            mandatory:true,  role:'management' },
+                                       { title:'Close out any open action items',           mandatory:false, role:'management' }],
+          'ORDER_COMPLETED':          [{ title:'Archive full order file',                   mandatory:false, role:'coordination' }],
         };
 
         // ── In-memory stores ─────────────────────────────────────────────────
@@ -2485,24 +2595,15 @@ tr:hover td { background: var(--bg3); }
         // ── Board View ───────────────────────────────────────────────────────
         let _currentView = 'table'; // 'table' | 'board'
 
-        const SP_PHASES = [
-          { id:'SP-01', label:'Enquiry',       statuses:['ENQUIRY_RECEIVED','ENQUIRY_IN_PROGRESS'] },
-          { id:'SP-02', label:'Quote',          statuses:['QUOTE_DRAFT','QUOTE_SENT','QUOTE_NEGOTIATION'] },
-          { id:'SP-03', label:'Booking',        statuses:['BOOKING_CONFIRMED','BOOKING_PENDING_DOCS'] },
-          { id:'SP-04', label:'Order',          statuses:['ORDER_CREATED','ORDER_ON_HOLD'] },
-          { id:'SP-05', label:'Assignment',     statuses:['TRAINER_SEARCH','TRAINER_BRIEFING','TRAINER_CONFIRMED'] },
-          { id:'SP-06', label:'Training',       statuses:['TRAINING_CONFIRMED','TRAINING_IN_PROGRESS','TRAINING_DELIVERED'] },
-          { id:'SP-07', label:'Invoice',        statuses:['FINAL_INVOICE_SENT','INVOICE_DISPUTED'] },
-          { id:'SP-08', label:'Payment',        statuses:['PAYMENT_PARTIAL','PAYMENT_RECEIVED','ORDER_COMPLETED','ORDER_CANCELLED'] },
-        ];
+        // SP_PHASES derived from SP_GROUPS for board compatibility
+        const SP_PHASES = SP_GROUPS.map(g => ({
+          id: g.id,
+          label: g.label,
+          statuses: g.statuses.map(s => s.key),
+        }));
 
         function getPhaseForStatus(status){
-          for(const ph of SP_PHASES){
-            if(ph.statuses.includes(status)) return ph.id;
-          }
-          // Fallback: use PRE_PAYMENT statuses → SP-04
-          if(status && status.includes('PRE_PAYMENT')) return 'SP-04';
-          return 'SP-04';
+          return (STATUS_META[status] || { phase:'SP-04' }).phase;
         }
 
         window.setOrderView = function(view){
@@ -2544,10 +2645,10 @@ tr:hover td { background: var(--bg3); }
             if(cols[phase]) cols[phase].push(o);
           });
 
-          // KPI bar
-          const totalAmt = filtered.reduce((s,o)=>s+(o.amount||0),0);
-          const openAmt  = filtered.filter(o=>o.status!=='ORDER_COMPLETED'&&o.status!=='ORDER_CANCELLED').reduce((s,o)=>s+(o.amount||0),0);
-          const fmtEur   = n => '€'+Math.round(n).toLocaleString('de-DE');
+          // KPI bar — use amountNum (number), not amount (string like "€12,500")
+          const totalAmt = filtered.reduce((s,o)=>s+(o.amountNum||0),0);
+          const openAmt  = filtered.filter(o=>o.status!=='ORDER_COMPLETED'&&o.status!=='COMPLETION_CHECK').reduce((s,o)=>s+(o.amountNum||0),0);
+          const fmtEur   = n => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
 
           const kpiBar = `<div style="display:flex;gap:16px;padding:8px 2px 10px;flex-shrink:0">
             <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
@@ -2566,7 +2667,7 @@ tr:hover td { background: var(--bg3); }
 
           const boardHtml = SP_PHASES.map(ph => {
             const orders = cols[ph.id];
-            const colTotal = orders.reduce((s,o)=>s+(o.amount||0),0);
+            const colTotal = orders.reduce((s,o)=>s+(o.amountNum||0),0); // fix: use amountNum
             const cards = orders.map(o => {
               const oIdx = MOCK.indexOf(o);
               const acts = ACTIVITIES_STORE[o.seq] || [];
@@ -2575,11 +2676,18 @@ tr:hover td { background: var(--bg3); }
               const taskBadge = hasTasks
                 ? `<span class="od-board-card-tasks ${openTasks>0?'has-open':'all-done'}">${openTasks>0?openTasks+' open':'✓ done'}</span>`
                 : '';
-              return `<div class="od-board-card" onclick="showDetail(${oIdx})">
+              const amtDisplay = o.amountNum ? new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(o.amountNum) : '—';
+              // single click = load tracker; double click = open detail panel
+              return `<div class="od-board-card" data-idx="${oIdx}"
+                  onclick="boardCardClick(event,${oIdx})"
+                  ondblclick="boardCardDblClick(event,${oIdx})"
+                  draggable="true"
+                  ondragstart="boardDragStart(event,${oIdx})"
+                  title="Click: stage tracker · Double-click: open detail">
                 <div class="od-board-card-title">${o.seq||''}</div>
                 <div class="od-board-card-sub">${o.customer||''} · ${o.training||''}</div>
                 <div class="od-board-card-row">
-                  <span class="od-board-card-amt">${o.amount ? '€'+Math.round(o.amount).toLocaleString('de-DE') : '—'}</span>
+                  <span class="od-board-card-amt">${amtDisplay}</span>
                   <span class="od-board-card-date">${o.delivery||''}</span>
                 </div>
                 <div class="od-board-card-footer">
@@ -2589,7 +2697,9 @@ tr:hover td { background: var(--bg3); }
               </div>`;
             }).join('');
 
-            return `<div class="od-board-col" data-phase="${ph.id}">
+            return `<div class="od-board-col" data-phase="${ph.id}"
+                ondragover="boardDragOver(event)"
+                ondrop="boardDrop(event,'${ph.id}')">
               <div class="od-board-col-head">
                 <div class="od-board-col-name">${ph.id} · ${ph.label}</div>
                 <div class="od-board-col-count">${orders.length} order${orders.length!==1?'s':''}</div>
@@ -2601,8 +2711,330 @@ tr:hover td { background: var(--bg3); }
             </div>`;
           }).join('');
 
-          el.innerHTML = kpiBar + `<div class="od-board">${boardHtml}</div>`;
+          el.innerHTML = kpiBar +
+            `<div id="od-stage-tracker-board"></div>` +
+            `<div class="od-board">${boardHtml}</div>`;
+
+          // Re-attach tracker if one was open
+          if(_selectedBoardIdx >= 0) renderOrderStageTracker(_selectedBoardIdx, 'board');
         }
+
+        // ── Board card interaction state ──────────────────────────────────────
+        let _selectedBoardIdx = -1;
+
+        window.boardCardClick = function(e, oIdx){
+          e.stopPropagation();
+          // Highlight selected card
+          document.querySelectorAll('.od-board-card').forEach(c => c.classList.remove('selected'));
+          const card = e.currentTarget;
+          if(card) card.classList.add('selected');
+          _selectedBoardIdx = oIdx;
+          renderOrderStageTracker(oIdx, 'board');
+        };
+
+        window.boardCardDblClick = function(e, oIdx){
+          e.stopPropagation();
+          _selectedBoardIdx = -1;
+          // Switch to table view, then open detail panel
+          setOrderView('table');
+          setTimeout(() => showDetail(oIdx), 50);
+        };
+
+        window.boardDragStart = function(e, oIdx){
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', String(oIdx));
+          e.currentTarget.classList.add('dragging');
+        };
+
+        window.boardDragOver = function(e){
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          e.currentTarget.classList.add('drag-over');
+        };
+
+        window.boardDrop = function(e, phaseId){
+          e.preventDefault();
+          e.currentTarget.classList.remove('drag-over');
+          const oIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+          if(isNaN(oIdx)) return;
+          document.querySelectorAll('.od-board-card').forEach(c=>c.classList.remove('dragging'));
+
+          const o = MOCK[oIdx];
+          const ph = SP_PHASES.find(p => p.id === phaseId);
+          if(!ph) return;
+          // Target = first status in that phase
+          const targetStatus = ph.statuses[0];
+          if(!targetStatus || o.status === targetStatus) return;
+
+          // Check mandatory blockers
+          if(hasMandatoryBlockers(o.seq) && !canBypassMandatory()){
+            showStatusModal(oIdx, targetStatus, true);
+          } else {
+            showStatusModal(oIdx, targetStatus, false);
+          }
+        };
+
+        // ── STAGE_FIELDS — mandatory fields per status ────────────────────────
+        const STAGE_FIELDS = {
+          BOOKING_RECEIVED:         [{ key:'customerName',  label:'Customer Name',       type:'text',   mandatory:true  },
+                                     { key:'trainingTitle', label:'Training Title',       type:'text',   mandatory:true  },
+                                     { key:'deliveryDate',  label:'Delivery Date',        type:'date',   mandatory:true  },
+                                     { key:'bookingRef',    label:'Booking Reference',    type:'text',   mandatory:false }],
+          SALES_CONFIRMED:          [{ key:'salesOwner',    label:'Sales Owner',          type:'text',   mandatory:true  },
+                                     { key:'confirmedAmt',  label:'Confirmed Amount (€)', type:'number', mandatory:true  }],
+          HANDOVER_TO_COORDINATION: [{ key:'coordinator',   label:'Coordinator',          type:'text',   mandatory:true  },
+                                     { key:'handoverDate',  label:'Handover Date',        type:'date',   mandatory:true  }],
+          CONTRACT_SIGNED:          [{ key:'contractDate',  label:'Contract Date',        type:'date',   mandatory:false },
+                                     { key:'contractRef',   label:'Contract Reference',   type:'text',   mandatory:false }],
+          PO_RECEIVED:              [{ key:'poNumber',      label:'PO Number',            type:'text',   mandatory:false },
+                                     { key:'poDate',        label:'PO Date',              type:'date',   mandatory:false }],
+          TRAINER_SELECTION:        [{ key:'trainerName',   label:'Trainer Name',         type:'text',   mandatory:true  },
+                                     { key:'trainerEmail',  label:'Trainer Email',        type:'text',   mandatory:true  }],
+          TRAINER_RECRUITMENT:      [{ key:'recruitNotes',  label:'Recruitment Notes',    type:'text',   mandatory:false }],
+          CANDIDATES_IDENTIFIED:    [{ key:'candidate1',    label:'Candidate 1',          type:'text',   mandatory:true  },
+                                     { key:'candidate2',    label:'Candidate 2',          type:'text',   mandatory:false }],
+          RECRUITMENT_DONE:         [{ key:'selectedTrainer',label:'Selected Trainer',    type:'text',   mandatory:true  }],
+          ALIGNMENT_CALL:           [{ key:'callDate',      label:'Call Date',            type:'date',   mandatory:true  },
+                                     { key:'callNotes',     label:'Call Notes',           type:'text',   mandatory:false }],
+          DELIVERY_CONFIRMED:       [{ key:'confirmedDate', label:'Confirmed Delivery Date', type:'date', mandatory:true }],
+          ORDER_CONFIRMATION_SEND:  [{ key:'confirmSentAt', label:'Confirmation Sent At', type:'date',   mandatory:true  },
+                                     { key:'confirmRef',    label:'Confirmation Ref',     type:'text',   mandatory:false }],
+          ORDER_CREATED:            [{ key:'orderRef',      label:'Order Reference',      type:'text',   mandatory:true  },
+                                     { key:'orderDate',     label:'Order Date',           type:'date',   mandatory:true  }],
+          PRE_PAYMENT_INVOICED:     [{ key:'invoiceRef',    label:'Invoice Reference',    type:'text',   mandatory:true  },
+                                     { key:'invoiceAmt',    label:'Invoice Amount (€)',   type:'number', mandatory:true  },
+                                     { key:'invoiceDate',   label:'Invoice Date',         type:'date',   mandatory:true  }],
+          PRE_PAYMENT_DONE:         [{ key:'paymentDate',   label:'Payment Date',         type:'date',   mandatory:true  },
+                                     { key:'paymentRef',    label:'Payment Reference',    type:'text',   mandatory:false }],
+          PCQ_DONE:                 [{ key:'pcqDate',       label:'PCQ Date',             type:'date',   mandatory:true  }],
+          DELIVERY_READY:           [{ key:'readyChecklist',label:'Readiness Confirmed',  type:'text',   mandatory:true  }],
+          DELIVERY_IN_PROGRESS:     [{ key:'startDate',     label:'Training Start Date',  type:'date',   mandatory:true  }],
+          POST_EVALUATION:          [{ key:'evalScore',     label:'Participant Score (avg)', type:'number', mandatory:false },
+                                     { key:'evalDate',      label:'Evaluation Date',      type:'date',   mandatory:true  }],
+          DELIVERY_INVOICEABLE:     [{ key:'invoiceableDate',label:'Invoiceable From',    type:'date',   mandatory:true  }],
+          FULL_PAYMENT_INVOICED:    [{ key:'fullInvRef',    label:'Full Invoice Ref',     type:'text',   mandatory:true  },
+                                     { key:'fullInvAmt',    label:'Full Invoice Amount (€)', type:'number', mandatory:true },
+                                     { key:'fullInvDate',   label:'Full Invoice Date',    type:'date',   mandatory:true  }],
+          FULL_PAYMENT_DONE:        [{ key:'fullPayDate',   label:'Payment Date',         type:'date',   mandatory:true  },
+                                     { key:'fullPayRef',    label:'Payment Reference',    type:'text',   mandatory:false }],
+          CERTIFICATES_SEND:        [{ key:'certSentDate',  label:'Certificates Sent',    type:'date',   mandatory:true  }],
+          HANDOVER_TO_ACCT_MGMT:    [{ key:'acctMgrName',   label:'Account Manager',      type:'text',   mandatory:true  }],
+          DELIVERY_DONE:            [{ key:'closedDate',    label:'Closed Date',          type:'date',   mandatory:true  }],
+          COMPLETION_CHECK:         [{ key:'checkNotes',    label:'Completion Notes',     type:'text',   mandatory:false }],
+          ORDER_COMPLETED:          [{ key:'completedDate', label:'Completed Date',       type:'date',   mandatory:true  }],
+        };
+
+        // Per-order stage data store: { [seq]: { [statusKey]: { [fieldKey]: value } } }
+        const STAGE_DATA = {};
+        function getStageData(seq, status){ return ((STAGE_DATA[seq]||{})[status]||{}); }
+        function setStageField(seq, status, key, val){
+          if(!STAGE_DATA[seq]) STAGE_DATA[seq] = {};
+          if(!STAGE_DATA[seq][status]) STAGE_DATA[seq][status] = {};
+          STAGE_DATA[seq][status][key] = val;
+        }
+
+        // ── Order Stage Tracker ───────────────────────────────────────────────
+        function renderOrderStageTracker(oIdx, context){
+          const targetId = context === 'board' ? 'od-stage-tracker-board' : 'od-stage-tracker-table';
+          const el = document.getElementById(targetId);
+          if(!el || oIdx < 0) return;
+          const o = MOCK[oIdx];
+          const curStatus = o.status;
+          const curMeta   = STATUS_META[curStatus] || {};
+
+          const groupsHtml = SP_GROUPS.map((grp, gi) => {
+            const isCurGrp = grp.statuses.some(s => s.key === curStatus);
+            const isCompletedGrp = grp.statuses.every(s => {
+              const sIdx = STATUS_SEQUENCE.indexOf(s.key);
+              const curIdx = STATUS_SEQUENCE.indexOf(curStatus);
+              return sIdx < curIdx;
+            });
+
+            const statusRows = grp.statuses.map(s => {
+              const sIdx = STATUS_SEQUENCE.indexOf(s.key);
+              const curIdx = STATUS_SEQUENCE.indexOf(curStatus);
+              const isCur  = s.key === curStatus;
+              const isDone = sIdx < curIdx;
+              const isFut  = sIdx > curIdx;
+              const fields = STAGE_FIELDS[s.key] || [];
+              const data   = getStageData(o.seq, s.key);
+
+              const fieldHtml = (isCur || isDone) && fields.length ? fields.map(f => {
+                const val = data[f.key] || '';
+                const dot = f.mandatory && !val ? '<span style="color:#ef4444;margin-left:2px">*</span>' : '';
+                return `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                  <label style="font-size:10px;color:var(--fg3);min-width:120px;flex-shrink:0">${f.label}${dot}</label>
+                  <input type="${f.type||'text'}" value="${val}"
+                    style="font-size:11px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--fg);width:140px"
+                    onchange="stageFieldChange('${o.seq}','${s.key}','${f.key}',this.value)"
+                    ${isFut ? 'disabled' : ''}>
+                </div>`;
+              }).join('') : '';
+
+              const rowClass = isCur ? 'tracker-status-cur' : isDone ? 'tracker-status-done' : 'tracker-status-fut';
+              const icon = isDone ? '✓' : isCur ? '▶' : s.optional ? '○' : '·';
+              return `<div class="tracker-status-row ${rowClass}" data-status="${s.key}">
+                <span class="tracker-status-icon">${icon}</span>
+                <div style="flex:1">
+                  <span class="tracker-status-label">${s.label}${s.optional ? ' <em style="font-size:9px;opacity:.6">optional</em>' : ''}</span>
+                  ${fieldHtml}
+                </div>
+              </div>`;
+            }).join('');
+
+            const grpDot = isCompletedGrp ? '✓' : isCurGrp ? '▶' : '·';
+            const grpCls = isCompletedGrp ? 'tracker-grp-done' : isCurGrp ? 'tracker-grp-cur' : 'tracker-grp-fut';
+            return `<details class="tracker-group ${grpCls}" ${isCurGrp ? 'open' : ''}>
+              <summary class="tracker-group-head">
+                <span class="tracker-grp-id">${grp.id}</span>
+                <span class="tracker-grp-label">${grp.label}</span>
+                <span class="tracker-grp-dot">${grpDot}</span>
+              </summary>
+              <div class="tracker-group-body">${statusRows}</div>
+            </details>`;
+          }).join('');
+
+          // Next status button
+          const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(curStatus) + 1];
+          const hasMand    = hasMandatoryBlockers(o.seq);
+          const canSkip    = canBypassMandatory();
+          const advBtn     = nextStatus
+            ? `<button class="tracker-advance-btn ${hasMand && !canSkip ? 'disabled' : ''}"
+                onclick="advanceOrderStatus(${oIdx},'${nextStatus}')"
+                ${hasMand && !canSkip ? 'disabled title="Open mandatory tasks must be completed first"' : ''}>
+                Advance to ${STATUS_META[nextStatus]?.label || nextStatus} →
+              </button>
+              ${hasMand && canSkip ? `<button class="tracker-skip-btn" onclick="advanceOrderStatus(${oIdx},'${nextStatus}',true)">Skip & Advance</button>` : ''}`
+            : `<div style="font-size:11px;color:var(--accent);padding:6px 0">✓ Order completed</div>`;
+
+          el.innerHTML = `<div class="od-stage-tracker">
+            <div class="tracker-header">
+              <div class="tracker-title">
+                <span class="tracker-order-ref">${o.seq}</span>
+                <span class="tracker-cust">${o.customer||''}</span>
+              </div>
+              <div class="tracker-cur-badge">${curMeta.phase||'—'} · ${curMeta.label||curStatus}</div>
+              <button class="tracker-close-btn" onclick="closeStageTracker('${context}')">✕</button>
+            </div>
+            <div class="tracker-groups">${groupsHtml}</div>
+            <div class="tracker-footer">${advBtn}</div>
+          </div>`;
+        }
+
+        window.closeStageTracker = function(context){
+          const id = context === 'board' ? 'od-stage-tracker-board' : 'od-stage-tracker-table';
+          const el = document.getElementById(id);
+          if(el) el.innerHTML = '';
+          if(context === 'board'){
+            _selectedBoardIdx = -1;
+            document.querySelectorAll('.od-board-card').forEach(c=>c.classList.remove('selected'));
+          }
+        };
+
+        window.stageFieldChange = function(seq, status, key, val){
+          setStageField(seq, status, key, val);
+        };
+
+        window.advanceOrderStatus = function(oIdx, targetStatus, skipMandatory){
+          if(!skipMandatory && hasMandatoryBlockers(MOCK[oIdx].seq) && !canBypassMandatory()){
+            showStatusModal(oIdx, targetStatus, true);
+            return;
+          }
+          showStatusModal(oIdx, targetStatus, !!skipMandatory);
+        };
+
+        // ── Status transition modal ───────────────────────────────────────────
+        window.showStatusModal = function(oIdx, targetStatus, withSkip){
+          const o = MOCK[oIdx];
+          const fromLabel = STATUS_META[o.status]?.label || o.status;
+          const toLabel   = STATUS_META[targetStatus]?.label || targetStatus;
+          const fields    = STAGE_FIELDS[targetStatus] || [];
+          const data      = getStageData(o.seq, targetStatus);
+
+          const fieldsHtml = fields.map(f => {
+            const val = data[f.key] || '';
+            const dot = f.mandatory ? '<span style="color:#ef4444">*</span>' : '';
+            return `<div style="margin-bottom:8px">
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:3px">${f.label} ${dot}</label>
+              <input id="smf_${f.key}" type="${f.type||'text'}" value="${val}"
+                style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:var(--fg);font-size:12px"
+                oninput="stageFieldChange('${o.seq}','${targetStatus}','${f.key}',this.value)">
+            </div>`;
+          }).join('');
+
+          const tasks  = (ACTIVITIES_STORE[o.seq]||[]).filter(e=>e.type==='task'&&!e.done);
+          const taskHtml = tasks.length ? `<div style="margin-top:8px;font-size:11px;color:var(--fg3);font-weight:600;margin-bottom:4px">Open tasks (${tasks.length})</div>` +
+            tasks.map(t => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px">
+              <input type="checkbox" ${t.mandatory ? 'disabled' : `onchange="toggleTask('${o.seq}',${t.id})"`}>
+              <span style="${t.mandatory ? 'color:#ef4444' : 'color:var(--fg2)'}">${t.taskTitle}${t.mandatory?' (mandatory)':''}</span>
+            </div>`).join('') : '';
+
+          const existing = document.getElementById('od-status-modal');
+          if(existing) existing.remove();
+
+          const modal = document.createElement('div');
+          modal.id = 'od-status-modal';
+          modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+          modal.innerHTML = `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:24px;width:420px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+            <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:4px">Advance Status</div>
+            <div style="font-size:12px;color:var(--fg3);margin-bottom:16px">
+              <strong style="color:var(--fg)">${o.seq}</strong> · ${fromLabel}
+              <span style="color:var(--accent)"> → </span>${toLabel}
+            </div>
+            ${fieldsHtml}
+            ${taskHtml}
+            ${withSkip && canBypassMandatory() ? `<div style="margin-top:8px;padding:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:11px;color:#f59e0b">⚠ Skipping mandatory fields/tasks — your action will be logged.</div>` : ''}
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+              <button onclick="document.getElementById('od-status-modal').remove()"
+                style="padding:6px 14px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--fg);font-size:12px;cursor:pointer">Cancel</button>
+              <button onclick="confirmStatusChange(${oIdx},'${targetStatus}',${!!withSkip})"
+                style="padding:6px 14px;border:none;border-radius:5px;background:var(--accent);color:#fff;font-size:12px;cursor:pointer;font-weight:600">Confirm</button>
+            </div>
+          </div>`;
+          document.body.appendChild(modal);
+          modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+        };
+
+        window.confirmStatusChange = function(oIdx, targetStatus, skipped){
+          const o = MOCK[oIdx];
+          const fromStatus = o.status;
+
+          // Log to activities
+          if(!ACTIVITIES_STORE[o.seq]) ACTIVITIES_STORE[o.seq] = [];
+          ACTIVITIES_STORE[o.seq].push({
+            id: Date.now(),
+            type: 'status_change',
+            author: 'You',
+            role: DEV_ROLE || 'management',
+            body: `Status advanced: <strong>${STATUS_META[fromStatus]?.label||fromStatus}</strong> → <strong>${STATUS_META[targetStatus]?.label||targetStatus}</strong>${skipped ? ' <em style="color:#f59e0b">(mandatory fields skipped)</em>' : ''}`,
+            ts: Date.now(),
+            fromStatus,
+            toStatus: targetStatus,
+            skipped: !!skipped,
+          });
+
+          // Update order status
+          o.status = targetStatus;
+
+          // Auto-create tasks for new status
+          createTasksForStatus(o.seq, targetStatus);
+
+          // Close modal
+          const modal = document.getElementById('od-status-modal');
+          if(modal) modal.remove();
+
+          // Re-render
+          if(_currentView === 'board'){
+            renderBoard();
+          } else {
+            if(currentOrderIdx >= 0) {
+              renderRibbon(currentOrderIdx);
+              renderActivities(currentOrderIdx);
+            }
+            renderOrderStageTracker(oIdx, 'table');
+          }
+          _updateActivitiesBadge(o.seq);
+        };
 
         // ── AI Insights ───────────────────────────────────────────────────────
         // Skeleton loader shown while "fetching"
