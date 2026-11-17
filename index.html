@@ -1612,6 +1612,10 @@ tr:hover td { background: var(--bg3); }
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Activities
             </button>
+            <button class="od-tab" data-tab="comments" onclick="switchDetailTab('comments')">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Comments
+            </button>
           </div>
           <div class="od-step-body" id="od-step-body"></div>
           <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
@@ -1619,6 +1623,7 @@ tr:hover td { background: var(--bg3); }
           <div id="od-liquidity-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-enquiry-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-activities-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
+          <div id="od-comments-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
@@ -1992,6 +1997,57 @@ tr:hover td { background: var(--bg3); }
         .od-enq-field input, .od-enq-field select, .od-enq-field textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:6px 9px; font-size:12px; color:var(--fg); box-sizing:border-box; }
         .od-enq-field input:focus, .od-enq-field select:focus, .od-enq-field textarea:focus { outline:none; border-color:var(--accent); }
         .od-enq-field textarea { resize:vertical; min-height:60px; }
+        .od-enq-ro { font-size:12px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:6px 9px; min-height:30px; word-break:break-all; }
+        .od-enq-section-badge { margin-left:8px; font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; background:var(--accent-muted,#3b82f622); color:var(--accent,#3b82f6); padding:2px 7px; border-radius:10px; }
+        .od-enq-comment-box { margin-top:10px; }
+        .od-enq-comment-box label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; display:block; margin-bottom:4px; }
+        .od-enq-comment-text { font-size:12px; color:var(--fg2); background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:8px 10px; font-style:italic; }
+
+        /* ── Comments Tab ──────────────────────────────────────────────────── */
+        #od-comments-body { overflow:hidden; }
+        .cmt-thread { flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:12px; }
+        .cmt-empty { text-align:center; color:var(--fg3); font-size:13px; padding:32px 0; }
+        .cmt-item { display:flex; flex-direction:column; gap:5px; }
+        .cmt-item.cmt-system { opacity:.7; }
+        .cmt-meta { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+        .cmt-avatar { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; flex-shrink:0; }
+        .cmt-meta-text { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+        .cmt-author { font-size:12px; font-weight:700; color:var(--fg); }
+        .cmt-role-badge { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:2px 6px; border-radius:8px; }
+        .cmt-stage-badge { font-size:9px; color:var(--fg3); background:var(--bg2,rgba(255,255,255,.06)); padding:2px 6px; border-radius:8px; }
+        .cmt-time { font-size:10px; color:var(--fg3); margin-left:4px; }
+        .cmt-body { font-size:12px; color:var(--fg2); line-height:1.55; padding-left:31px; }
+        .cmt-compose { flex-shrink:0; border-top:1px solid var(--border); padding:12px 16px; display:flex; flex-direction:column; gap:7px; }
+        .cmt-textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:12px; color:var(--fg); resize:vertical; box-sizing:border-box; }
+        .cmt-textarea:focus { outline:none; border-color:var(--accent,#3b82f6); }
+        .cmt-compose-footer { display:flex; align-items:center; justify-content:space-between; }
+        .cmt-compose-hint { font-size:10px; color:var(--fg3); }
+        .cmt-send-btn { background:var(--accent,#3b82f6); color:#fff; border:none; border-radius:5px; padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; }
+        .cmt-send-btn:hover { opacity:.88; }
+
+        /* ── Sales Confirmed Gateway ───────────────────────────────────────── */
+        .sc-gate { border-radius:8px; padding:14px 16px; margin-bottom:14px; border:1px solid var(--border); }
+        .sc-gate-pending  { background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.35); }
+        .sc-gate-approved { background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.35); }
+        .sc-gate-hold     { background:rgba(239,68,68,.07);  border-color:rgba(239,68,68,.3); }
+        .sc-gate-skipped  { background:rgba(99,102,241,.07); border-color:rgba(99,102,241,.3); }
+        .sc-gate-header   { display:flex; align-items:center; gap:7px; margin-bottom:8px; }
+        .sc-gate-icon     { font-size:14px; }
+        .sc-gate-title    { font-size:12px; font-weight:700; color:var(--fg); }
+        .sc-gate-by       { font-size:10px; color:var(--fg3); margin-left:auto; }
+        .sc-gate-note,.sc-gate-desc { font-size:12px; color:var(--fg2); line-height:1.5; margin-bottom:8px; }
+        .sc-gate-comment  { font-size:12px; font-style:italic; color:var(--fg2); background:rgba(255,255,255,.04); border-radius:5px; padding:6px 10px; margin-bottom:8px; }
+        .sc-gate-summary  { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; margin-bottom:12px; }
+        .sc-sum-row       { display:flex; justify-content:space-between; font-size:12px; color:var(--fg2); border-bottom:1px solid rgba(255,255,255,.05); padding-bottom:4px; }
+        .sc-sum-row strong{ color:var(--fg); }
+        .sc-comment-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:7px 10px; font-size:12px; color:var(--fg); resize:vertical; box-sizing:border-box; margin-bottom:10px; }
+        .sc-comment-input:focus { outline:none; border-color:var(--accent,#3b82f6); }
+        .sc-gate-actions  { display:flex; gap:8px; flex-wrap:wrap; }
+        .sc-btn           { border:none; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; }
+        .sc-btn-approve   { background:#10b981; color:#fff; }
+        .sc-btn-approve:hover { background:#059669; }
+        .sc-btn-hold      { background:rgba(239,68,68,.15); color:#ef4444; border:1px solid rgba(239,68,68,.3); }
+        .sc-btn-hold:hover{ background:rgba(239,68,68,.25); }
 
         /* ── New Order slide-in panel ──────────────────────────────────────── */
         .no-backdrop { display:none; }
@@ -2315,6 +2371,38 @@ tr:hover td { background: var(--bg3); }
           if(!o.enqDays)        o.enqDays        = o.days||1;
           if(!o.enqCurrency)    o.enqCurrency    = o.region==='CH'?'CHF':'EUR';
           if(!o.enqTimezone)    o.enqTimezone    = o.region==='CH'?'Europe/Zurich':'Europe/Berlin';
+
+          // ── Enquiry / Booking enrichment (from real "New Enquiry" / "New Booking" emails) ──
+          if(!o.enquiryId)      o.enquiryId      = `ENQ-${2024}-${String(5000+i).padStart(5,'0')}`;
+          if(!o.enquiryPortal)  o.enquiryPortal  = ['nobleprog.de','nobleprog.ch','nobleprog.at'][i%3];
+          if(!o.refererUrl)     o.refererUrl     = `https://www.${o.enquiryPortal}/courses/${(o.enqCourseCode||'').toLowerCase()||'python-training'}`;
+          if(!o.customerComment) o.customerComment = i%4===0?'Please schedule for early morning if possible.':i%4===1?'Prefer online delivery.':'';
+
+          if(!o.bookingId)      o.bookingId      = `BK-DACH-2024-${String(1+i).padStart(4,'0')}`;
+          if(!o.bookingStartDate) o.bookingStartDate = o.enqStartDate || '';
+          if(!o.bookingEndDate)   o.bookingEndDate   = o.enqEndDate   || '';
+          if(!o.bookingCourseType) o.bookingCourseType = o.enqCourseType;
+          if(!o.bookingTotalPrice) o.bookingTotalPrice = o.amountNum ? `${o.enqCurrency||'EUR'} ${o.amountNum.toLocaleString('de-DE',{minimumFractionDigits:2})}` : '';
+          if(!o.bookingPaymentMethod) o.bookingPaymentMethod = i%3===0?'Invoice 30 days':i%3===1?'Invoice 14 days':'Prepayment';
+          if(!o.participantsUrl)  o.participantsUrl  = `https://www.${o.enquiryPortal}/booking/${o.bookingId}/participants`;
+          if(!o.bookingContactJobtitle) o.bookingContactJobtitle = i%4===0?'HR Manager':i%4===1?'IT Manager':i%4===2?'Training Coordinator':'L&D Specialist';
+          if(!o.bookingCustomerLocation) o.bookingCustomerLocation = o.enqAddress || '';
+
+          // ── Sales Confirmed gateway fields ──
+          if(!o.salesConfirmedAction) o.salesConfirmedAction = null; // null | 'approved' | 'hold'
+          if(!o.salesConfirmedComment) o.salesConfirmedComment = '';
+          if(!o.salesConfirmedBy) o.salesConfirmedBy = '';
+          if(o.salesConfirmedSkip === undefined) o.salesConfirmedSkip = false; // true = pre-quoted, skip gate
+
+          // ── Comments (mirrored from process steps + direct) ──
+          if(!o.comments) o.comments = [
+            { id:`cmt-${i}-1`, author:'System', role:'system', spStage:'SP-01', statusId:'BOOKING_RECEIVED',
+              text:`New enquiry received via ${o.enquiryPortal}. Booking ID: ${o.bookingId}.`, createdAt:'2024-'+String(1+(i%12)).padStart(2,'0')+'-10T08:12:00Z', type:'system' },
+            { id:`cmt-${i}-2`, author: i%2===0?'Anna M.':'Thomas K.', role:'coordination', spStage:'SP-01', statusId:'BOOKING_RECEIVED',
+              text: i%3===0?'Course confirmed with trainer. All details correct.':i%3===1?'Waiting for final participant count from customer.':'Availability checked — trainer confirmed.', createdAt:'2024-'+String(1+(i%12)).padStart(2,'0')+'-11T10:30:00Z', type:'comment' },
+            { id:`cmt-${i}-3`, author: i%2===0?'Max S.':'Julia B.', role:'sales', spStage:'SP-02', statusId:'QUOTE_SENT',
+              text: i%2===0?'Quote sent to customer. Waiting for PO.':'Customer requested revision of quote — adjusted price.', createdAt:'2024-'+String(1+(i%12)).padStart(2,'0')+'-12T14:05:00Z', type:'comment' },
+          ];
         });
 
         // STAGE_CSS and STAGE_LABEL derived from SP_GROUPS via STATUS_META
@@ -2453,11 +2541,69 @@ tr:hover td { background: var(--bg3); }
             </div>`;
           }).join('');
 
+          // ── Sales Confirmed gateway ───────────────────────────────────────────
+          let scGatewayHtml = '';
+          if(spGrp && spGrp.statuses.some(s=>s.key==='SALES_CONFIRMED')){
+            if(o.salesConfirmedSkip){
+              scGatewayHtml = `<div class="sc-gate sc-gate-skipped">
+                <div class="sc-gate-header">
+                  <span class="sc-gate-icon">⚡</span>
+                  <span class="sc-gate-title">Sales Confirmed — Skipped</span>
+                </div>
+                <div class="sc-gate-note">Pre-quoted booking — Sales Confirmed gate was bypassed automatically. Order proceeded directly to Handover to Coordination.</div>
+              </div>`;
+            } else if(o.salesConfirmedAction==='approved'){
+              scGatewayHtml = `<div class="sc-gate sc-gate-approved">
+                <div class="sc-gate-header">
+                  <span class="sc-gate-icon">✅</span>
+                  <span class="sc-gate-title">Sales Confirmed — Approved</span>
+                  <span class="sc-gate-by">by ${o.salesConfirmedBy||'Sales'}</span>
+                </div>
+                ${o.salesConfirmedComment?`<div class="sc-gate-comment">"${o.salesConfirmedComment}"</div>`:''}
+              </div>`;
+            } else if(o.salesConfirmedAction==='hold'){
+              scGatewayHtml = `<div class="sc-gate sc-gate-hold">
+                <div class="sc-gate-header">
+                  <span class="sc-gate-icon">⏸</span>
+                  <span class="sc-gate-title">Sales Confirmed — On Hold</span>
+                  <span class="sc-gate-by">by ${o.salesConfirmedBy||'Sales'}</span>
+                </div>
+                <div class="sc-gate-comment">"${o.salesConfirmedComment}"</div>
+                <div class="sc-gate-actions">
+                  <button class="sc-btn sc-btn-approve" onclick="salesConfirmGateway(${oIdx},'approved')">✅ Approve now</button>
+                </div>
+              </div>`;
+            } else {
+              // No decision yet — show gateway form
+              const price = o.bookingTotalPrice||o.amount||'—';
+              const margin = o.profitMargin ? o.profitMargin+'%' : '—';
+              scGatewayHtml = `<div class="sc-gate sc-gate-pending">
+                <div class="sc-gate-header">
+                  <span class="sc-gate-icon">🔑</span>
+                  <span class="sc-gate-title">Sales Confirmed — Gateway</span>
+                </div>
+                <div class="sc-gate-summary">
+                  <div class="sc-sum-row"><span>Total Price</span><strong>${price}</strong></div>
+                  <div class="sc-sum-row"><span>Margin</span><strong>${margin}</strong></div>
+                  <div class="sc-sum-row"><span>Payment Method</span><strong>${o.bookingPaymentMethod||'—'}</strong></div>
+                  <div class="sc-sum-row"><span>Course Type</span><strong>${o.bookingCourseType||o.enqCourseType||'—'}</strong></div>
+                </div>
+                <div class="sc-gate-desc">Review the booking details and either approve or place on hold with a note.</div>
+                <textarea id="sc-comment-${oIdx}" class="sc-comment-input" placeholder="Comment (required for Hold)…" rows="2"></textarea>
+                <div class="sc-gate-actions">
+                  <button class="sc-btn sc-btn-approve" onclick="salesConfirmGateway(${oIdx},'approved')">✅ Confirm &amp; Approve</button>
+                  <button class="sc-btn sc-btn-hold" onclick="salesConfirmGateway(${oIdx},'hold')">⏸ Hold — Needs Clarification</button>
+                </div>
+              </div>`;
+            }
+          }
+
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
               <span class="od-step-status">${statusLabel}</span>
             </div>
+            ${scGatewayHtml}
             ${stageFieldsHtml}
             <div class="od-section-label">Fields</div>
             <div class="od-fields">${fieldsHtml}</div>
@@ -2748,12 +2894,15 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-enquiry-body').style.display   = tab==='enquiry'     ? '' : 'none';
           const ab = document.getElementById('od-activities-body');
           if(ab) ab.style.display = tab==='activities' ? 'flex' : 'none';
+          const cb = document.getElementById('od-comments-body');
+          if(cb) cb.style.display = tab==='comments' ? 'flex' : 'none';
           if(currentOrderIdx < 0) return;
           if(tab==='insights')    renderInsights(currentOrderIdx);
           if(tab==='costs')       renderCosts(currentOrderIdx);
           if(tab==='liquidity')   renderLiquidity(currentOrderIdx);
           if(tab==='enquiry')     renderEnquiry(currentOrderIdx);
           if(tab==='activities')  renderActivities(currentOrderIdx);
+          if(tab==='comments')    renderComments(currentOrderIdx);
         };
 
         // ── Activities / Task Management / Board ─────────────────────────────
@@ -4242,25 +4391,80 @@ tr:hover td { background: var(--bg3); }
         }
 
         // ── Enquiry tab ───────────────────────────────────────────────────────
+        // ── renderComments ────────────────────────────────────────────────────
+        function renderComments(oIdx){
+          const o = MOCK[oIdx];
+          const comments = (o.comments || []).slice().sort((a,b)=>a.createdAt<b.createdAt?-1:1);
+          const roleColor = r => ({management:'#6366f1',admin:'#6366f1',coordination:'#f59e0b',finance:'#10b981',sales:'#3b82f6',recruitment:'#8b5cf6',system:'#64748b',trainer:'#ec4899'}[r]||'#64748b');
+          const fmtDate = s => { try{ const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return s; } };
+
+          const threadHtml = comments.length ? comments.map(c=>`
+            <div class="cmt-item ${c.type==='system'?'cmt-system':''}">
+              <div class="cmt-meta">
+                <span class="cmt-avatar" style="background:${roleColor(c.role)}">${c.author.charAt(0).toUpperCase()}</span>
+                <div class="cmt-meta-text">
+                  <span class="cmt-author">${c.author}</span>
+                  <span class="cmt-role-badge" style="background:${roleColor(c.role)}22;color:${roleColor(c.role)}">${c.role}</span>
+                  <span class="cmt-stage-badge">${c.spStage} · ${c.statusId.replace(/_/g,' ')}</span>
+                  <span class="cmt-time">${fmtDate(c.createdAt)}</span>
+                </div>
+              </div>
+              <div class="cmt-body">${c.text}</div>
+            </div>`).join('') : '<div class="cmt-empty">No comments yet.</div>';
+
+          document.getElementById('od-comments-body').innerHTML = `
+            <div class="cmt-thread">${threadHtml}</div>
+            <div class="cmt-compose">
+              <textarea id="cmt-input-${oIdx}" class="cmt-textarea" rows="3" placeholder="Write a comment…"></textarea>
+              <div class="cmt-compose-footer">
+                <span class="cmt-compose-hint">Visible to all team members</span>
+                <button class="cmt-send-btn" onclick="submitComment(${oIdx})">Post Comment</button>
+              </div>
+            </div>`;
+          // scroll thread to bottom
+          const thread = document.querySelector('.cmt-thread');
+          if(thread) thread.scrollTop = thread.scrollHeight;
+        }
+
+        window.submitComment = function(oIdx){
+          const inp = document.getElementById('cmt-input-'+oIdx);
+          const text = (inp&&inp.value||'').trim();
+          if(!text) return;
+          const o = MOCK[oIdx];
+          if(!o.comments) o.comments = [];
+          o.comments.push({
+            id: 'cmt-new-'+Date.now(), author:'You', role:'coordination',
+            spStage:'—', statusId: o.status||'—',
+            text, createdAt: new Date().toISOString(), type:'comment'
+          });
+          renderComments(oIdx);
+          showToast('Comment posted');
+        };
+
+        // ── renderEnquiry: extend with Booking Received data ──────────────────
         function renderEnquiry(oIdx){
           const o = MOCK[oIdx];
-          const field = (id,label,val,type='text',opts)=>{
+          const field = (id,label,val,type,opts)=>{
             if(type==='select'){
               return `<div class="od-enq-field"><label>${label}</label>
                 <select onchange="MOCK[${oIdx}].${id}=this.value">
-                  ${opts.map(op=>`<option value="${op}" ${val===op?'selected':''}>${op}</option>`).join('')}
+                  ${(opts||[]).map(op=>`<option value="${op}" ${val===op?'selected':''}>${op}</option>`).join('')}
                 </select></div>`;
             }
             return `<div class="od-enq-field"><label>${label}</label>
-              <input type="${type}" value="${val||''}" placeholder="${label}"
+              <input type="${type||'text'}" value="${val||''}" placeholder="${label}"
                 oninput="MOCK[${oIdx}].${id}=this.value"></div>`;
           };
           const fullField = (id,label,val)=>`<div class="od-enq-field full"><label>${label}</label>
             <input type="text" value="${val||''}" placeholder="${label}"
               oninput="MOCK[${oIdx}].${id}=this.value"></div>`;
+          const roField = (label,val)=>`<div class="od-enq-field"><label>${label}</label>
+            <div class="od-enq-ro">${val||'—'}</div></div>`;
+          const roFullField = (label,val)=>`<div class="od-enq-field full"><label>${label}</label>
+            <div class="od-enq-ro">${val||'—'}</div></div>`;
 
           document.getElementById('od-enquiry-body').innerHTML = `
-            <!-- Header metadata -->
+            <!-- Reference -->
             <div class="od-enq-section">
               <div class="od-enq-section-title">Reference</div>
               <div class="od-enq-fields">
@@ -4271,7 +4475,7 @@ tr:hover td { background: var(--bg3); }
               </div>
             </div>
 
-            <!-- Client block -->
+            <!-- Client -->
             <div class="od-enq-section">
               <div class="od-enq-section-title">Client</div>
               <div class="od-enq-fields">
@@ -4280,33 +4484,67 @@ tr:hover td { background: var(--bg3); }
                 ${field('enqPhone','Phone',o.enqPhone,'tel')}
                 ${field('enqEmail','Email',o.enqEmail,'email')}
                 ${field('enqJobRole','Job Role',o.enqJobRole)}
+                ${field('bookingContactJobtitle','Job Title',o.bookingContactJobtitle)}
                 ${fullField('enqAddress','Address',o.enqAddress)}
               </div>
             </div>
 
-            <!-- Course / Quote block -->
+            <!-- Enquiry Data (from New Enquiry email) -->
             <div class="od-enq-section">
-              <div class="od-enq-section-title">Course / Quote</div>
+              <div class="od-enq-section-title">
+                Enquiry Data
+                <span class="od-enq-section-badge">From New Enquiry Email</span>
+              </div>
               <div class="od-enq-fields">
+                ${roField('Enquiry ID',o.enquiryId)}
+                ${roField('Portal',o.enquiryPortal)}
                 ${field('enqCourseCode','Course Code',o.enqCourseCode)}
                 ${field('enqCourseName','Course Name',o.enqCourseName)}
                 ${field('enqCourseType','Course Type',o.enqCourseType,'select',['Private','Public','Online'])}
                 ${field('enqLanguage','Language',o.enqLanguage,'select',['German','English','French'])}
-                ${field('enqStartDate','Start Date',o.enqStartDate,'date')}
-                ${field('enqEndDate','End Date',o.enqEndDate,'date')}
                 ${field('enqLocationType','Location Type',o.enqLocationType,'select',['Online','Inhouse','Client Site'])}
-                ${field('enqCurrency','Currency',o.enqCurrency,'select',['EUR','CHF','USD'])}
-              </div>
-              <div class="od-enq-fields cols3" style="margin-top:10px">
                 ${field('enqParticipants','Participants',o.enqParticipants,'number')}
                 ${field('enqMaxParticipants','Max Participants',o.enqMaxParticipants,'number')}
-                ${field('enqDays','No. of Days',o.enqDays,'number')}
+                ${field('enqDays','Days',o.enqDays,'number')}
                 ${field('enqDailyHours','Daily Hours',o.enqDailyHours,'number')}
                 ${field('enqDurationHrs','Duration (hrs)',o.enqDurationHrs,'number')}
+                ${field('enqCurrency','Currency',o.enqCurrency,'select',['EUR','CHF','USD'])}
                 ${field('enqTimezone','Timezone',o.enqTimezone,'select',['Europe/Berlin','Europe/Zurich','Europe/Vienna','UTC'])}
+                ${roFullField('Referer URL',o.refererUrl?`<a href="${o.refererUrl}" target="_blank" style="color:var(--accent)">${o.refererUrl}</a>`:'')}
               </div>
+              ${o.customerComment?`<div class="od-enq-comment-box"><label>Customer Comment</label><div class="od-enq-comment-text">${o.customerComment}</div></div>`:''}
+            </div>
+
+            <!-- Booking Data (from New Booking email) -->
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">
+                Booking Data
+                <span class="od-enq-section-badge" style="background:var(--green-soft,#10b98122);color:var(--green,#10b981)">From New Booking Email</span>
+              </div>
+              <div class="od-enq-fields">
+                ${roField('Booking ID',o.bookingId)}
+                ${field('bookingStartDate','Start Date',o.bookingStartDate,'date')}
+                ${field('bookingEndDate','End Date',o.bookingEndDate,'date')}
+                ${field('bookingCourseType','Course Type',o.bookingCourseType,'select',['Private','Public','Online'])}
+                ${roField('Total Price',o.bookingTotalPrice)}
+                ${field('bookingPaymentMethod','Payment Method',o.bookingPaymentMethod,'select',['Invoice 30 days','Invoice 14 days','Prepayment'])}
+              </div>
+              ${o.participantsUrl?`<div class="od-enq-fields" style="margin-top:8px">${roFullField('Participants URL',`<a href="${o.participantsUrl}" target="_blank" style="color:var(--accent)">${o.participantsUrl}</a>`)}</div>`:''}
             </div>`;
         }
+
+        // ── Sales Confirmed Gateway UI ─────────────────────────────────────────
+        window.salesConfirmGateway = function(oIdx, action){
+          const o = MOCK[oIdx];
+          const commentEl = document.getElementById('sc-comment-'+oIdx);
+          const comment = commentEl ? commentEl.value.trim() : '';
+          if(action==='hold' && !comment){ showToast('Please add a comment when placing on hold.','warn'); commentEl&&commentEl.focus(); return; }
+          o.salesConfirmedAction  = action;
+          o.salesConfirmedComment = comment;
+          o.salesConfirmedBy      = 'You';
+          renderStep(oIdx, viewingStepIdx);
+          showToast(action==='approved'?'Sales Confirmed ✓':'Order placed on hold');
+        };
 
         window._ordersInit = function(){ render(MOCK); updateKPIs(); applyNavAccess(); };
         window._ordersInit();
