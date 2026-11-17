@@ -1974,6 +1974,14 @@ tr:hover td { background: var(--bg3); }
         .od-pricing-field input:focus { outline:none; border-color:var(--accent); }
         .od-profit-pos { color:#34d399; font-weight:600; }
         .od-profit-neg { color:#f87171; font-weight:600; }
+        .cb-field-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; background:var(--bg2); border-radius:7px; border:1px solid var(--border); }
+        .cb-field-label { display:flex; flex-direction:column; gap:2px; }
+        .cb-field-label span:first-child { font-size:13px; color:var(--fg); font-weight:500; }
+        .cb-field-hint { font-size:11px; color:var(--fg3); }
+        .cb-field-input-wrap { display:flex; align-items:center; gap:5px; }
+        .cb-cur-prefix { font-size:11px; color:var(--fg3); font-weight:600; min-width:28px; text-align:right; }
+        .cb-simple-input { width:110px; text-align:right; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:5px 8px; font-size:13px; color:var(--fg); font-weight:500; }
+        .cb-simple-input:focus { outline:none; border-color:var(--accent); }
 
         /* ── Liquidity tab ─────────────────────────────────────────────────── */
         .od-liq-table { width:100%; border-collapse:collapse; font-size:12px; }
@@ -4187,121 +4195,115 @@ tr:hover td { background: var(--bg3); }
 
         // ── Cost Breakdown tab ────────────────────────────────────────────────
         function renderCosts(oIdx){
-          const o = MOCK[oIdx];
-          const cb = o.costBreakdown || {};
-          const fmt = v => v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
-          const fmtCur = v => v.toLocaleString('de-DE',{style:'currency',currency:o.region==='CH'?'CHF':'EUR',maximumFractionDigits:2});
-          const ITEMS = [
-            ['trainer',       'Trainer'],
-            ['material',      'Material'],
-            ['certificate',   'Certificate'],
-            ['hardware',      'Hardware'],
-            ['catering',      'Catering'],
-            ['remoteDesktop', 'Remote Desktop'],
-            ['other',         'Other'],
-          ];
-          const totalCost = ITEMS.reduce((s,[k])=>s+((cb[k]?.unitCost||0)*(cb[k]?.qty||1)),0);
-          const margin    = o.profitMargin||20;
-          const taxRate   = o.taxRate||(o.region==='CH'?8.1:19);
-          const franchFee = o.franchiseeFee||0;
-          const basePrice = totalCost / (1 - margin/100);
-          const firstPart = totalCost>0 ? +(basePrice*0.4).toFixed(2) : 0;
-          const addPart   = totalCost>0 ? +(basePrice*0.1).toFixed(2) : 0;
-          const avgPart   = (o.participants||1)>0 ? +(basePrice/(o.participants||1)).toFixed(2) : 0;
-          const profit    = basePrice - totalCost;
-          const profitPct = totalCost>0 ? ((profit/basePrice)*100).toFixed(1) : '—';
-          const priceAfterTax = +(basePrice*(1+taxRate/100)).toFixed(2);
+          const o   = MOCK[oIdx];
+          const cur = o.region==='CH' ? 'CHF' : 'EUR';
+          const fmtCur = v => v.toLocaleString('de-DE',{style:'currency',currency:cur,maximumFractionDigits:2});
 
-          function costRow([key, label]){
-            const uc = cb[key]?.unitCost||0;
-            const qty= cb[key]?.qty||1;
-            const tot= uc*qty;
-            return `<tr>
-              <td>${label}</td>
-              <td><input class="od-cb-input" value="${fmt(uc)}" onchange="updateCostField(${oIdx},'${key}','unitCost',this.value)" /></td>
-              <td><input class="od-cb-input" value="${qty}" onchange="updateCostField(${oIdx},'${key}','qty',this.value)" /></td>
-              <td>${fmt(tot)}</td>
-            </tr>`;
-          }
+          // Revenue: fixed from booking (amountNum)
+          const revenue = o.amountNum || 0;
 
-          function pricingRow(label, cost, price, profitV, profitPctV, withTax){
-            const pp = parseFloat(profitPctV)||0;
-            const cls = pp>=0 ? 'od-profit-pos':'od-profit-neg';
-            return `<tr>
-              <td style="font-weight:600">${label}</td>
-              <td>${fmtCur(cost)}</td>
-              <td>${fmtCur(price)}</td>
-              <td class="${cls}">${fmtCur(profitV)}</td>
-              <td class="${cls}">${profitPctV}%</td>
-              <td>${fmtCur(withTax)}</td>
-            </tr>`;
+          // Simple cost positions
+          const sc = o.simpleCosts || (o.simpleCosts = {trainerCost:0, travelAccommodation:0, daDesktopClassroom:0});
+          const totalCosts = sc.trainerCost + sc.travelAccommodation + sc.daDesktopClassroom;
+          const margin     = revenue - totalCosts;
+          const marginPct  = revenue > 0 ? (margin / revenue * 100) : 0;
+          const marginCls  = margin >= 0 ? 'od-profit-pos' : 'od-profit-neg';
+
+          // Gate: all 3 fields filled (> 0) → Confirm Sale enabled
+          const canConfirm = sc.trainerCost > 0 && sc.travelAccommodation >= 0 && sc.daDesktopClassroom >= 0
+                          && (sc.trainerCost + sc.travelAccommodation + sc.daDesktopClassroom) > 0;
+          const alreadyConfirmed = o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
+
+          function costInput(key, label, hint){
+            const val = sc[key] || 0;
+            return `
+              <div class="cb-field-row">
+                <div class="cb-field-label">
+                  <span>${label}</span>
+                  ${hint ? `<span class="cb-field-hint">${hint}</span>` : ''}
+                </div>
+                <div class="cb-field-input-wrap">
+                  <span class="cb-cur-prefix">${cur}</span>
+                  <input class="od-cb-input cb-simple-input" type="number" min="0" step="0.01"
+                    value="${val}"
+                    onchange="updateSimpleCost(${oIdx},'${key}',this.value)"
+                    placeholder="0.00" />
+                </div>
+              </div>`;
           }
 
           document.getElementById('od-costs-body').innerHTML = `
-            <!-- Pricing parameters -->
-            <div class="od-cb-section">
-              <div class="od-pricing-row">
-                <div class="od-pricing-field">
-                  <label>Target Profit Margin</label>
-                  <input type="number" value="${margin}" min="0" max="100" step="1"
-                    onchange="MOCK[${oIdx}].profitMargin=+this.value; renderCosts(${oIdx})" />
-                </div>
-                <div class="od-pricing-field">
-                  <label>Tax Rate (%)</label>
-                  <input type="number" value="${taxRate}" min="0" max="30" step="0.1"
-                    onchange="MOCK[${oIdx}].taxRate=+this.value; renderCosts(${oIdx})" />
-                </div>
-                <div class="od-pricing-field">
-                  <label>Franchisee Fee (${o.region==='CH'?'CHF':'EUR'})</label>
-                  <input type="number" value="${franchFee}" min="0" step="0.01"
-                    onchange="MOCK[${oIdx}].franchiseeFee=+this.value; renderCosts(${oIdx})" />
+            <div style="padding:18px 20px;max-width:520px">
+
+              <!-- Revenue (fixed) -->
+              <div class="od-cb-section" style="margin-bottom:20px">
+                <div class="od-cb-title" style="margin-bottom:10px">Revenue</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)">
+                  <span style="font-size:13px;color:var(--fg2)">Booking Price <span style="font-size:11px;color:var(--fg3)">(from booking, fixed)</span></span>
+                  <span style="font-size:18px;font-weight:700;color:var(--fg)">${fmtCur(revenue)}</span>
                 </div>
               </div>
-            </div>
 
-            <!-- Cost positions -->
-            <div class="od-cb-section">
-              <div class="od-cb-title">Cost Breakdown</div>
-              <table class="od-cb-table">
-                <thead><tr><th>Item</th><th>Unit Cost</th><th>Qty</th><th>Total</th></tr></thead>
-                <tbody>
-                  ${ITEMS.map(costRow).join('')}
-                  <tr class="cb-total">
-                    <td>Total Costs</td><td></td><td></td><td>${fmt(totalCost)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+              <!-- Cost positions -->
+              <div class="od-cb-section" style="margin-bottom:20px">
+                <div class="od-cb-title" style="margin-bottom:12px">Cost Breakdown</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  ${costInput('trainerCost',        'Trainer Cost',           'Trainer fee incl. prep')}
+                  ${costInput('travelAccommodation','Travel & Accommodation', 'Flight, train, hotel')}
+                  ${costInput('daDesktopClassroom', 'DaDesktop / Classroom',  'Platform costs if applicable')}
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:10px;border-top:1px solid var(--border)">
+                  <span style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em">Total Costs</span>
+                  <span style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(totalCosts)}</span>
+                </div>
+              </div>
 
-            <!-- Pricing table -->
-            <div class="od-cb-section">
-              <div class="od-cb-title">Pricing</div>
-              <table class="od-cb-table">
-                <thead><tr><th></th><th>Cost</th><th>Price</th><th>Profit</th><th>Margin</th><th>Price After Tax</th></tr></thead>
-                <tbody>
-                  ${pricingRow('First Participant',  firstPart, firstPart*1.2, firstPart*.2, '20.0', firstPart*1.2*(1+taxRate/100))}
-                  ${pricingRow('Additional Participant', addPart, addPart*1.2, addPart*.2, '20.0', addPart*1.2*(1+taxRate/100))}
-                  ${pricingRow('Average Participant', avgPart, avgPart*1.2, avgPart*.2, '20.0', avgPart*1.2*(1+taxRate/100))}
-                  <tr class="cb-total">
-                    <td>Total</td>
-                    <td>${fmtCur(totalCost)}</td>
-                    <td>${fmtCur(basePrice)}</td>
-                    <td class="${parseFloat(profitPct)>=0?'od-profit-pos':'od-profit-neg'}">${fmtCur(profit)}</td>
-                    <td class="${parseFloat(profitPct)>=0?'od-profit-pos':'od-profit-neg'}">${profitPct}%</td>
-                    <td>${fmtCur(priceAfterTax)}</td>
-                  </tr>
-                  <tr>
-                    <td>Total Per Day</td>
-                    <td>${fmtCur(totalCost/(o.days||1))}</td>
-                    <td>${fmtCur(basePrice/(o.days||1))}</td>
-                    <td>${fmtCur(profit/(o.days||1))}</td>
-                    <td>${profitPct}%</td>
-                    <td>${fmtCur(priceAfterTax/(o.days||1))}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <!-- Margin result -->
+              <div class="od-cb-section" style="margin-bottom:24px">
+                <div style="padding:14px 16px;border-radius:8px;background:var(--bg2);border:1px solid var(--border)">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <span style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em">Margin</span>
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span class="${marginCls}" style="font-size:22px;font-weight:700">${fmtCur(margin)}</span>
+                      <span class="${marginCls}" style="font-size:15px;font-weight:600;padding:3px 10px;border-radius:20px;background:${margin>=0?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)'}">${marginPct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  ${revenue === 0 ? `<div style="font-size:11px;color:var(--fg3)">Enter booking amount to calculate margin</div>` : ''}
+                </div>
+              </div>
+
+              <!-- Confirm Sale gate -->
+              ${alreadyConfirmed
+                ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;color:#10b981;font-size:13px;font-weight:600">
+                    <span>✓</span><span>Sale Confirmed${o.salesConfirmedAt ? ' · '+new Date(o.salesConfirmedAt).toLocaleDateString('de-DE') : ''}</span>
+                   </div>`
+                : `<button onclick="confirmSale(${oIdx})"
+                    style="width:100%;padding:11px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:${canConfirm?'pointer':'not-allowed'};
+                           background:${canConfirm?'#10b981':'var(--border)'};color:${canConfirm?'#fff':'var(--fg3)'};transition:opacity .15s"
+                    ${canConfirm?'':'disabled'}>
+                    ${canConfirm ? '✓ Confirm Sale' : 'Fill all cost fields to confirm'}
+                   </button>`
+              }
             </div>`;
         }
+
+        window.updateSimpleCost = function(oIdx, key, val){
+          if(!MOCK[oIdx].simpleCosts) MOCK[oIdx].simpleCosts = {trainerCost:0,travelAccommodation:0,daDesktopClassroom:0};
+          MOCK[oIdx].simpleCosts[key] = parseFloat(val)||0;
+          renderCosts(oIdx);
+        };
+
+        window.confirmSale = function(oIdx){
+          const o = MOCK[oIdx];
+          const sc = o.simpleCosts||{};
+          if(!(sc.trainerCost>0)) return;
+          o.status = 'SALES_CONFIRMED';
+          o.salesConfirmedAt = new Date().toISOString();
+          renderCosts(oIdx);
+          // refresh stepper if visible
+          if(typeof renderStepBody === 'function') renderStepBody(oIdx, viewingStepIdx||0);
+          showToast('Sale confirmed — Coordination can start Planning');
+        };
 
         window.updateCostField = function(oIdx, item, field, val){
           if(!MOCK[oIdx].costBreakdown) MOCK[oIdx].costBreakdown={};
