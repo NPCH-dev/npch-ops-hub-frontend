@@ -1163,6 +1163,10 @@ tr:hover td { background: var(--bg3); }
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
         Prompts / KI
       </a>
+      <a class="nav-item" data-page="wiki" href="#wiki">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+        Team Wiki
+      </a>
       <div class="sb-div" style="margin-top:8px"></div>
       <a class="nav-item" data-page="users" href="#users">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
@@ -1539,10 +1543,7 @@ tr:hover td { background: var(--bg3); }
 
         <!-- Left: Order List -->
         <div class="od-list" id="od-list" style="position:relative">
-          <button id="od-list-collapse" onclick="collapseOdList()" title="Collapse list">
-            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-            Hide
-          </button>
+          <div id="od-esc-hint">ESC or click row to close</div>
           <div class="card">
             <div class="card-body" style="padding:0">
               <div class="table-wrap">
@@ -1587,10 +1588,6 @@ tr:hover td { background: var(--bg3); }
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
               </button>
             </div>
-            <button id="od-list-expand" onclick="expandOdList()" title="Show list">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-              List
-            </button>
             <button class="od-close" onclick="closeOrderDetail()" title="Close (Esc)">
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -1635,27 +1632,14 @@ tr:hover td { background: var(--bg3); }
         body.od-resizing .od-detail { transition:none !important; }
         .od-detail { flex:1 1 0; overflow:hidden; opacity:0; transition:opacity .2s ease; display:none; flex-direction:column; border:1px solid var(--border); border-radius:8px; background:var(--bg2); min-height:400px; box-shadow:0 2px 16px rgba(0,0,0,.18); margin-left:0; }
         .od-layout.detail-open .od-detail { opacity:1; display:flex !important; overflow:visible; }
-        /* List collapse toggle */
-        #od-list-collapse {
-          display:none; position:absolute; top:8px; right:6px; z-index:4;
-          background:var(--bg3); border:1px solid var(--border); border-radius:5px;
-          color:var(--fg3); cursor:pointer; padding:3px 7px; font-size:11px;
-          line-height:1; transition:background .12s, color .12s;
+        /* ESC hint shown briefly when detail opens */
+        #od-esc-hint {
+          display:none; position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+          background:rgba(0,0,0,.7); color:rgba(255,255,255,.6); font-size:11px;
+          padding:4px 10px; border-radius:20px; pointer-events:none; white-space:nowrap;
+          animation:fadeout-hint 2.5s forwards;
         }
-        #od-list-collapse:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
-        .od-layout.detail-open #od-list-collapse { display:flex; align-items:center; gap:4px; }
-        .od-layout.list-collapsed .od-list { flex:0 0 0 !important; min-width:0 !important; overflow:hidden !important; }
-        .od-layout.list-collapsed #od-resize-handle { display:none !important; }
-        .od-layout.list-collapsed #od-list-collapse { display:none !important; }
-        /* Expand button on detail header when list is collapsed */
-        #od-list-expand {
-          display:none; align-items:center; gap:5px;
-          background:var(--bg3); border:1px solid var(--border); border-radius:5px;
-          color:var(--fg3); cursor:pointer; padding:4px 9px; font-size:11px;
-          transition:background .12s, color .12s; margin-right:6px;
-        }
-        #od-list-expand:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
-        .od-layout.list-collapsed #od-list-expand { display:flex; }
+        @keyframes fadeout-hint { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 
         /* Resize handle between list and detail */
         #od-resize-handle {
@@ -1707,8 +1691,8 @@ tr:hover td { background: var(--bg3); }
         .od-dh-left { flex:1; min-width:0; }
         .od-dh-id { font-family:monospace; font-size:11px; color:var(--accent); font-weight:700; margin-bottom:2px; }
         .od-dh-title { font-size:15px; font-weight:600; color:var(--fg); line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:calc(100% - 8px); }
-        .od-close { background:none; border:none; color:var(--fg3); cursor:pointer; padding:4px 6px; border-radius:4px; display:flex; align-items:center; margin-top:-2px; }
-        .od-close:hover { background:var(--bg2); color:var(--fg); }
+        .od-close { background:var(--bg3,rgba(255,255,255,.07)); border:1px solid var(--border); color:var(--fg2); cursor:pointer; padding:5px 7px; border-radius:6px; display:flex; align-items:center; margin-top:-2px; transition:background .15s,color .15s; }
+        .od-close:hover { background:rgba(239,68,68,.15); border-color:rgba(239,68,68,.4); color:#ef4444; }
 
         /* Process Ribbon */
         .od-ribbon { display:flex; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; }
@@ -2444,6 +2428,10 @@ tr:hover td { background: var(--bg3); }
         // ── Show / Close detail ───────────────────────────────────────────────
         window.showDetail = function(idx){
           const o = MOCK[idx]; if(!o) return;
+          // Toggle: click same row again → close
+          if(idx === currentOrderIdx && document.getElementById('od-layout').classList.contains('detail-open')){
+            closeOrderDetail(); return;
+          }
           currentOrderIdx = idx;
           viewingStepIdx  = STATUS_SP_IDX[o.status] ?? 3;
 
@@ -2477,7 +2465,18 @@ tr:hover td { background: var(--bg3); }
           const layout = document.getElementById('od-layout');
           const detail = document.getElementById('od-detail');
           detail.style.display = 'flex';
-          requestAnimationFrame(()=>layout.classList.add('detail-open'));
+          requestAnimationFrame(()=>{
+            layout.classList.add('detail-open');
+            // Show ESC hint briefly on first open only
+            const hint = document.getElementById('od-esc-hint');
+            if(hint && !sessionStorage.getItem('od-hint-shown')){
+              hint.style.display = 'block';
+              hint.style.animation = 'none';
+              void hint.offsetWidth; // reflow
+              hint.style.animation = 'fadeout-hint 2.5s forwards';
+              sessionStorage.setItem('od-hint-shown','1');
+            }
+          });
 
           document.querySelectorAll('#orders-tbody tr').forEach(tr=>{
             tr.classList.toggle('selected', +tr.dataset.idx===idx);
@@ -2502,17 +2501,10 @@ tr:hover td { background: var(--bg3); }
 
         document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOrderDetail(); });
 
-        window.collapseOdList = function(){
-          document.getElementById('od-layout')?.classList.add('list-collapsed');
-        };
-        window.expandOdList = function(){
-          document.getElementById('od-layout')?.classList.remove('list-collapsed');
-        };
-        // Also restore list when detail closes
+        // Also do cleanup when detail closes
         const _origCloseDetail = window.closeOrderDetail;
         window.closeOrderDetail = function(){
           _origCloseDetail();
-          document.getElementById('od-layout')?.classList.remove('list-collapsed');
         };
 
         // ── Resizable master-detail split ──────────────────────────────────
@@ -5192,6 +5184,13 @@ tr:hover td { background: var(--bg3); }
       <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Prompt-Bibliothek wird geladen…</p></div>
     </div>
 
+    <div class="page" id="page-wiki" style="padding:0;overflow:hidden">
+      <iframe id="wiki-frame"
+        style="width:100%;height:calc(100vh - var(--header-h));border:none;display:block"
+        sandbox="allow-scripts allow-same-origin"
+        src="about:blank"></iframe>
+    </div>
+
     <div class="page" id="page-admin">
       <style>
         /* Admin Board Styles */
@@ -5472,6 +5471,7 @@ const PAGES = {
   todos:        { title: 'Todos',           load: null },
   notes:        { title: 'Notizen',         load: null },
   prompts:      { title: 'Prompts / KI',    load: null },
+  wiki:         { title: 'Team Wiki',        load: loadWiki },
 };
 
 function navigate(page) {
@@ -8680,7 +8680,7 @@ function fmtDate(d) {
 
 <!-- ── New Order / Edit Order slide-in panel ───────────────────────── -->
 <div id="no-backdrop"></div>
-<div id="no-panel" onclick="event.target===this&&closeNewOrderPanel()">
+<div id="no-panel" class="no-panel" onclick="event.target===this&&closeNewOrderPanel()">
   <div class="no-panel-inner">
   <div class="no-panel-head">
     <span class="no-panel-title" id="no-panel-title">New Order</span>
