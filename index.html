@@ -1218,6 +1218,30 @@ tr:hover td { background: var(--bg3); }
             <option value="Inhouse">Inhouse</option>
           </select>
           <span id="ob-count" style="font-size:12px;color:var(--fg3);white-space:nowrap"></span>
+          <div style="flex:1;min-width:12px"></div>
+          <div class="ob-dev-role" title="Dev mode: simulated role">
+            <span class="ob-dev-label">DEV</span>
+            <select id="ob-role-select" onchange="setDevRole(this.value)">
+              <option value="management">management</option>
+              <option value="coordination" selected>coordination</option>
+              <option value="finance">finance</option>
+              <option value="sales">sales</option>
+              <option value="recruitment">recruitment</option>
+              <option value="system">system</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+          <div id="ob-bulk-actions" style="display:none;gap:6px;align-items:center;flex-shrink:0">
+            <span id="ob-sel-count" style="font-size:11px;color:var(--fg3)"></span>
+            <button class="ob-btn-danger" onclick="confirmDeleteSelected()">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Delete Selected
+            </button>
+          </div>
+          <button class="ob-btn-new" onclick="openNewOrderPanel()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Order
+          </button>
         </div>
       </div>
 
@@ -1232,6 +1256,7 @@ tr:hover td { background: var(--bg3); }
                 <table id="orders-table" style="font-size:13px">
                   <thead>
                     <tr>
+                      <th class="ob-cb-col" onclick="event.stopPropagation()"><input type="checkbox" id="ob-select-all" onchange="toggleSelectAll(this.checked)" style="accent-color:var(--accent)"></th>
                       <th data-col="seq" style="width:70px;cursor:pointer" title="Sort"># <span class="ob-sort-icon"></span></th>
                       <th data-col="region" style="width:40px;cursor:pointer" title="Sort">Rg <span class="ob-sort-icon"></span></th>
                       <th data-col="customer" style="cursor:pointer" title="Sort">Customer <span class="ob-sort-icon"></span></th>
@@ -1258,6 +1283,14 @@ tr:hover td { background: var(--bg3); }
               <div class="od-dh-title" id="od-det-title"></div>
               <div id="od-det-stage" style="margin-top:6px"></div>
             </div>
+            <div class="od-dh-actions" id="od-dh-actions">
+              <button class="od-dh-action" id="btn-edit-order" onclick="editCurrentOrder()" title="Edit Order">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </button>
+              <button class="od-dh-action od-dh-action-danger" id="btn-delete-order" onclick="confirmDeleteCurrent()" title="Archive Order">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
             <button class="od-close" onclick="closeOrderDetail()" title="Close (Esc)">
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -1270,9 +1303,15 @@ tr:hover td { background: var(--bg3); }
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
               AI Insights
             </button>
+            <button class="od-tab" data-tab="costs" onclick="switchDetailTab('costs')">Cost Breakdown</button>
+            <button class="od-tab" data-tab="liquidity" onclick="switchDetailTab('liquidity')">Liquidity</button>
+            <button class="od-tab" data-tab="enquiry" onclick="switchDetailTab('enquiry')">Enquiry</button>
           </div>
           <div class="od-step-body" id="od-step-body"></div>
           <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
+          <div id="od-costs-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
+          <div id="od-liquidity-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
+          <div id="od-enquiry-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
@@ -1382,6 +1421,123 @@ tr:hover td { background: var(--bg3); }
         .od-insight-empty svg { opacity:.3; display:block; margin:0 auto 10px; }
         .od-insight-connect { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:7px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
         .od-summary-text { font-size:13px; color:var(--fg); line-height:1.6; }
+
+        /* ── New Order button & filter toolbar ─────────────────────────────── */
+        .ob-btn-new { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+        .ob-btn-new:hover { background:#5b63e8; }
+        .ob-btn-danger { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; background:rgba(239,68,68,.1); color:#f87171; border:1px solid rgba(239,68,68,.2); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+        .ob-btn-danger:hover { background:rgba(239,68,68,.2); }
+        .ob-dev-role { display:inline-flex; align-items:center; gap:5px; background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.2); border-radius:6px; padding:4px 8px; flex-shrink:0; }
+        .ob-dev-label { font-size:9px; font-weight:800; letter-spacing:.08em; background:var(--accent); color:#fff; padding:1px 5px; border-radius:3px; }
+        .ob-dev-role select { background:transparent; border:none; color:var(--fg); font-size:11px; cursor:pointer; padding:0 2px; outline:none; }
+
+        /* ── Checkbox column ───────────────────────────────────────────────── */
+        .ob-cb-col { width:36px !important; padding:0 10px !important; text-align:center; }
+        .ob-row-cb, #ob-select-all { width:14px; height:14px; cursor:pointer; accent-color:var(--accent); }
+        #orders-table tbody tr.selected td:first-child { border-left:none; padding-left:10px; }
+        #orders-table tbody tr.selected td:nth-child(2) { border-left:3px solid var(--accent); padding-left:9px; }
+
+        /* ── Detail panel: action buttons ──────────────────────────────────── */
+        .od-dh-actions { display:flex; align-items:center; gap:5px; margin-right:8px; }
+        .od-dh-action { background:none; border:1px solid var(--border); color:var(--fg3); cursor:pointer; padding:5px 7px; border-radius:5px; display:inline-flex; align-items:center; }
+        .od-dh-action:hover { background:var(--bg2); color:var(--fg); }
+        .od-dh-action-danger:hover { background:rgba(239,68,68,.1); color:#f87171; border-color:rgba(239,68,68,.3); }
+
+        /* ── Field admin mode ──────────────────────────────────────────────── */
+        .od-field-admin-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .od-field-admin-btn { display:inline-flex; align-items:center; gap:5px; background:none; border:1px dashed var(--border); color:var(--fg3); border-radius:5px; padding:4px 10px; font-size:11px; cursor:pointer; }
+        .od-field-admin-btn:hover, .od-field-admin-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(99,102,241,.07); }
+        .od-fields.admin-mode > div { position:relative; border:1px dashed rgba(99,102,241,.3); border-radius:5px; padding:6px 8px 6px 8px; }
+        .od-fields.admin-mode > div:hover { border-color:var(--accent); }
+        .od-field-remove { position:absolute; top:2px; right:4px; background:none; border:none; color:var(--fg3); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; }
+        .od-field-remove:hover { color:#f87171; }
+        .od-add-field-btn { display:flex; align-items:center; gap:5px; padding:6px 12px; background:none; border:1px dashed var(--border); color:var(--fg3); border-radius:5px; font-size:11px; cursor:pointer; width:100%; justify-content:center; margin-top:10px; }
+        .od-add-field-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+        /* ── Cost Breakdown tab ────────────────────────────────────────────── */
+        .od-cb-section { margin-bottom:22px; }
+        .od-cb-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+        .od-cb-table { width:100%; border-collapse:collapse; font-size:12px; }
+        .od-cb-table th { text-align:left; padding:5px 10px; background:var(--bg); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; border-bottom:1px solid var(--border); }
+        .od-cb-table th:not(:first-child) { text-align:right; }
+        .od-cb-table td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,.04); color:var(--fg); vertical-align:middle; }
+        .od-cb-table td:not(:first-child) { text-align:right; font-family:monospace; font-size:11px; }
+        .od-cb-table tr.cb-total td { font-weight:700; color:var(--fg); background:rgba(99,102,241,.05); border-top:1px solid var(--border); border-bottom:none; }
+        .od-cb-table tr:last-child td { border-bottom:none; }
+        .od-cb-input { width:72px; text-align:right; background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; font-size:11px; color:var(--fg); font-family:monospace; }
+        .od-cb-input:focus { outline:none; border-color:var(--accent); }
+        .od-pricing-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
+        .od-pricing-field label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); display:block; margin-bottom:3px; font-weight:600; }
+        .od-pricing-field input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:5px 8px; font-size:12px; color:var(--fg); box-sizing:border-box; }
+        .od-pricing-field input:focus { outline:none; border-color:var(--accent); }
+        .od-profit-pos { color:#34d399; font-weight:600; }
+        .od-profit-neg { color:#f87171; font-weight:600; }
+
+        /* ── Liquidity tab ─────────────────────────────────────────────────── */
+        .od-liq-table { width:100%; border-collapse:collapse; font-size:12px; }
+        .od-liq-table th { text-align:left; padding:6px 10px; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; background:var(--bg); border-bottom:1px solid var(--border); }
+        .od-liq-table td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,.04); color:var(--fg); }
+        .od-liq-table tr:last-child td { border-bottom:none; }
+        .od-liq-date { background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; font-size:11px; color:var(--fg); width:130px; }
+        .od-liq-date:focus { outline:none; border-color:var(--accent); }
+        .od-liq-summary { background:rgba(99,102,241,.06); border:1px solid rgba(99,102,241,.18); border-radius:7px; padding:14px 16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:16px; }
+        .od-liq-sum-item label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); display:block; margin-bottom:4px; font-weight:600; }
+        .od-liq-sum-item span { font-size:14px; font-weight:700; color:var(--fg); }
+
+        /* ── Enquiry tab ───────────────────────────────────────────────────── */
+        .od-enq-section { margin-bottom:18px; }
+        .od-enq-section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); padding-bottom:7px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+        .od-enq-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
+        .od-enq-fields.cols3 { grid-template-columns:1fr 1fr 1fr; }
+        .od-enq-field { display:flex; flex-direction:column; gap:3px; }
+        .od-enq-field.full { grid-column:1/-1; }
+        .od-enq-field label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg3); font-weight:600; }
+        .od-enq-field input, .od-enq-field select, .od-enq-field textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:6px 9px; font-size:12px; color:var(--fg); box-sizing:border-box; }
+        .od-enq-field input:focus, .od-enq-field select:focus, .od-enq-field textarea:focus { outline:none; border-color:var(--accent); }
+        .od-enq-field textarea { resize:vertical; min-height:60px; }
+
+        /* ── New Order slide-in panel ──────────────────────────────────────── */
+        .no-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; }
+        .no-backdrop.open { display:block; }
+        .no-panel { position:fixed; top:0; right:0; bottom:0; width:540px; max-width:100vw; background:var(--bg2); border-left:1px solid var(--border); box-shadow:-8px 0 32px rgba(0,0,0,.35); z-index:201; display:flex; flex-direction:column; transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); }
+        .no-panel.open { transform:translateX(0); }
+        .no-panel-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--bg); flex-shrink:0; }
+        .no-panel-title { font-size:15px; font-weight:700; color:var(--fg); }
+        .no-panel-close { background:none; border:none; color:var(--fg3); cursor:pointer; padding:4px 7px; border-radius:4px; }
+        .no-panel-close:hover { background:var(--bg2); color:var(--fg); }
+        .no-panel-body { flex:1; overflow-y:auto; padding:20px; }
+        .no-panel-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-shrink:0; background:var(--bg); }
+        .no-section { margin-bottom:22px; }
+        .no-section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+        .no-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+        .no-field { display:flex; flex-direction:column; gap:4px; }
+        .no-field.full { grid-column:1/-1; }
+        .no-field label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); }
+        .no-field label.req::after { content:' *'; color:#f87171; }
+        .no-field input, .no-field select, .no-field textarea { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:7px 10px; font-size:13px; color:var(--fg); width:100%; box-sizing:border-box; }
+        .no-field input:focus, .no-field select:focus, .no-field textarea:focus { outline:none; border-color:var(--accent); }
+        .no-field input.invalid, .no-field select.invalid { border-color:#f87171; }
+        .btn-cancel { padding:7px 16px; background:transparent; border:1px solid var(--border); color:var(--fg3); border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-cancel:hover { border-color:var(--fg3); color:var(--fg); }
+        .btn-save { padding:7px 20px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-save:hover { background:#5b63e8; }
+
+        /* ── Confirm dialog ────────────────────────────────────────────────── */
+        .confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:400; align-items:center; justify-content:center; }
+        .confirm-overlay.open { display:flex !important; }
+        .confirm-box { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:24px 28px; width:400px; max-width:calc(100vw - 32px); box-shadow:0 8px 40px rgba(0,0,0,.45); }
+        .confirm-title { font-size:16px; font-weight:700; color:var(--fg); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+        .confirm-msg { font-size:13px; color:var(--fg3); line-height:1.55; margin-bottom:22px; }
+        .confirm-actions { display:flex; gap:10px; justify-content:flex-end; }
+        .btn-confirm-cancel { padding:8px 16px; background:transparent; border:1px solid var(--border); color:var(--fg3); border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-confirm-cancel:hover { border-color:var(--fg3); color:var(--fg); }
+        .btn-confirm-delete { padding:8px 18px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-confirm-delete:hover { background:#dc2626; }
+        .confirm-icon { font-size:28px; margin-bottom:10px; }
+        .btn-secondary { padding:8px 16px; background:transparent; border:1px solid var(--border); color:var(--fg2); border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-secondary:hover { border-color:var(--fg3); color:var(--fg); }
+        .btn-primary { padding:8px 18px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-primary:hover { background:var(--accent-hover, #4f46e5); }
       </style>
 
       <script>
@@ -1566,6 +1722,53 @@ tr:hover td { background: var(--bg3); }
           { seq:'00029', customer:'Helaba', region:'D', entity:'NP GER', sales:'DK', training:'KI-Agenten und Workflow-Automatisierung mit n8n, Claude Code', days:'2', delivery:'21.–22.12.2026', amount:'€6,900', amountNum:6900, status:'ORDER_CREATED', location:'Inhouse', contact:'Yosef Faizi', po:false, paymentTerms:'14 Days', participants:'6', date:'', link:'' },
         ];
 
+        // ── Enrich MOCK with extended fields (dev-mode defaults) ─────────────
+        MOCK.forEach((o,i)=>{
+          if(!o.entity)   o.entity   = ['NP GER','NP CH','NP AT'][i%3];
+          if(!o.keyContact) o.keyContact = o.contact||'—';
+          const yr=2024, mo=String(1+(i%12)).padStart(2,'0'), dy=String(10+(i%18)).padStart(2,'0');
+          if(!o.orderDate)        o.orderDate = `${yr}-${mo}-${dy}`;
+          if(!o.confirmedDelivery) o.confirmedDelivery = o.delivery||'—';
+          if(o.prepayment===undefined) o.prepayment = i%4===0;
+          if(!o.referenceId) o.referenceId = `RFQ-DACH-2024-${1000+i}`;
+          if(!o.salesArea)   o.salesArea   = o.region==='CH'?'Switzerland':o.region==='A'?'Austria':'Germany';
+          if(!o.franchisee)  o.franchisee  = o.region==='CH'?'NP Switzerland AG':o.region==='A'?'NP Austria GmbH':'NP Germany GmbH';
+          if(!o.coordinator) o.coordinator = i%2===0?'Anna M.':'Thomas K.';
+          if(!o.costBreakdown) o.costBreakdown = {
+            trainer:      { unitCost: 800+i*20, qty: o.days||1 },
+            material:     { unitCost: 0,         qty: 1 },
+            certificate:  { unitCost: 10,        qty: o.participants||1 },
+            hardware:     { unitCost: 0,         qty: 1 },
+            catering:     { unitCost: 0,         qty: 1 },
+            remoteDesktop:{ unitCost: i%3===0?10:0, qty: o.participants||1 },
+            other:        { unitCost: 0,         qty: 1 },
+          };
+          if(!o.profitMargin) o.profitMargin = 20;
+          if(!o.taxRate)      o.taxRate = o.region==='CH'?8.1:19;
+          if(!o.franchiseeFee) o.franchiseeFee = o.amountNum ? +(o.amountNum*0.1).toFixed(2) : 0;
+          if(!o.liquidity) o.liquidity = { invoiceDate:'', expectedPayment:'', prepaymentDate:'', costDates:{} };
+          if(!o.enqOrganisation) o.enqOrganisation = o.customer;
+          if(!o.enqClientName)  o.enqClientName  = o.contact||'';
+          if(!o.enqPhone)       o.enqPhone       = '';
+          if(!o.enqEmail)       o.enqEmail       = '';
+          if(!o.enqJobRole)     o.enqJobRole     = '';
+          if(!o.enqAddress)     o.enqAddress     = '';
+          if(!o.enqCourseCode)  o.enqCourseCode  = '';
+          if(!o.enqCourseName)  o.enqCourseName  = o.training||'';
+          if(!o.enqCourseType)  o.enqCourseType  = o.location==='Inhouse'?'Private':'Online';
+          if(!o.enqStartDate)   o.enqStartDate   = '';
+          if(!o.enqEndDate)     o.enqEndDate     = '';
+          if(!o.enqLanguage)    o.enqLanguage    = 'German';
+          if(!o.enqLocationType) o.enqLocationType = o.location||'Online';
+          if(!o.enqParticipants)    o.enqParticipants    = o.participants||0;
+          if(!o.enqMaxParticipants) o.enqMaxParticipants = 12;
+          if(!o.enqDurationHrs) o.enqDurationHrs = (o.days||1)*8;
+          if(!o.enqDailyHours)  o.enqDailyHours  = 8;
+          if(!o.enqDays)        o.enqDays        = o.days||1;
+          if(!o.enqCurrency)    o.enqCurrency    = o.region==='CH'?'CHF':'EUR';
+          if(!o.enqTimezone)    o.enqTimezone    = o.region==='CH'?'Europe/Zurich':'Europe/Berlin';
+        });
+
         const STATUS_META = {
           ORDER_CREATED:          { phase:'SP-04', label:'Order Created',          css:'sp04'  },
           PRE_PAYMENT_INVOICED:   { phase:'SP-04', label:'Pre-Payment Invoiced',   css:'sp04b' },
@@ -1604,7 +1807,11 @@ tr:hover td { background: var(--bg3); }
           tbody.innerHTML = sorted.map(o=>{
             const origIdx = MOCK.indexOf(o);
             const sel = origIdx===currentOrderIdx ? ' selected' : '';
+            const chk = selectedIdxs.has(origIdx) ? 'checked' : '';
             return `<tr onclick="showDetail(${origIdx})" data-idx="${origIdx}" class="${sel}">
+              <td class="ob-cb-col" onclick="event.stopPropagation()">
+                <input type="checkbox" class="ob-row-cb" data-idx="${origIdx}" ${chk} onchange="toggleRowSelect(${origIdx},this.checked)">
+              </td>
               <td style="font-family:monospace;font-size:11px;color:var(--accent)">${o.seq}</td>
               <td style="font-size:11px;color:var(--fg3)">${o.region||'—'}</td>
               <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)" title="${o.customer}">${o.customer}</td>
@@ -1714,8 +1921,15 @@ tr:hover td { background: var(--bg3); }
 
           // Reset to Overview tab on new order open
           document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab==='overview'));
-          document.getElementById('od-step-body').style.display    = '';
-          document.getElementById('od-insights-body').style.display = 'none';
+          document.getElementById('od-step-body').style.display      = '';
+          document.getElementById('od-insights-body').style.display  = 'none';
+          document.getElementById('od-costs-body').style.display     = 'none';
+          document.getElementById('od-liquidity-body').style.display = 'none';
+          document.getElementById('od-enquiry-body').style.display   = 'none';
+          // Role-based action buttons
+          const editable = canEdit();
+          const actEl = document.getElementById('od-dh-actions');
+          if(actEl) actEl.style.display = editable ? 'flex' : 'none';
 
           const layout = document.getElementById('od-layout');
           const detail = document.getElementById('od-detail');
@@ -1784,9 +1998,16 @@ tr:hover td { background: var(--bg3); }
         // ── Tab switching ─────────────────────────────────────────────────────
         window.switchDetailTab = function(tab){
           document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-          document.getElementById('od-step-body').style.display    = tab==='overview'  ? '' : 'none';
-          document.getElementById('od-insights-body').style.display = tab==='insights' ? '' : 'none';
-          if(tab==='insights' && currentOrderIdx>=0) renderInsights(currentOrderIdx);
+          document.getElementById('od-step-body').style.display      = tab==='overview'  ? '' : 'none';
+          document.getElementById('od-insights-body').style.display  = tab==='insights'  ? '' : 'none';
+          document.getElementById('od-costs-body').style.display     = tab==='costs'     ? '' : 'none';
+          document.getElementById('od-liquidity-body').style.display = tab==='liquidity' ? '' : 'none';
+          document.getElementById('od-enquiry-body').style.display   = tab==='enquiry'   ? '' : 'none';
+          if(currentOrderIdx < 0) return;
+          if(tab==='insights')  renderInsights(currentOrderIdx);
+          if(tab==='costs')     renderCosts(currentOrderIdx);
+          if(tab==='liquidity') renderLiquidity(currentOrderIdx);
+          if(tab==='enquiry')   renderEnquiry(currentOrderIdx);
         };
 
         // ── AI Insights ───────────────────────────────────────────────────────
@@ -1874,10 +2095,630 @@ tr:hover td { background: var(--bg3); }
           }, 900);
         }
 
+        // ── Dev-mode role & permissions ───────────────────────────────────────
+        let DEV_ROLE = 'coordination';
+        let selectedIdxs = new Set();
+        let _pendingDeleteIdxs = null;
+        let _editingOrderIdx = -1;
+
+        function setDevRole(r){ DEV_ROLE=r; updateRoleUI(); }
+        function canEdit(){ return ['coordination','admin','management'].includes(DEV_ROLE); }
+
+        function updateRoleUI(){
+          const editable = canEdit();
+          const actEl = document.getElementById('od-dh-actions');
+          if(actEl) actEl.style.display = currentOrderIdx>=0 && editable ? 'flex':'none';
+        }
+
+        // ── Multi-select ──────────────────────────────────────────────────────
+        window.toggleSelectAll = function(checked){
+          const cbs = document.querySelectorAll('.ob-row-cb');
+          cbs.forEach(cb=>{
+            const idx = +cb.dataset.idx;
+            checked ? selectedIdxs.add(idx) : selectedIdxs.delete(idx);
+            cb.checked = checked;
+          });
+          updateBulkBar();
+        };
+
+        window.toggleRowSelect = function(idx, checked){
+          checked ? selectedIdxs.add(idx) : selectedIdxs.delete(idx);
+          const all = document.getElementById('ob-select-all');
+          if(all){
+            const total = document.querySelectorAll('.ob-row-cb').length;
+            all.checked = selectedIdxs.size === total && total>0;
+            all.indeterminate = selectedIdxs.size>0 && selectedIdxs.size<total;
+          }
+          updateBulkBar();
+        };
+
+        function updateBulkBar(){
+          const bar = document.getElementById('ob-bulk-actions');
+          const cnt = document.getElementById('ob-sel-count');
+          if(!bar) return;
+          const n = selectedIdxs.size;
+          if(n>0 && canEdit()){
+            bar.style.display = 'flex';
+            if(cnt) cnt.textContent = n+' selected';
+          } else {
+            bar.style.display = 'none';
+          }
+        }
+
+        // ── Confirm Delete (selected) ─────────────────────────────────────────
+        window.confirmDeleteSelected = function(){
+          if(!canEdit() || selectedIdxs.size===0) return;
+          _pendingDeleteIdxs = [...selectedIdxs];
+          const n = _pendingDeleteIdxs.length;
+          document.getElementById('confirm-title-text').textContent = `Delete ${n} Order${n>1?'s':''}`;
+          document.getElementById('confirm-msg-text').textContent   =
+            `Are you sure you want to permanently delete ${n} selected order${n>1?'s':''}? This action cannot be undone.`;
+          document.getElementById('confirm-dialog').classList.add('open');
+        };
+
+        // ── Confirm Delete (current detail) ───────────────────────────────────
+        window.confirmDeleteCurrent = function(){
+          if(!canEdit() || currentOrderIdx<0) return;
+          _pendingDeleteIdxs = [currentOrderIdx];
+          const o = MOCK[currentOrderIdx];
+          document.getElementById('confirm-title-text').textContent = `Delete Order #${o.seq}`;
+          document.getElementById('confirm-msg-text').textContent   =
+            `Are you sure you want to permanently delete order #${o.seq} — ${o.customer}? This action cannot be undone.`;
+          document.getElementById('confirm-dialog').classList.add('open');
+        };
+
+        window.cancelConfirmDelete = function(){
+          document.getElementById('confirm-dialog').classList.remove('open');
+          _pendingDeleteIdxs = null;
+        };
+
+        window.doConfirmDelete = function(){
+          if(!_pendingDeleteIdxs) return;
+          // Sort descending so splice indices stay valid
+          const toRemove = [..._pendingDeleteIdxs].sort((a,b)=>b-a);
+          toRemove.forEach(idx=>{ MOCK.splice(idx,1); });
+          selectedIdxs.clear();
+          if(toRemove.includes(currentOrderIdx)) closeOrderDetail();
+          else if(currentOrderIdx>=0){
+            // Recalculate index after removal
+            const removedBelow = toRemove.filter(i=>i<currentOrderIdx).length;
+            currentOrderIdx -= removedBelow;
+          }
+          _pendingDeleteIdxs = null;
+          document.getElementById('confirm-dialog').classList.remove('open');
+          document.getElementById('ob-select-all').checked = false;
+          updateBulkBar();
+          filter();
+          updateKPIs();
+        };
+
+        // ── New Order Panel ───────────────────────────────────────────────────
+        window.openNewOrderPanel = function(){
+          if(!canEdit()){ alert('You need Coordinator or Admin role to create orders.'); return; }
+          _editingOrderIdx = -1;
+          document.getElementById('no-panel-title').textContent = 'New Order';
+          resetNewOrderForm();
+          document.getElementById('no-panel').classList.add('open');
+          document.getElementById('no-backdrop').classList.add('open');
+        };
+
+        window.editCurrentOrder = function(){
+          if(!canEdit() || currentOrderIdx<0) return;
+          _editingOrderIdx = currentOrderIdx;
+          const o = MOCK[currentOrderIdx];
+          document.getElementById('no-panel-title').textContent = `Edit Order #${o.seq}`;
+          fillOrderForm(o);
+          document.getElementById('no-panel').classList.add('open');
+          document.getElementById('no-backdrop').classList.add('open');
+        };
+
+        window.closeNewOrderPanel = function(){
+          document.getElementById('no-panel').classList.remove('open');
+          document.getElementById('no-backdrop').classList.remove('open');
+        };
+
+        function resetNewOrderForm(){
+          const f = document.getElementById('no-order-form');
+          if(f) f.reset();
+          const seqEl = document.getElementById('no-f-id');
+          if(seqEl) seqEl.value = `NP-DACH-2024-${String(MOCK.length+1).padStart(4,'0')}`;
+        }
+
+        function fillOrderForm(o){
+          const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
+          set('no-f-id',          o.seq);
+          set('no-f-entity',      o.entity||'NP GER');
+          set('no-f-status',      o.status||'ORDER_CREATED');
+          set('no-f-orderdate',   o.orderDate||'');
+          set('no-f-region',      o.region||'');
+          set('no-f-sales',       o.sales||'');
+          set('no-f-location',    o.location||'Online');
+          set('no-f-customer',    o.customer||'');
+          set('no-f-contact',     o.contact||'');
+          set('no-f-training',    o.training||'');
+          set('no-f-days',        o.days||'');
+          set('no-f-participants',o.participants||'');
+          set('no-f-delivery',    o.delivery||'');
+          set('no-f-amount',      o.amountNum||'');
+          set('no-f-terms',       o.paymentTerms||'');
+          const ppEl = document.getElementById('no-f-prepayment');
+          if(ppEl) ppEl.checked = !!o.prepayment;
+          set('no-f-link',        o.link||'');
+        }
+
+        window.saveNewOrder = function(){
+          const val = id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
+          const customer  = val('no-f-customer');
+          const training  = val('no-f-training');
+          if(!customer || !training){
+            if(!customer) document.getElementById('no-f-customer').classList.add('invalid');
+            if(!training) document.getElementById('no-f-training').classList.add('invalid');
+            return;
+          }
+          document.querySelectorAll('.no-field input.invalid,.no-field select.invalid').forEach(el=>el.classList.remove('invalid'));
+          const amount = parseFloat(val('no-f-amount'))||0;
+          const days   = parseInt(val('no-f-days'))||1;
+          const parts  = parseInt(val('no-f-participants'))||1;
+          const region = val('no-f-region')||'D';
+          const fields = {
+            seq:          _editingOrderIdx>=0 ? MOCK[_editingOrderIdx].seq : val('no-f-id'),
+            entity:       val('no-f-entity')||'NP GER',
+            status:       val('no-f-status')||'ORDER_CREATED',
+            orderDate:    val('no-f-orderdate'),
+            region,
+            sales:        val('no-f-sales'),
+            location:     val('no-f-location')||'Online',
+            customer,
+            contact:      val('no-f-contact'),
+            keyContact:   val('no-f-contact'),
+            training,
+            days,
+            participants: parts,
+            delivery:     val('no-f-delivery'),
+            confirmedDelivery: val('no-f-delivery'),
+            amountNum:    amount,
+            amount:       amount.toLocaleString('de-DE',{style:'currency',currency:region==='CH'?'CHF':'EUR',maximumFractionDigits:0}),
+            paymentTerms: val('no-f-terms'),
+            prepayment:   document.getElementById('no-f-prepayment')?.checked||false,
+            link:         val('no-f-link'),
+            po:           false,
+          };
+          if(_editingOrderIdx >= 0){
+            Object.assign(MOCK[_editingOrderIdx], fields);
+            if(currentOrderIdx===_editingOrderIdx) showDetail(currentOrderIdx);
+          } else {
+            MOCK.unshift(fields);
+            // Enrich the new entry
+            MOCK.forEach((o,i)=>{ if(!o.costBreakdown) o.costBreakdown={
+              trainer:{unitCost:800,qty:days}, material:{unitCost:0,qty:1},
+              certificate:{unitCost:10,qty:parts}, hardware:{unitCost:0,qty:1},
+              catering:{unitCost:0,qty:1}, remoteDesktop:{unitCost:0,qty:1}, other:{unitCost:0,qty:1},
+            }; });
+          }
+          closeNewOrderPanel();
+          filter();
+          updateKPIs();
+        };
+
+        // ── Cost Breakdown tab ────────────────────────────────────────────────
+        function renderCosts(oIdx){
+          const o = MOCK[oIdx];
+          const cb = o.costBreakdown || {};
+          const fmt = v => v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+          const fmtCur = v => v.toLocaleString('de-DE',{style:'currency',currency:o.region==='CH'?'CHF':'EUR',maximumFractionDigits:2});
+          const ITEMS = [
+            ['trainer',       'Trainer'],
+            ['material',      'Material'],
+            ['certificate',   'Certificate'],
+            ['hardware',      'Hardware'],
+            ['catering',      'Catering'],
+            ['remoteDesktop', 'Remote Desktop'],
+            ['other',         'Other'],
+          ];
+          const totalCost = ITEMS.reduce((s,[k])=>s+((cb[k]?.unitCost||0)*(cb[k]?.qty||1)),0);
+          const margin    = o.profitMargin||20;
+          const taxRate   = o.taxRate||(o.region==='CH'?8.1:19);
+          const franchFee = o.franchiseeFee||0;
+          const basePrice = totalCost / (1 - margin/100);
+          const firstPart = totalCost>0 ? +(basePrice*0.4).toFixed(2) : 0;
+          const addPart   = totalCost>0 ? +(basePrice*0.1).toFixed(2) : 0;
+          const avgPart   = (o.participants||1)>0 ? +(basePrice/(o.participants||1)).toFixed(2) : 0;
+          const profit    = basePrice - totalCost;
+          const profitPct = totalCost>0 ? ((profit/basePrice)*100).toFixed(1) : '—';
+          const priceAfterTax = +(basePrice*(1+taxRate/100)).toFixed(2);
+
+          function costRow([key, label]){
+            const uc = cb[key]?.unitCost||0;
+            const qty= cb[key]?.qty||1;
+            const tot= uc*qty;
+            return `<tr>
+              <td>${label}</td>
+              <td><input class="od-cb-input" value="${fmt(uc)}" onchange="updateCostField(${oIdx},'${key}','unitCost',this.value)" /></td>
+              <td><input class="od-cb-input" value="${qty}" onchange="updateCostField(${oIdx},'${key}','qty',this.value)" /></td>
+              <td>${fmt(tot)}</td>
+            </tr>`;
+          }
+
+          function pricingRow(label, cost, price, profitV, profitPctV, withTax){
+            const pp = parseFloat(profitPctV)||0;
+            const cls = pp>=0 ? 'od-profit-pos':'od-profit-neg';
+            return `<tr>
+              <td style="font-weight:600">${label}</td>
+              <td>${fmtCur(cost)}</td>
+              <td>${fmtCur(price)}</td>
+              <td class="${cls}">${fmtCur(profitV)}</td>
+              <td class="${cls}">${profitPctV}%</td>
+              <td>${fmtCur(withTax)}</td>
+            </tr>`;
+          }
+
+          document.getElementById('od-costs-body').innerHTML = `
+            <!-- Pricing parameters -->
+            <div class="od-cb-section">
+              <div class="od-pricing-row">
+                <div class="od-pricing-field">
+                  <label>Target Profit Margin</label>
+                  <input type="number" value="${margin}" min="0" max="100" step="1"
+                    onchange="MOCK[${oIdx}].profitMargin=+this.value; renderCosts(${oIdx})" />
+                </div>
+                <div class="od-pricing-field">
+                  <label>Tax Rate (%)</label>
+                  <input type="number" value="${taxRate}" min="0" max="30" step="0.1"
+                    onchange="MOCK[${oIdx}].taxRate=+this.value; renderCosts(${oIdx})" />
+                </div>
+                <div class="od-pricing-field">
+                  <label>Franchisee Fee (${o.region==='CH'?'CHF':'EUR'})</label>
+                  <input type="number" value="${franchFee}" min="0" step="0.01"
+                    onchange="MOCK[${oIdx}].franchiseeFee=+this.value; renderCosts(${oIdx})" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Cost positions -->
+            <div class="od-cb-section">
+              <div class="od-cb-title">Cost Breakdown</div>
+              <table class="od-cb-table">
+                <thead><tr><th>Item</th><th>Unit Cost</th><th>Qty</th><th>Total</th></tr></thead>
+                <tbody>
+                  ${ITEMS.map(costRow).join('')}
+                  <tr class="cb-total">
+                    <td>Total Costs</td><td></td><td></td><td>${fmt(totalCost)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pricing table -->
+            <div class="od-cb-section">
+              <div class="od-cb-title">Pricing</div>
+              <table class="od-cb-table">
+                <thead><tr><th></th><th>Cost</th><th>Price</th><th>Profit</th><th>Margin</th><th>Price After Tax</th></tr></thead>
+                <tbody>
+                  ${pricingRow('First Participant',  firstPart, firstPart*1.2, firstPart*.2, '20.0', firstPart*1.2*(1+taxRate/100))}
+                  ${pricingRow('Additional Participant', addPart, addPart*1.2, addPart*.2, '20.0', addPart*1.2*(1+taxRate/100))}
+                  ${pricingRow('Average Participant', avgPart, avgPart*1.2, avgPart*.2, '20.0', avgPart*1.2*(1+taxRate/100))}
+                  <tr class="cb-total">
+                    <td>Total</td>
+                    <td>${fmtCur(totalCost)}</td>
+                    <td>${fmtCur(basePrice)}</td>
+                    <td class="${parseFloat(profitPct)>=0?'od-profit-pos':'od-profit-neg'}">${fmtCur(profit)}</td>
+                    <td class="${parseFloat(profitPct)>=0?'od-profit-pos':'od-profit-neg'}">${profitPct}%</td>
+                    <td>${fmtCur(priceAfterTax)}</td>
+                  </tr>
+                  <tr>
+                    <td>Total Per Day</td>
+                    <td>${fmtCur(totalCost/(o.days||1))}</td>
+                    <td>${fmtCur(basePrice/(o.days||1))}</td>
+                    <td>${fmtCur(profit/(o.days||1))}</td>
+                    <td>${profitPct}%</td>
+                    <td>${fmtCur(priceAfterTax/(o.days||1))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>`;
+        }
+
+        window.updateCostField = function(oIdx, item, field, val){
+          if(!MOCK[oIdx].costBreakdown) MOCK[oIdx].costBreakdown={};
+          if(!MOCK[oIdx].costBreakdown[item]) MOCK[oIdx].costBreakdown[item]={unitCost:0,qty:1};
+          MOCK[oIdx].costBreakdown[item][field] = parseFloat(val)||0;
+          renderCosts(oIdx);
+        };
+
+        // ── Liquidity Planning tab ────────────────────────────────────────────
+        function renderLiquidity(oIdx){
+          const o   = MOCK[oIdx];
+          const liq = o.liquidity || (o.liquidity={invoiceDate:'',expectedPayment:'',prepaymentDate:'',costDates:{}});
+          const cb  = o.costBreakdown||{};
+          const fmt = v => v.toLocaleString('de-DE',{style:'currency',currency:o.region==='CH'?'CHF':'EUR',maximumFractionDigits:2});
+          const ITEMS=[['trainer','Trainer'],['material','Material'],['certificate','Certificate'],['hardware','Hardware'],['catering','Catering'],['remoteDesktop','Remote Desktop'],['other','Other']];
+          const totalCost = ITEMS.reduce((s,[k])=>s+((cb[k]?.unitCost||0)*(cb[k]?.qty||1)),0);
+          const revDate = liq.expectedPayment||'—';
+
+          document.getElementById('od-liquidity-body').innerHTML = `
+            <!-- Invoice dates -->
+            <div class="od-cb-section">
+              <div class="od-cb-title">Revenue Dates</div>
+              <table class="od-liq-table">
+                <thead><tr><th>Item</th><th>Amount</th><th>Date</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Invoice Date</td>
+                    <td style="color:var(--fg3);font-size:11px">—</td>
+                    <td><input type="date" class="od-liq-date" value="${liq.invoiceDate||''}"
+                      onchange="MOCK[${oIdx}].liquidity.invoiceDate=this.value; renderLiquidity(${oIdx})"></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600">Expected Payment</td>
+                    <td style="font-family:monospace;font-size:11px">${fmt(o.amountNum||0)}</td>
+                    <td><input type="date" class="od-liq-date" value="${liq.expectedPayment||''}"
+                      onchange="MOCK[${oIdx}].liquidity.expectedPayment=this.value; renderLiquidity(${oIdx})"></td>
+                  </tr>
+                  ${o.prepayment ? `<tr>
+                    <td>Pre-Payment Date</td>
+                    <td style="font-family:monospace;font-size:11px">${fmt((o.amountNum||0)*0.5)}</td>
+                    <td><input type="date" class="od-liq-date" value="${liq.prepaymentDate||''}"
+                      onchange="MOCK[${oIdx}].liquidity.prepaymentDate=this.value; renderLiquidity(${oIdx})"></td>
+                  </tr>` : ''}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Cost outflow dates -->
+            <div class="od-cb-section">
+              <div class="od-cb-title">Cost Outflow Dates</div>
+              <table class="od-liq-table">
+                <thead><tr><th>Cost Item</th><th>Amount</th><th>Payment Date</th></tr></thead>
+                <tbody>
+                  ${ITEMS.filter(([k])=>(cb[k]?.unitCost||0)*(cb[k]?.qty||1)>0).map(([k,label])=>{
+                    const amt = (cb[k]?.unitCost||0)*(cb[k]?.qty||1);
+                    const dateVal = (liq.costDates||{})[k]||'';
+                    return `<tr>
+                      <td>${label}</td>
+                      <td style="font-family:monospace;font-size:11px">${fmt(amt)}</td>
+                      <td><input type="date" class="od-liq-date" value="${dateVal}"
+                        onchange="if(!MOCK[${oIdx}].liquidity.costDates) MOCK[${oIdx}].liquidity.costDates={};
+                                  MOCK[${oIdx}].liquidity.costDates['${k}']=this.value;
+                                  renderLiquidity(${oIdx})"></td>
+                    </tr>`;
+                  }).join('')}
+                  ${ITEMS.every(([k])=>(cb[k]?.unitCost||0)*(cb[k]?.qty||1)===0)
+                    ? '<tr><td colspan="3" style="text-align:center;color:var(--fg3);padding:20px">No cost items — set costs in Cost Breakdown tab first</td></tr>' : ''}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Summary -->
+            <div class="od-liq-summary">
+              <div class="od-liq-sum-item">
+                <label>Revenue</label>
+                <span>${fmt(o.amountNum||0)}</span>
+              </div>
+              <div class="od-liq-sum-item">
+                <label>Total Costs</label>
+                <span style="color:#f87171">${fmt(totalCost)}</span>
+              </div>
+              <div class="od-liq-sum-item">
+                <label>Est. Profit</label>
+                <span style="color:${((o.amountNum||0)-totalCost)>=0?'#34d399':'#f87171'}">${fmt((o.amountNum||0)-totalCost)}</span>
+              </div>
+            </div>`;
+        }
+
+        // ── Enquiry tab ───────────────────────────────────────────────────────
+        function renderEnquiry(oIdx){
+          const o = MOCK[oIdx];
+          const field = (id,label,val,type='text',opts)=>{
+            if(type==='select'){
+              return `<div class="od-enq-field"><label>${label}</label>
+                <select onchange="MOCK[${oIdx}].${id}=this.value">
+                  ${opts.map(op=>`<option value="${op}" ${val===op?'selected':''}>${op}</option>`).join('')}
+                </select></div>`;
+            }
+            return `<div class="od-enq-field"><label>${label}</label>
+              <input type="${type}" value="${val||''}" placeholder="${label}"
+                oninput="MOCK[${oIdx}].${id}=this.value"></div>`;
+          };
+          const fullField = (id,label,val)=>`<div class="od-enq-field full"><label>${label}</label>
+            <input type="text" value="${val||''}" placeholder="${label}"
+              oninput="MOCK[${oIdx}].${id}=this.value"></div>`;
+
+          document.getElementById('od-enquiry-body').innerHTML = `
+            <!-- Header metadata -->
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">Reference</div>
+              <div class="od-enq-fields">
+                ${field('referenceId','Reference ID',o.referenceId)}
+                ${field('salesArea','Sales Area',o.salesArea)}
+                ${field('franchisee','Franchisee',o.franchisee)}
+                ${field('coordinator','Coordinator',o.coordinator)}
+              </div>
+            </div>
+
+            <!-- Client block -->
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">Client</div>
+              <div class="od-enq-fields">
+                ${field('enqOrganisation','Organisation',o.enqOrganisation)}
+                ${field('enqClientName','Contact Name',o.enqClientName)}
+                ${field('enqPhone','Phone',o.enqPhone,'tel')}
+                ${field('enqEmail','Email',o.enqEmail,'email')}
+                ${field('enqJobRole','Job Role',o.enqJobRole)}
+                ${fullField('enqAddress','Address',o.enqAddress)}
+              </div>
+            </div>
+
+            <!-- Course / Quote block -->
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">Course / Quote</div>
+              <div class="od-enq-fields">
+                ${field('enqCourseCode','Course Code',o.enqCourseCode)}
+                ${field('enqCourseName','Course Name',o.enqCourseName)}
+                ${field('enqCourseType','Course Type',o.enqCourseType,'select',['Private','Public','Online'])}
+                ${field('enqLanguage','Language',o.enqLanguage,'select',['German','English','French'])}
+                ${field('enqStartDate','Start Date',o.enqStartDate,'date')}
+                ${field('enqEndDate','End Date',o.enqEndDate,'date')}
+                ${field('enqLocationType','Location Type',o.enqLocationType,'select',['Online','Inhouse','Client Site'])}
+                ${field('enqCurrency','Currency',o.enqCurrency,'select',['EUR','CHF','USD'])}
+              </div>
+              <div class="od-enq-fields cols3" style="margin-top:10px">
+                ${field('enqParticipants','Participants',o.enqParticipants,'number')}
+                ${field('enqMaxParticipants','Max Participants',o.enqMaxParticipants,'number')}
+                ${field('enqDays','No. of Days',o.enqDays,'number')}
+                ${field('enqDailyHours','Daily Hours',o.enqDailyHours,'number')}
+                ${field('enqDurationHrs','Duration (hrs)',o.enqDurationHrs,'number')}
+                ${field('enqTimezone','Timezone',o.enqTimezone,'select',['Europe/Berlin','Europe/Zurich','Europe/Vienna','UTC'])}
+              </div>
+            </div>`;
+        }
+
         window._ordersInit = function(){ render(MOCK); updateKPIs(); };
         window._ordersInit();
       })();
       </script>
+
+      <!-- ── New Order / Edit Order slide-in panel ───────────────────────── -->
+      <div id="no-backdrop" onclick="closeNewOrderPanel()"></div>
+      <div id="no-panel">
+        <div class="no-panel-head">
+          <span class="no-panel-title" id="no-panel-title">New Order</span>
+          <button class="no-panel-close" onclick="closeNewOrderPanel()">✕</button>
+        </div>
+        <div class="no-panel-body">
+          <form id="no-order-form" onsubmit="event.preventDefault(); saveNewOrder()">
+            <div class="no-section-title">Order Identity</div>
+            <div class="no-fields">
+              <div class="no-field">
+                <label>Order ID</label>
+                <input id="no-f-id" type="text" placeholder="auto-generated" readonly style="opacity:.5;cursor:not-allowed">
+              </div>
+              <div class="no-field">
+                <label>Entity</label>
+                <select id="no-f-entity">
+                  <option value="NP GER">NP GER</option>
+                  <option value="NP CH">NP CH</option>
+                  <option value="NP AT">NP AT</option>
+                </select>
+              </div>
+              <div class="no-field">
+                <label>Status</label>
+                <select id="no-f-status">
+                  <option value="ORDER_CREATED">ORDER_CREATED</option>
+                  <option value="TRAINER_ASSIGNED">TRAINER_ASSIGNED</option>
+                  <option value="TRAINING_CONFIRMED">TRAINING_CONFIRMED</option>
+                  <option value="INVOICE_SENT">INVOICE_SENT</option>
+                  <option value="PAID">PAID</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+              </div>
+              <div class="no-field">
+                <label>Order Date</label>
+                <input id="no-f-orderdate" type="date">
+              </div>
+            </div>
+
+            <div class="no-section-title">Customer</div>
+            <div class="no-fields">
+              <div class="no-field full">
+                <label>Customer / Organisation <span style="color:#f87171">*</span></label>
+                <input id="no-f-customer" type="text" placeholder="Company name" oninput="this.classList.remove('invalid')">
+              </div>
+              <div class="no-field full">
+                <label>Key Contact</label>
+                <input id="no-f-contact" type="text" placeholder="Contact name">
+              </div>
+              <div class="no-field">
+                <label>Region</label>
+                <select id="no-f-region">
+                  <option value="D">Germany (D)</option>
+                  <option value="CH">Switzerland (CH)</option>
+                  <option value="AT">Austria (AT)</option>
+                </select>
+              </div>
+              <div class="no-field">
+                <label>Sales Owner</label>
+                <input id="no-f-sales" type="text" placeholder="e.g. john.doe">
+              </div>
+            </div>
+
+            <div class="no-section-title">Training</div>
+            <div class="no-fields">
+              <div class="no-field full">
+                <label>Training Title <span style="color:#f87171">*</span></label>
+                <input id="no-f-training" type="text" placeholder="Course or project name" oninput="this.classList.remove('invalid')">
+              </div>
+              <div class="no-field">
+                <label>Delivery Date</label>
+                <input id="no-f-delivery" type="date">
+              </div>
+              <div class="no-field">
+                <label>Location</label>
+                <select id="no-f-location">
+                  <option value="Online">Online</option>
+                  <option value="Inhouse">Inhouse</option>
+                  <option value="Client Site">Client Site</option>
+                  <option value="NobleProg Office">NobleProg Office</option>
+                </select>
+              </div>
+              <div class="no-field">
+                <label>No. of Days</label>
+                <input id="no-f-days" type="number" min="1" placeholder="1">
+              </div>
+              <div class="no-field">
+                <label>Participants</label>
+                <input id="no-f-participants" type="number" min="1" placeholder="1">
+              </div>
+            </div>
+
+            <div class="no-section-title">Financials</div>
+            <div class="no-fields">
+              <div class="no-field">
+                <label>Contract Value</label>
+                <input id="no-f-amount" type="number" min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="no-field">
+                <label>Payment Terms</label>
+                <select id="no-f-terms">
+                  <option value="30 days net">30 days net</option>
+                  <option value="14 days net">14 days net</option>
+                  <option value="immediate">Immediate</option>
+                  <option value="prepayment 50%">Prepayment 50%</option>
+                </select>
+              </div>
+              <div class="no-field" style="display:flex;align-items:center;gap:8px;margin-top:18px">
+                <input id="no-f-prepayment" type="checkbox" style="width:16px;height:16px;accent-color:var(--accent)">
+                <label style="margin:0;font-size:12px;color:var(--fg2);cursor:pointer" for="no-f-prepayment">Pre-payment required</label>
+              </div>
+            </div>
+
+            <div class="no-section-title">Reference</div>
+            <div class="no-fields">
+              <div class="no-field full">
+                <label>HubSpot / CRM Link</label>
+                <input id="no-f-link" type="url" placeholder="https://...">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="no-panel-footer">
+          <button class="btn-secondary" onclick="closeNewOrderPanel()">Cancel</button>
+          <button class="btn-primary" onclick="saveNewOrder()">Save Order</button>
+        </div>
+      </div>
+
+      <!-- ── Confirm Delete dialog ────────────────────────────────────────── -->
+      <div class="confirm-overlay" id="confirm-dialog">
+        <div class="confirm-box">
+          <div class="confirm-icon">🗑️</div>
+          <div class="confirm-title" id="confirm-title-text">Delete Order</div>
+          <div class="confirm-msg" id="confirm-msg-text">Are you sure?</div>
+          <div class="confirm-actions">
+            <button class="btn-confirm-cancel" onclick="cancelConfirmDelete()">Cancel</button>
+            <button class="btn-confirm-delete" onclick="doConfirmDelete()">Delete</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ── Page: Trainer ─────────────────────────────────────────────────── -->
