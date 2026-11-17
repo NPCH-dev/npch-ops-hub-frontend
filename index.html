@@ -5761,6 +5761,17 @@ function filterPriorities() {
   });
 }
 
+function loadWiki() {
+  const frame = document.getElementById('wiki-frame');
+  if(!frame || frame.dataset.loaded) return;
+  frame.dataset.loaded = '1';
+  // Wiki content will be embedded here — placeholder for now
+  frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>body{margin:0;background:#0d0d0d;color:#ccc;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px}
+  .icon{font-size:48px}.msg{font-size:14px;color:#666}.title{font-size:20px;font-weight:600;color:#fff}</style></head>
+  <body><div class="icon">📖</div><div class="title">Team Wiki</div><div class="msg">Process Wiki wird geladen…</div></body></html>`;
+}
+
 async function loadStatus() {
   const container = document.getElementById('status-grid');
   if (!container) return;
