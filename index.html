@@ -1593,11 +1593,11 @@ tr:hover td { background: var(--bg3); }
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <!-- Order Stage Tracker (table view) -->
-          <div id="od-stage-tracker-table" style="padding:0 0 2px 0"></div>
-          <div class="od-ribbon" id="od-ribbon"></div>
+          <!-- Order Stage Tracker (table view) — compact milestone bar -->
+          <div id="od-stage-tracker-table" style="padding:0"></div>
           <!-- Stammdaten block -->
           <div id="od-stammdaten" class="od-stammdaten"></div>
+          <div class="od-ribbon" id="od-ribbon"></div>
           <!-- Tab bar -->
           <div class="od-tabs" id="od-tabs">
             <button class="od-tab active" data-tab="overview" onclick="switchDetailTab('overview')">Overview</button>
@@ -1712,7 +1712,12 @@ tr:hover td { background: var(--bg3); }
         .od-step-heading-name { font-size:14px; font-weight:600; color:var(--fg); }
         .od-step-status { font-size:11px; color:var(--fg3); }
         .od-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; }
-        .od-fields { display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; margin-bottom:20px; }
+        .od-fields { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px 18px; margin-bottom:20px; }
+        /* Stage data entry fields (process data inputs in step body) */
+        .od-stage-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px 16px; margin-bottom:18px; }
+        .od-stage-inp { width:100%; background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:5px 8px; color:var(--fg); font-size:12px; box-sizing:border-box; }
+        .od-stage-inp:focus { outline:none; border-color:var(--accent); }
+        .od-stage-inp:disabled { opacity:.4; cursor:not-allowed; }
         .od-field-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); font-weight:600; margin-bottom:3px; }
         .od-field-value { font-size:13px; color:var(--fg); line-height:1.4; }
         .od-field-value.is-link { color:var(--accent); text-decoration:none; font-size:11px; word-break:break-all; display:block; }
@@ -1869,6 +1874,20 @@ tr:hover td { background: var(--bg3); }
         .tracker-advance-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
         .tracker-advance-btn.disabled, .tracker-advance-btn:disabled { background:var(--fg3); cursor:not-allowed; opacity:.6; }
         .tracker-skip-btn { padding:5px 12px; background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); border-radius:5px; font-size:11px; cursor:pointer; }
+        /* Compact milestone bar (replaces full accordion tracker in table view) */
+        .od-ms-bar { display:flex; gap:0; background:var(--bg); border-bottom:1px solid var(--border); }
+        .od-ms-step { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:7px 4px; gap:2px; font-size:10px; border-right:1px solid var(--border); position:relative; }
+        .od-ms-step:last-child { border-right:none; }
+        .od-ms-id { font-size:9px; font-weight:700; opacity:.55; letter-spacing:.03em; }
+        .od-ms-label { font-size:10px; font-weight:600; text-align:center; line-height:1.2; }
+        .od-ms-icon { font-size:11px; margin-top:1px; }
+        .od-ms-step.ms-done { opacity:.75; }
+        .od-ms-step.ms-done .od-ms-icon { color:#10b981; }
+        .od-ms-step.ms-active { background:color-mix(in srgb, var(--accent) 10%, transparent); }
+        .od-ms-step.ms-active .od-ms-id,
+        .od-ms-step.ms-active .od-ms-label { color:var(--accent); }
+        .od-ms-step.ms-active .od-ms-icon { color:var(--accent); }
+        .od-ms-step.ms-fut { opacity:.3; }
 
         /* Detail Panel Tabs */
         .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
@@ -2389,6 +2408,34 @@ tr:hover td { background: var(--bg3); }
           const currentSp = STATUS_SP_IDX[o.status] ?? 3;
           const statusLabel = si < currentSp ? '✅ Completed' : si===currentSp ? '🔄 In Progress' : '⏳ Upcoming';
 
+          // Stage data entry fields (mandatory process data) for this SP group
+          const spGrp = SP_GROUPS[si];
+          let stageFieldsHtml = '';
+          if(spGrp){
+            const curStatusIdx = STATUS_SEQUENCE.indexOf(o.status);
+            const inputs = [];
+            spGrp.statuses.forEach(s => {
+              const sIdx = STATUS_SEQUENCE.indexOf(s.key);
+              if(sIdx > curStatusIdx) return; // future status — skip
+              const fields = STAGE_FIELDS[s.key] || [];
+              if(!fields.length) return;
+              const data = getStageData(o.seq, s.key);
+              fields.forEach(f => {
+                const val = data[f.key] || '';
+                const dot = f.mandatory && !val ? '<span style="color:#ef4444;margin-left:2px">*</span>' : '';
+                inputs.push(`<div>
+                  <div class="od-field-label">${f.label}${dot}</div>
+                  <input type="${f.type||'text'}" value="${val}" class="od-stage-inp"
+                    onchange="stageFieldChange('${o.seq}','${s.key}','${f.key}',this.value)">
+                </div>`);
+              });
+            });
+            if(inputs.length){
+              stageFieldsHtml = `<div class="od-section-label">Process Data</div>
+                <div class="od-stage-grid">${inputs.join('')}</div>`;
+            }
+          }
+
           const fieldsHtml = sp.fields.map(f=>{
             let val = o[f.key];
             let valHtml;
@@ -2411,6 +2458,7 @@ tr:hover td { background: var(--bg3); }
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
               <span class="od-step-status">${statusLabel}</span>
             </div>
+            ${stageFieldsHtml}
             <div class="od-section-label">Fields</div>
             <div class="od-fields">${fieldsHtml}</div>
             <div class="od-tasks-wrap">
@@ -3451,18 +3499,32 @@ tr:hover td { background: var(--bg3); }
               ${hasMand && canSkip ? `<button class="tracker-skip-btn" onclick="advanceOrderStatus(${oIdx},'${nextStatus}',true)">Skip & Advance</button>` : ''}`
             : `<div style="font-size:11px;color:var(--accent);padding:6px 0">✓ Order completed</div>`;
 
-          el.innerHTML = `<div class="od-stage-tracker">
-            <div class="tracker-header">
-              <div class="tracker-title">
-                <span class="tracker-order-ref">${o.seq}</span>
-                <span class="tracker-cust">${o.customer||''}</span>
-              </div>
-              <div class="tracker-cur-badge">${curMeta.phase||'—'} · ${curMeta.label||curStatus}</div>
-              <button class="tracker-close-btn" onclick="closeStageTracker('${context}')">✕</button>
+          // For table context: render compact milestone bar instead of full accordion
+          if(context === 'table'){
+            el.innerHTML = `<div class="od-ms-bar">
+              ${SP_GROUPS.map((grp, gi) => {
+                const isCompletedGrp = grp.statuses.every(s => {
+                  const sIdx = STATUS_SEQUENCE.indexOf(s.key);
+                  const curIdx = STATUS_SEQUENCE.indexOf(curStatus);
+                  return sIdx < curIdx;
+                });
+                const isCurGrp = grp.statuses.some(s => s.key === curStatus);
+                const icon = isCompletedGrp ? '✓' : isCurGrp ? '▶' : '·';
+                const cls = isCompletedGrp ? 'ms-done' : isCurGrp ? 'ms-active' : 'ms-fut';
+                return `<div class="od-ms-step ${cls}">
+                  <span class="od-ms-id">${grp.id}</span>
+                  <span class="od-ms-label">${grp.label}</span>
+                  <span class="od-ms-icon">${icon}</span>
+                </div>`;
+              }).join('')}
             </div>
-            <div class="tracker-groups">${groupsHtml}</div>
-            <div class="tracker-footer">${advBtn}</div>
-          </div>`;
+            <div class="tracker-footer">${advBtn}</div>`;
+          } else {
+            el.innerHTML = `<div class="od-stage-tracker">
+              <div class="tracker-groups">${groupsHtml}</div>
+              <div class="tracker-footer">${advBtn}</div>
+            </div>`;
+          }
         }
 
         window.closeStageTracker = function(context){
