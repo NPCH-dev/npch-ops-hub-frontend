@@ -442,6 +442,32 @@ body.sidebar-collapsed .hdr-brand {
 .stat-card.kpi-clickable:hover { box-shadow:0 0 0 1px var(--accent); }
 .stat-card.kpi-active-filter { box-shadow:0 0 0 2px var(--accent) !important; }
 
+/* ── 7-card KPI bar ──────────────────────────────────────────────────── */
+.kpi7-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+@media (max-width: 1400px) { .kpi7-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .kpi7-grid { grid-template-columns: repeat(2, 1fr); } }
+.kpi7-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kpi7-card.kpi7-yellow { border-color: rgba(234,179,8,.35); }
+.kpi7-card.kpi7-accent { border-color: rgba(99,102,241,.4); background: rgba(99,102,241,.06); }
+.kpi7-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fg3); }
+.kpi7-count { font-size: 22px; font-weight: 700; line-height: 1.1; color: var(--fg); margin-top: 4px; }
+.kpi7-amt   { font-size: 11px; color: var(--fg3); margin-top: 1px; }
+.kpi7-amt-big { font-size: 15px; font-weight: 700; color: var(--accent); }
+.kpi7-card.kpi7-yellow .kpi7-count { color: var(--yellow); }
+.kpi7-card.kpi7-accent .kpi7-count { color: var(--accent); }
+
 /* ── Component: Card / Panel ───────────────────────────────────────────────── */
 .card {
   background: var(--bg2);
@@ -1392,32 +1418,42 @@ tr:hover td { background: var(--bg3); }
         <p>SP-04 — Auftragsübersicht (Demo-Daten)</p>
       </div>
 
-      <!-- KPI Row -->
-      <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card accent kpi-clickable" id="kpi-tile-active" style="padding:12px;cursor:pointer" onclick="kpiFilter('active')" title="Click to filter by active orders">
-          <div class="stat-label">Active Orders</div>
-          <div class="stat-value" id="kpi-active" style="font-size:24px">—</div>
-          <div class="stat-sub" id="kpi-active-val">In progress</div>
+      <!-- KPI Row — 7 cards, dynamisch aus gefilterten Zeilen -->
+      <div class="kpi7-grid" style="margin-bottom:20px">
+        <div class="kpi7-card" id="kpi7-booked">
+          <div class="kpi7-label">Booked</div>
+          <div class="kpi7-count" id="kpi7-booked-n">—</div>
+          <div class="kpi7-amt" id="kpi7-booked-v">SP-01</div>
         </div>
-        <div class="stat-card yellow kpi-clickable" id="kpi-tile-invoiceable" style="padding:12px;cursor:pointer" onclick="kpiFilter('invoiceable')" title="Click to filter">
-          <div class="stat-label">Delivery Invoiceable</div>
-          <div class="stat-value" id="kpi-invoiceable" style="font-size:24px">—</div>
-          <div class="stat-sub" id="kpi-invoiceable-val">Ready to invoice</div>
+        <div class="kpi7-card" id="kpi7-coord">
+          <div class="kpi7-label">In Coordination</div>
+          <div class="kpi7-count" id="kpi7-coord-n">—</div>
+          <div class="kpi7-amt" id="kpi7-coord-v">SP-02</div>
         </div>
-        <div class="stat-card green kpi-clickable" id="kpi-tile-prepaid" style="padding:12px;cursor:pointer" onclick="kpiFilter('prepaid')" title="Click to filter">
-          <div class="stat-label">Pre-Payment Done</div>
-          <div class="stat-value" id="kpi-prepaid" style="font-size:24px">—</div>
-          <div class="stat-sub" id="kpi-prepaid-val">Funds received</div>
+        <div class="kpi7-card" id="kpi7-oc">
+          <div class="kpi7-label">Order Confirmation</div>
+          <div class="kpi7-count" id="kpi7-oc-n">—</div>
+          <div class="kpi7-amt" id="kpi7-oc-v">SP-03/04</div>
         </div>
-        <div class="stat-card kpi-clickable" id="kpi-tile-done" style="padding:12px;cursor:pointer" onclick="kpiFilter('done')" title="Click to filter">
-          <div class="stat-label">Completed</div>
-          <div class="stat-value" id="kpi-done" style="font-size:24px">—</div>
-          <div class="stat-sub" id="kpi-done-val">Sep–Nov 2026</div>
+        <div class="kpi7-card" id="kpi7-ready">
+          <div class="kpi7-label">Delivery Ready</div>
+          <div class="kpi7-count" id="kpi7-ready-n">—</div>
+          <div class="kpi7-amt" id="kpi7-ready-v">SP-05</div>
         </div>
-        <div class="stat-card kpi-clickable" id="kpi-tile-all" style="padding:12px;cursor:pointer;border-color:rgba(99,102,241,.3)" onclick="kpiFilter('all')" title="Show all orders">
-          <div class="stat-label" style="color:var(--accent)">Total Pipeline</div>
-          <div class="stat-value" id="kpi-revenue" style="font-size:16px;color:var(--accent)">—</div>
-          <div class="stat-sub">EUR equivalent</div>
+        <div class="kpi7-card" id="kpi7-delivery">
+          <div class="kpi7-label">In Delivery</div>
+          <div class="kpi7-count" id="kpi7-delivery-n">—</div>
+          <div class="kpi7-amt" id="kpi7-delivery-v">SP-05</div>
+        </div>
+        <div class="kpi7-card kpi7-yellow" id="kpi7-payment">
+          <div class="kpi7-label">Outstanding Payments</div>
+          <div class="kpi7-count" id="kpi7-payment-n">—</div>
+          <div class="kpi7-amt" id="kpi7-payment-v">SP-06</div>
+        </div>
+        <div class="kpi7-card kpi7-accent" id="kpi7-total">
+          <div class="kpi7-label">Total Pipeline</div>
+          <div class="kpi7-count kpi7-amt-big" id="kpi7-total-n">—</div>
+          <div class="kpi7-amt" id="kpi7-total-v">all visible orders</div>
         </div>
       </div>
 
@@ -1502,7 +1538,11 @@ tr:hover td { background: var(--bg3); }
       <div class="od-layout" id="od-layout">
 
         <!-- Left: Order List -->
-        <div class="od-list" id="od-list">
+        <div class="od-list" id="od-list" style="position:relative">
+          <button id="od-list-collapse" onclick="collapseOdList()" title="Collapse list">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Hide
+          </button>
           <div class="card">
             <div class="card-body" style="padding:0">
               <div class="table-wrap">
@@ -1547,6 +1587,10 @@ tr:hover td { background: var(--bg3); }
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
               </button>
             </div>
+            <button id="od-list-expand" onclick="expandOdList()" title="Show list">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              List
+            </button>
             <button class="od-close" onclick="closeOrderDetail()" title="Close (Esc)">
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -1591,6 +1635,28 @@ tr:hover td { background: var(--bg3); }
         body.od-resizing .od-detail { transition:none !important; }
         .od-detail { flex:1 1 0; overflow:hidden; opacity:0; transition:opacity .2s ease; display:none; flex-direction:column; border:1px solid var(--border); border-radius:8px; background:var(--bg2); min-height:400px; box-shadow:0 2px 16px rgba(0,0,0,.18); margin-left:0; }
         .od-layout.detail-open .od-detail { opacity:1; display:flex !important; overflow:visible; }
+        /* List collapse toggle */
+        #od-list-collapse {
+          display:none; position:absolute; top:8px; right:6px; z-index:4;
+          background:var(--bg3); border:1px solid var(--border); border-radius:5px;
+          color:var(--fg3); cursor:pointer; padding:3px 7px; font-size:11px;
+          line-height:1; transition:background .12s, color .12s;
+        }
+        #od-list-collapse:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+        .od-layout.detail-open #od-list-collapse { display:flex; align-items:center; gap:4px; }
+        .od-layout.list-collapsed .od-list { flex:0 0 0 !important; min-width:0 !important; overflow:hidden !important; }
+        .od-layout.list-collapsed #od-resize-handle { display:none !important; }
+        .od-layout.list-collapsed #od-list-collapse { display:none !important; }
+        /* Expand button on detail header when list is collapsed */
+        #od-list-expand {
+          display:none; align-items:center; gap:5px;
+          background:var(--bg3); border:1px solid var(--border); border-radius:5px;
+          color:var(--fg3); cursor:pointer; padding:4px 9px; font-size:11px;
+          transition:background .12s, color .12s; margin-right:6px;
+        }
+        #od-list-expand:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+        .od-layout.list-collapsed #od-list-expand { display:flex; }
+
         /* Resize handle between list and detail */
         #od-resize-handle {
           display:none; width:8px; cursor:col-resize; flex-shrink:0;
@@ -2436,6 +2502,19 @@ tr:hover td { background: var(--bg3); }
 
         document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOrderDetail(); });
 
+        window.collapseOdList = function(){
+          document.getElementById('od-layout')?.classList.add('list-collapsed');
+        };
+        window.expandOdList = function(){
+          document.getElementById('od-layout')?.classList.remove('list-collapsed');
+        };
+        // Also restore list when detail closes
+        const _origCloseDetail = window.closeOrderDetail;
+        window.closeOrderDetail = function(){
+          _origCloseDetail();
+          document.getElementById('od-layout')?.classList.remove('list-collapsed');
+        };
+
         // ── Resizable master-detail split ──────────────────────────────────
         (function initOdResize(){
           const handle  = document.getElementById('od-resize-handle');
@@ -2534,6 +2613,7 @@ tr:hover td { background: var(--bg3); }
             return matchQ && (!s||o.status===s) && (!r||o.region===r) && (!l||o.location===l);
           });
           render(filtered);
+          updateKPIs(filtered);
         }
 
         ['ob-search','ob-status-filter','ob-region-filter','ob-location-filter'].forEach(id=>{
@@ -2544,23 +2624,35 @@ tr:hover td { background: var(--bg3); }
         const FMT_EUR = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
         function fmtVal(orders){ const s=orders.reduce((a,o)=>a+(o.amountNum||0),0); return s ? FMT_EUR.format(s) : ''; }
 
-        function updateKPIs(){
-          const ACTIVE_ST = ['ORDER_CREATED','PRE_PAYMENT_INVOICED','PRE_PAYMENT_DONE','DELIVERY_INVOICEABLE','FULL_PAYMENT_INVOICED'];
-          const activeOrds = MOCK.filter(o=>ACTIVE_ST.includes(o.status));
-          const invOrds    = MOCK.filter(o=>o.status==='DELIVERY_INVOICEABLE');
-          const prepOrds   = MOCK.filter(o=>o.status==='PRE_PAYMENT_DONE');
-          const doneOrds   = MOCK.filter(o=>['FULL_PAYMENT_DONE','ORDER_COMPLETED'].includes(o.status));
-          document.getElementById('kpi-active').textContent        = activeOrds.length;
-          document.getElementById('kpi-invoiceable').textContent   = invOrds.length;
-          document.getElementById('kpi-prepaid').textContent       = prepOrds.length;
-          document.getElementById('kpi-done').textContent          = doneOrds.length;
-          const aVal=fmtVal(activeOrds), iVal=fmtVal(invOrds), pVal=fmtVal(prepOrds), dVal=fmtVal(doneOrds);
-          const subA=document.getElementById('kpi-active-val');     if(subA) subA.textContent = aVal||'In progress';
-          const subI=document.getElementById('kpi-invoiceable-val');if(subI) subI.textContent = iVal||'Ready to invoice';
-          const subP=document.getElementById('kpi-prepaid-val');    if(subP) subP.textContent = pVal||'Funds received';
-          const subD=document.getElementById('kpi-done-val');       if(subD) subD.textContent = dVal||'Sep–Nov 2026';
-          const total = MOCK.reduce((s,o)=>s+(o.amountNum||0),0);
-          document.getElementById('kpi-revenue').textContent = FMT_EUR.format(total);
+        // KPI groups per Process Wiki v0.7
+        const KPI7_GROUPS = {
+          booked:   ['BOOKING_RECEIVED','SALES_CONFIRMED','HANDOVER_TO_COORDINATION','CONTRACT_SIGNED','PO_RECEIVED'],
+          coord:    ['TRAINER_SELECTION','TRAINER_RECRUITMENT','CANDIDATES_IDENTIFIED','RECRUITMENT_DONE','ALIGNMENT_CALL','DELIVERY_CONFIRMED'],
+          oc:       ['ORDER_CONFIRMATION_SEND','ORDER_CREATED','PRE_PAYMENT_INVOICED','PRE_PAYMENT_DONE'],
+          ready:    ['PCQ_DONE','DELIVERY_READY'],
+          delivery: ['DELIVERY_IN_PROGRESS','POST_EVALUATION','DELIVERY_INVOICEABLE'],
+          payment:  ['FULL_PAYMENT_INVOICED'],
+        };
+
+        function updateKPIs(rows){
+          const src = rows || MOCK;
+          const set = (id, n, amt) => {
+            const nEl = document.getElementById(id+'-n');
+            const vEl = document.getElementById(id+'-v');
+            if(nEl) nEl.textContent = n;
+            if(vEl) vEl.textContent = amt ? FMT_EUR.format(amt) : (nEl ? '' : '');
+          };
+          Object.entries(KPI7_GROUPS).forEach(([key, stati]) => {
+            const grp = src.filter(o => stati.includes(o.status));
+            const amt = grp.reduce((s,o)=>s+(o.amountNum||0),0);
+            set('kpi7-'+key, grp.length || '0', amt);
+          });
+          // Total pipeline
+          const totalAmt = src.reduce((s,o)=>s+(o.amountNum||0),0);
+          const tN = document.getElementById('kpi7-total-n');
+          const tV = document.getElementById('kpi7-total-v');
+          if(tN) tN.textContent = FMT_EUR.format(totalAmt);
+          if(tV) tV.textContent = src.length + ' order' + (src.length!==1?'s':'');
         }
 
         let _activeKpiFilter = null;
@@ -2989,19 +3081,35 @@ tr:hover td { background: var(--bg3); }
           const openAmt  = filtered.filter(o=>o.status!=='ORDER_COMPLETED'&&o.status!=='COMPLETION_CHECK').reduce((s,o)=>s+(o.amountNum||0),0);
           const fmtEur   = n => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
 
-          const kpiBar = `<div style="display:flex;gap:16px;padding:8px 2px 10px;flex-shrink:0">
-            <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
-              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Pipeline Total</span>
-              <span style="font-size:16px;font-weight:700;color:var(--fg);margin-top:2px">${fmtEur(totalAmt)}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
-              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Open Pipeline</span>
-              <span style="font-size:16px;font-weight:700;color:var(--accent);margin-top:2px">${fmtEur(openAmt)}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:140px">
-              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Orders</span>
-              <span style="font-size:16px;font-weight:700;color:var(--fg);margin-top:2px">${filtered.length}</span>
-            </div>
+          const _bkpi = (label, n, amt, accent, yellow) => {
+            const bg = accent ? 'rgba(99,102,241,.06)' : 'var(--bg2)';
+            const bc = accent ? 'rgba(99,102,241,.4)' : yellow ? 'rgba(234,179,8,.35)' : 'var(--border)';
+            const vc = accent ? 'var(--accent)' : yellow ? 'var(--yellow)' : 'var(--fg)';
+            const val = amt ? fmtEur(amt) : '';
+            return `<div style="display:flex;flex-direction:column;background:${bg};border:1px solid ${bc};border-radius:6px;padding:8px 12px;min-width:110px">
+              <span style="font-size:10px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${label}</span>
+              <span style="font-size:${accent?'14px':'20px'};font-weight:700;color:${vc};margin-top:3px;line-height:1.1">${n}</span>
+              ${val ? `<span style="font-size:11px;color:var(--fg3);margin-top:1px">${val}</span>` : ''}
+            </div>`;
+          };
+          const _bg = (stati) => {
+            const grp = filtered.filter(o=>stati.includes(o.status));
+            return { n: grp.length, amt: grp.reduce((s,o)=>s+(o.amountNum||0),0) };
+          };
+          const bBooked   = _bg(KPI7_GROUPS.booked);
+          const bCoord    = _bg(KPI7_GROUPS.coord);
+          const bOC       = _bg(KPI7_GROUPS.oc);
+          const bReady    = _bg(KPI7_GROUPS.ready);
+          const bDelivery = _bg(KPI7_GROUPS.delivery);
+          const bPayment  = _bg(KPI7_GROUPS.payment);
+          const kpiBar = `<div style="display:flex;gap:10px;padding:8px 2px 10px;flex-shrink:0;flex-wrap:wrap">
+            ${_bkpi('Booked', bBooked.n, bBooked.amt)}
+            ${_bkpi('In Coordination', bCoord.n, bCoord.amt)}
+            ${_bkpi('Order Confirmation', bOC.n, bOC.amt)}
+            ${_bkpi('Delivery Ready', bReady.n, bReady.amt)}
+            ${_bkpi('In Delivery', bDelivery.n, bDelivery.amt)}
+            ${_bkpi('Outstanding Payments', bPayment.n, bPayment.amt, false, true)}
+            ${_bkpi('Total Pipeline', fmtEur(totalAmt), null, true)}
           </div>`;
 
           const boardHtml = SP_PHASES.map(ph => {
@@ -3761,7 +3869,6 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('ob-select-all').checked = false;
           updateBulkBar();
           filter();
-          updateKPIs();
         };
 
         // ── New Order Panel ───────────────────────────────────────────────────
@@ -3869,7 +3976,6 @@ tr:hover td { background: var(--bg3); }
           }
           closeNewOrderPanel();
           filter();
-          updateKPIs();
         };
 
         // ── Cost Breakdown tab ────────────────────────────────────────────────
@@ -5406,6 +5512,8 @@ function navigate(page) {
   // Persist
   try { localStorage.setItem('npch_page', key); } catch {}
   closeMegaMenu();
+  // Close any open modals/panels
+  if (typeof closeNewOrderPanel === 'function') closeNewOrderPanel();
 }
 
 function hashPage() {
