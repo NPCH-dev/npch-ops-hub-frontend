@@ -223,6 +223,42 @@ body {
   min-height: calc(100dvh - var(--header-h) - var(--topnav-h));
 }
 
+/* ── Sidebar collapse system ───────────────────────────────────────────────── */
+#sidebar,
+#main,
+.hdr-brand {
+  transition: transform .22s cubic-bezier(.4,0,.2,1),
+              width    .22s cubic-bezier(.4,0,.2,1),
+              margin   .22s cubic-bezier(.4,0,.2,1);
+}
+body.sidebar-collapsed #sidebar {
+  transform: translateX(calc(-1 * var(--sidebar-w)));
+}
+body.sidebar-collapsed #main {
+  margin-left: 0;
+}
+body.sidebar-collapsed .hdr-brand {
+  width: 0;
+  overflow: hidden;
+}
+/* sidebar toggle button — always visible */
+#sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg3);
+  padding: 7px;
+  border-radius: 8px;
+  line-height: 0;
+  flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+#sidebar-toggle:hover { background: var(--bg); color: var(--fg); }
+#sidebar-toggle svg { display: block; }
+
 /* ── Sidebar ───────────────────────────────────────────────────────────────── */
 #sidebar {
   position: fixed;
@@ -315,7 +351,7 @@ body {
 
 /* ── Topbar is now the fixed .hdr — legacy ID kept for JS compat ─────────── */
 /* #topbar referenced in CSS above as position:fixed */
-#menu-toggle { display: none; }
+#menu-toggle { display: flex; }  /* always visible */
 #page-title  { display: none; }  /* title shown in page header now */
 .topbar-spacer { display: none; }
 .topbar-actions { display: none; }
@@ -709,7 +745,7 @@ tr:hover td { background: var(--bg3); }
 
 <!-- Fixed Header -->
 <header id="topbar">
-  <button class="hbtn" id="menu-toggle" onclick="toggleSidebar()" style="display:none">
+  <button class="hbtn" id="menu-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
   <div class="hdr-brand">
@@ -1521,6 +1557,32 @@ tr:hover td { background: var(--bg3); }
         .od-board-card.selected { border-color:var(--accent); box-shadow:0 0 0 2px rgba(99,102,241,.3); }
         .od-board-card.dragging { opacity:.45; }
         .od-board-col.drag-over { background:rgba(99,102,241,.07); border-color:var(--accent); }
+        /* ── Board detail overlay (double-click order card) ── */
+        #od-board-detail-overlay {
+          display: none; position: fixed; inset: 0;
+          background: rgba(0,0,0,.62); z-index: 900;
+          align-items: center; justify-content: center;
+          padding: 20px;
+        }
+        #od-board-detail-overlay.open { display: flex; }
+        #od-board-detail-inner {
+          background: var(--bg2); border: 1px solid var(--border);
+          border-radius: 10px; width: min(900px, 96vw);
+          max-height: 90vh; display: flex; flex-direction: column;
+          box-shadow: 0 12px 48px rgba(0,0,0,.55); overflow: hidden;
+        }
+        #od-board-detail-head {
+          display: flex; align-items: center; gap: 10px;
+          padding: 14px 18px; border-bottom: 1px solid var(--border);
+          background: var(--bg); flex-shrink: 0; border-radius: 10px 10px 0 0;
+        }
+        #od-board-detail-head h3 { flex: 1; margin: 0; font-size: 14px; font-weight: 700; color: var(--fg); }
+        #od-board-detail-close {
+          background: none; border: none; color: var(--fg3); cursor: pointer;
+          font-size: 18px; padding: 2px 6px; border-radius: 4px; line-height: 1;
+        }
+        #od-board-detail-close:hover { background: rgba(255,255,255,.08); color: var(--fg); }
+        #od-board-detail-body { flex: 1; overflow-y: auto; }
         /* ── Order Stage Tracker ── */
         #od-stage-tracker-board, #od-stage-tracker-table { margin-bottom:10px; }
         .od-stage-tracker { background:var(--bg2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
@@ -1666,7 +1728,7 @@ tr:hover td { background: var(--bg3); }
         /* ── New Order slide-in panel ──────────────────────────────────────── */
         .no-backdrop { display:none; }
         /* New Order / Edit Order — centered modal */
-        .no-panel { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300; align-items:center; justify-content:center; }
+        .no-panel { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center; }
         .no-panel.open { display:flex !important; }
         .no-panel-inner { background:var(--bg2); border:1px solid var(--border); border-radius:10px; width:620px; max-width:calc(100vw - 32px); max-height:90vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,.55); }
         .no-panel-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--bg); flex-shrink:0; border-radius:10px 10px 0 0; }
@@ -2734,11 +2796,110 @@ tr:hover td { background: var(--bg3); }
 
         window.boardCardDblClick = function(e, oIdx){
           e.stopPropagation();
-          _selectedBoardIdx = -1;
-          // Switch to table view, then open detail panel
-          setOrderView('table');
-          setTimeout(() => showDetail(oIdx), 50);
+          showBoardDetailOverlay(oIdx);
         };
+
+        // ── Board Detail Overlay — opens order card as floating modal ──────────
+        window.showBoardDetailOverlay = function(idx){
+          const o = MOCK[idx]; if(!o) return;
+          currentOrderIdx = idx;
+          viewingStepIdx = STATUS_SP_IDX[o.status] ?? 3;
+
+          const meta = STATUS_META[o.status]||{phase:'?',label:o.status,css:'sp04'};
+          document.getElementById('od-board-detail-title').textContent = `Order #${o.seq} · ${o.customer}`;
+          document.getElementById('od-board-detail-stage').innerHTML =
+            `<span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>`;
+
+          // Build body content — clone the od-detail HTML structure into the overlay
+          const body = document.getElementById('od-board-detail-body');
+          body.innerHTML = `
+            <div style="padding:0 0 2px 0" id="od-stage-tracker-overlay"></div>
+            <div class="od-ribbon" id="od-ribbon-overlay"></div>
+            <div style="padding:14px 18px 8px;border-bottom:1px solid var(--border)">
+              <div class="od-tabs" id="od-tabs-overlay" style="display:flex;gap:4px">
+                <button class="od-tab active" data-tab="overview" onclick="switchOverlayTab('overview')">Overview</button>
+                <button class="od-tab" data-tab="insights" onclick="switchOverlayTab('insights')">AI Insights</button>
+                <button class="od-tab" data-tab="activities" onclick="switchOverlayTab('activities')">Activities</button>
+              </div>
+            </div>
+            <div id="od-overlay-step-body" style="padding:16px 18px 20px"></div>
+            <div id="od-overlay-insights-body" style="display:none;padding:16px 18px 20px">
+              <div class="ai-skeleton-box" style="padding:16px;text-align:center;color:var(--fg3)">AI Insights loading…</div>
+            </div>
+            <div id="od-overlay-activities-body" style="display:none;padding:16px 18px 20px"></div>
+          `;
+
+          // Render stage tracker into overlay slot
+          renderOrderStageTracker(idx, 'overlay');
+          // Render ribbon into overlay slot
+          _renderRibbonInto(idx, 'od-ribbon-overlay');
+          // Render step body
+          _renderStepBodyInto(idx, viewingStepIdx, 'od-overlay-step-body');
+          // Render activities if already initialised
+          if(!ACTIVITIES_STORE[o.seq]) ACTIVITIES_STORE[o.seq] = initMockActivities(o.seq);
+
+          document.getElementById('od-board-detail-overlay').classList.add('open');
+        };
+
+        window.closeBoardDetailOverlay = function(){
+          document.getElementById('od-board-detail-overlay').classList.remove('open');
+        };
+
+        window.switchOverlayTab = function(tab){
+          document.querySelectorAll('#od-tabs-overlay .od-tab').forEach(b=>
+            b.classList.toggle('active', b.dataset.tab===tab));
+          document.getElementById('od-overlay-step-body').style.display        = tab==='overview'    ? '' : 'none';
+          document.getElementById('od-overlay-insights-body').style.display    = tab==='insights'    ? '' : 'none';
+          document.getElementById('od-overlay-activities-body').style.display  = tab==='activities'  ? '' : 'none';
+          if(tab==='activities' && currentOrderIdx>=0){
+            const seq = MOCK[currentOrderIdx].seq;
+            const el = document.getElementById('od-overlay-activities-body');
+            el.innerHTML = renderActivitiesList(seq);
+          }
+        };
+
+        // Helper: render ribbon into any target element id
+        function _renderRibbonInto(idx, targetId){
+          const el = document.getElementById(targetId); if(!el) return;
+          if(typeof renderRibbon === 'function'){
+            // renderRibbon writes into #od-ribbon by default; we swap temporarily
+            const orig = document.getElementById('od-ribbon');
+            if(orig){
+              const saved = orig.id;
+              orig.id = '__rib_tmp';
+              el.id = 'od-ribbon';
+              renderRibbon(idx);
+              el.id = targetId;
+              orig.id = saved;
+            }
+          }
+        }
+
+        // Helper: render step body into any target element id
+        function _renderStepBodyInto(idx, stepIdx, targetId){
+          const el = document.getElementById(targetId); if(!el) return;
+          if(typeof renderStepBody === 'function'){
+            const orig = document.getElementById('od-step-body');
+            if(orig){
+              const saved = orig.id;
+              orig.id = '__step_tmp';
+              el.id = 'od-step-body';
+              renderStepBody(idx, stepIdx);
+              el.id = targetId;
+              orig.id = saved;
+            } else {
+              // No table-view step body present — render directly
+              el.id = 'od-step-body';
+              renderStepBody(idx, stepIdx);
+              el.id = targetId;
+            }
+          }
+        }
+
+        // Allow Escape to close board overlay
+        document.addEventListener('keydown', e=>{
+          if(e.key==='Escape') closeBoardDetailOverlay();
+        });
 
         window.boardDragStart = function(e, oIdx){
           e.dataTransfer.effectAllowed = 'move';
@@ -2835,7 +2996,9 @@ tr:hover td { background: var(--bg3); }
 
         // ── Order Stage Tracker ───────────────────────────────────────────────
         function renderOrderStageTracker(oIdx, context){
-          const targetId = context === 'board' ? 'od-stage-tracker-board' : 'od-stage-tracker-table';
+          const targetId = context === 'board' ? 'od-stage-tracker-board'
+                         : context === 'overlay' ? 'od-stage-tracker-overlay'
+                         : 'od-stage-tracker-table';
           const el = document.getElementById(targetId);
           if(!el || oIdx < 0) return;
           const o = MOCK[oIdx];
@@ -2922,7 +3085,9 @@ tr:hover td { background: var(--bg3); }
         }
 
         window.closeStageTracker = function(context){
-          const id = context === 'board' ? 'od-stage-tracker-board' : 'od-stage-tracker-table';
+          const id = context === 'board' ? 'od-stage-tracker-board'
+                   : context === 'overlay' ? 'od-stage-tracker-overlay'
+                   : 'od-stage-tracker-table';
           const el = document.getElementById(id);
           if(el) el.innerHTML = '';
           if(context === 'board'){
@@ -4990,14 +5155,15 @@ function switchTab(tab) {
   try { localStorage.setItem('npch_tab', tab); } catch {}
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
+// ── Sidebar collapse/expand ───────────────────────────────────────────────────
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
+  document.body.classList.toggle('sidebar-collapsed');
 }
 function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
+  document.body.classList.add('sidebar-collapsed');
+}
+function openSidebar() {
+  document.body.classList.remove('sidebar-collapsed');
 }
 
 // ── Page loaders ──────────────────────────────────────────────────────────────
@@ -8002,6 +8168,20 @@ function fmtDate(d) {
     <button class="btn-primary" onclick="saveNewOrder()">Save Order</button>
   </div>
   </div><!-- end no-panel-inner -->
+</div>
+
+<!-- ── Board Detail Overlay (double-click on board card) ───────── -->
+<div id="od-board-detail-overlay" onclick="if(event.target===this)closeBoardDetailOverlay()">
+  <div id="od-board-detail-inner">
+    <div id="od-board-detail-head">
+      <h3 id="od-board-detail-title">Order Detail</h3>
+      <span id="od-board-detail-stage"></span>
+      <button id="od-board-detail-close" onclick="closeBoardDetailOverlay()">✕</button>
+    </div>
+    <div id="od-board-detail-body">
+      <!-- content injected by showBoardDetailOverlay() -->
+    </div>
+  </div>
 </div>
 </body>
 </html>
