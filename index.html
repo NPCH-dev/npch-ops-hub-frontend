@@ -1674,6 +1674,8 @@ tr:hover td { background: var(--bg3); }
         #orders-table tbody tr.selected { background:rgba(99,102,241,.1) !important; }
         #orders-table tbody tr.selected td:first-child { border-left:3px solid var(--accent); padding-left:9px; }
         #orders-table tbody tr:last-child td { border-bottom:none; }
+        .od-layout.costs-open .od-list { flex:0 0 0 !important; min-width:0 !important; max-width:0 !important; overflow:hidden; padding:0; border:none; opacity:0; }
+        .od-layout.costs-open #od-resize-handle { display:none !important; }
         .od-layout.detail-open .od-col-training { display:none; }
         .od-layout.detail-open .od-col-delivery { display:none; }
         .od-layout.detail-open #orders-table tbody td:nth-child(5) { display:none; }
@@ -2963,6 +2965,8 @@ tr:hover td { background: var(--bg3); }
         // ── Tab switching ─────────────────────────────────────────────────────
         window.switchDetailTab = function(tab){
           document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+          // costs tab → hide order list, full-width detail panel
+          document.getElementById('od-layout').classList.toggle('costs-open', tab==='costs');
           document.getElementById('od-step-body').style.display      = tab==='overview'    ? '' : 'none';
           document.getElementById('od-insights-body').style.display  = tab==='insights'    ? '' : 'none';
           document.getElementById('od-costs-body').style.display     = tab==='costs'       ? '' : 'none';
