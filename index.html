@@ -3179,6 +3179,39 @@ tr:hover td { background: var(--bg3); }
           );
         };
 
+        // --- DELIVERY_CONFIRMED finish (dual sign-off validation) ---
+        window.sp02FinishDeliveryConfirmed = function(oIdx, seq){
+          const sd = getStageData(seq,'DELIVERY_CONFIRMED');
+          const missing = [];
+          if(!sd.dateConfirmed)        missing.push('Date confirmed with trainer');
+          if(!sd.locationConfirmed)    missing.push('Location / platform confirmed');
+          if(!sd.techSetupConfirmed)   missing.push('Technical setup confirmed');
+          if(!sd.customerInformedTrainer) missing.push('Customer informed of trainer');
+          if(!sd.signoffSales)         missing.push('Sales sign-off');
+          if(!sd.signoffCoord)         missing.push('Coordination sign-off');
+          if(missing.length){
+            sp02Modal(
+              'Missing required items',
+              `<div style="font-size:13px;color:var(--fg2);margin-bottom:10px">Please complete all required items before advancing:</div>
+               <ul style="margin:0;padding-left:18px;font-size:12px;color:#fca5a5">
+                 ${missing.map(m=>`<li>${m}</li>`).join('')}
+               </ul>`,
+              [{ label:'OK', primary:true, action:null }]
+            );
+            return;
+          }
+          const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf('DELIVERY_CONFIRMED')+1];
+          const nextLabel = STATUS_META[nextStatus]?.label || nextStatus;
+          sp02Modal(
+            `Advance to ${nextLabel}?`,
+            `All sign-offs complete. Move this order to <strong>${nextLabel}</strong>?`,
+            [
+              { label:`→ ${nextLabel}`, primary:true,  action:()=> advanceOrderStatus(oIdx, nextStatus) },
+              { label:'Cancel',         primary:false, action: null },
+            ]
+          );
+        };
+
         // --- Email template loader ---
         window.sp02LoadEmailTemplate = function(seq, lang){
           const templates = {
@@ -3821,6 +3854,143 @@ tr:hover td { background: var(--bg3); }
                 </button>
                 <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
                   Agenda approved + delivery dates set → <strong style="color:#a5b4fc">Delivery Confirmed</strong>
+                </div>
+              </div>`;
+          }
+
+          // ── DELIVERY_CONFIRMED ───────────────────────────────────────────────
+          if(statusKey === 'DELIVERY_CONFIRMED'){
+            const isExpress = (sd.deliveryType||'') === 'express';
+            const trainingFormat = getStageData(o.seq,'ALIGNMENT_CALL').trainingFormat || 'Online';
+            const isOnline = trainingFormat === 'Online';
+            const delivStart = getStageData(o.seq,'ALIGNMENT_CALL').deliveryStart || sd.deliveryStart || '';
+            const weeksToStart = delivStart ? Math.ceil((new Date(delivStart)-new Date())/(7*86400000)) : null;
+            const travelNeeded = !isOnline && (weeksToStart === null || weeksToStart <= 3 || isExpress);
+            return `
+              <!-- Delivery type: Express? -->
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚡ Delivery Type</div>
+                <div style="display:flex;gap:8px">
+                  ${['standard','express'].map(t=>`
+                    <span class="sp02-platform-badge${(sd.deliveryType||'standard')===t?' active':''}"
+                      onclick="setStageField('${o.seq}','DELIVERY_CONFIRMED','deliveryType','${t}');this.parentElement.querySelectorAll('.sp02-platform-badge').forEach(b=>b.classList.remove('active'));this.classList.add('active');renderOrders()">
+                      ${t==='express'?'⚡ Express (same week)':'📅 Standard'}
+                    </span>`).join('')}
+                </div>
+                ${isExpress?`<div style="margin-top:8px;padding:8px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:6px;font-size:12px;color:#fca5a5">⚠️ Express booking — travel &amp; logistics must be arranged <strong>immediately</strong>.</div>`:''}
+              </div>
+
+              <!-- 1. Date / Location / Technical Setup -->
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📅 Date, Location &amp; Technical Setup</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_dateconf_${o.seq}" ${sd.dateConfirmed?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','dateConfirmed',this.checked)">
+                  <label for="dc_dateconf_${o.seq}" style="font-size:12px;cursor:pointer">Delivery date confirmed with trainer</label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_locconf_${o.seq}" ${sd.locationConfirmed?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','locationConfirmed',this.checked)">
+                  <label for="dc_locconf_${o.seq}" style="font-size:12px;cursor:pointer">${isOnline?'Online platform / meeting link confirmed':'Venue / room booked and confirmed'}</label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_techconf_${o.seq}" ${sd.techSetupConfirmed?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','techSetupConfirmed',this.checked)">
+                  <label for="dc_techconf_${o.seq}" style="font-size:12px;cursor:pointer">Technical setup confirmed (${isOnline?'video link, screen share, lab access':'room equipment, projector, WiFi, lab'})</label>
+                </div>
+                ${isOnline?`
+                <div style="margin-top:8px">
+                  <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">Video meeting link</label>
+                  <input class="sp02-inline-input" placeholder="https://meet.google.com/… or Zoom link"
+                    value="${sd.videoLink||''}"
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','videoLink',this.value)">
+                </div>`:''}
+              </div>
+
+              <!-- 2. Customer Informed -->
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📣 Customer Informed</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_custinf_${o.seq}" ${sd.customerInformedTrainer?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','customerInformedTrainer',this.checked)">
+                  <label for="dc_custinf_${o.seq}" style="font-size:12px;cursor:pointer">Customer informed of confirmed trainer</label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_custlog_${o.seq}" ${sd.customerInformedLogistics?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','customerInformedLogistics',this.checked)">
+                  <label for="dc_custlog_${o.seq}" style="font-size:12px;cursor:pointer">${isOnline?'Video link &amp; access details sent to customer':'Meeting point / address sent to customer'}</label>
+                </div>
+              </div>
+
+              <!-- 3. Trainer & Travel Logistics -->
+              <div style="margin-bottom:14px;padding:12px 14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:8px">
+                <div style="font-size:11px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✈️ Trainer &amp; Travel Logistics</div>
+                ${!isOnline && !travelNeeded ? `
+                <div style="font-size:12px;color:var(--fg3);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:5px;margin-bottom:8px">
+                  🕒 Travel booking: <strong>schedule for 3 weeks before training start</strong> (${delivStart ? new Date(new Date(delivStart).getTime()-21*86400000).toLocaleDateString('de-DE') : 'date not set'})
+                </div>` : ''}
+                ${(isOnline || (!isExpress && !travelNeeded)) ? '' : `
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_travelbooked_${o.seq}" ${sd.travelBooked?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','travelBooked',this.checked)">
+                  <label for="dc_travelbooked_${o.seq}" style="font-size:12px;cursor:pointer">Trainer travel booked (flights/train, hotel)</label>
+                </div>`}
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_trainerbriefed_${o.seq}" ${sd.trainerFullyBriefed?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','trainerFullyBriefed',this.checked)">
+                  <label for="dc_trainerbriefed_${o.seq}" style="font-size:12px;cursor:pointer">Trainer fully briefed (customer background, agenda, special requirements)</label>
+                </div>
+                <textarea class="sp02-comment" style="min-height:48px"
+                  placeholder="Travel notes, hotel confirmation, special instructions…"
+                  onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','logisticsNotes',this.value)">${sd.logisticsNotes||''}</textarea>
+              </div>
+
+              <!-- 4. Training Materials to Trainer -->
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📦 Training Materials</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+                  <input type="checkbox" id="dc_matsent_${o.seq}" ${sd.materialsSentToTrainer?'checked':''}
+                    onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','materialsSentToTrainer',this.checked)">
+                  <label for="dc_matsent_${o.seq}" style="font-size:12px;cursor:pointer">Materials / lab access sent to trainer</label>
+                </div>
+                <textarea class="sp02-comment" style="min-height:48px"
+                  placeholder="Links, Drive folder, special files, lab credentials…"
+                  onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','materialsSentNotes',this.value)">${sd.materialsSentNotes||''}</textarea>
+              </div>
+
+              <!-- 5. Order Confirmation dual sign-off -->
+              <div style="margin-bottom:14px;padding:12px 14px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px">
+                <div style="font-size:11px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✅ Order Confirmation Sign-Off</div>
+                <div style="font-size:12px;color:var(--fg2);margin-bottom:10px">Both Sales and Coordination must confirm before Order Confirmation is sent to the customer.</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;${sd.signoffSales?'border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.08)':''}">
+                    <div style="font-size:11px;font-weight:700;color:var(--fg3);margin-bottom:6px">SALES</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <input type="checkbox" id="dc_signoffsales_${o.seq}" ${sd.signoffSales?'checked':''}
+                        onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','signoffSales',this.checked);this.closest('div[style]').style.borderColor=this.checked?'rgba(16,185,129,.5)':'var(--border)';this.closest('div[style]').style.background=this.checked?'rgba(16,185,129,.08)':''">
+                      <label for="dc_signoffsales_${o.seq}" style="font-size:12px;cursor:pointer">Sales confirmed ✓</label>
+                    </div>
+                  </div>
+                  <div style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;${sd.signoffCoord?'border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.08)':''}">
+                    <div style="font-size:11px;font-weight:700;color:var(--fg3);margin-bottom:6px">COORDINATION</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <input type="checkbox" id="dc_signoffcoord_${o.seq}" ${sd.signoffCoord?'checked':''}
+                        onchange="setStageField('${o.seq}','DELIVERY_CONFIRMED','signoffCoord',this.checked);this.closest('div[style]').style.borderColor=this.checked?'rgba(16,185,129,.5)':'var(--border)';this.closest('div[style]').style.background=this.checked?'rgba(16,185,129,.08)':''">
+                      <label for="dc_signoffcoord_${o.seq}" style="font-size:12px;cursor:pointer">Coordination confirmed ✓</label>
+                    </div>
+                  </div>
+                </div>
+                ${sd.signoffSales && sd.signoffCoord ? `<div style="margin-top:10px;text-align:center;font-size:12px;color:#6ee7b7;font-weight:600">🎉 Both signed off — ready for Order Confirmation Send</div>` : `<div style="margin-top:8px;text-align:center;font-size:11px;color:var(--fg3)">Waiting for ${!sd.signoffSales?'Sales':''}${!sd.signoffSales&&!sd.signoffCoord?' + ':''}${!sd.signoffCoord?'Coordination':''}</div>`}
+              </div>
+
+              <!-- Push to next -->
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+                <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
+                  onclick="sp02FinishDeliveryConfirmed(${oIdx},'${o.seq}')">
+                  Push to Next Stage →
+                </button>
+                <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
+                  Delivery confirmed → <strong style="color:#a5b4fc">Order Confirmation Send</strong>
                 </div>
               </div>`;
           }
