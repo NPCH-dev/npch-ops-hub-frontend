@@ -1953,6 +1953,30 @@ tr:hover td { background: var(--bg3); }
         .sp02-agenda-entry { display:flex; align-items:center; gap:8px; padding:5px 10px; background:rgba(255,255,255,.04); border-radius:5px; font-size:12px; }
         .sp02-agenda-entry-name { color:var(--fg); flex:1; }
         .sp02-agenda-entry-date { color:var(--fg3); font-size:11px; }
+        /* Candidate cards — TRAINER_RECRUITMENT */
+        .sp02-platform-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+        .sp02-platform-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:11px; color:var(--fg2); cursor:pointer; transition:all .15s; user-select:none; }
+        .sp02-platform-badge.active { border-color:var(--accent); background:rgba(99,102,241,.18); color:#a5b4fc; }
+        .sp02-candidate-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+        .sp02-candidate-add { display:flex; gap:8px; align-items:center; margin-top:6px; }
+        .sp02-candidate-add input { flex:1; background:var(--input-bg,rgba(255,255,255,.06)); border:1px solid var(--border); border-radius:5px; color:var(--fg); font-size:12px; padding:6px 10px; }
+        .sp02-candidate-add input:focus { outline:none; border-color:var(--accent); }
+        .sp02-cand-card { border:1px solid var(--border); border-radius:8px; overflow:hidden; background:rgba(255,255,255,.03); }
+        .sp02-cand-header { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; }
+        .sp02-cand-header:hover { background:rgba(255,255,255,.04); }
+        .sp02-cand-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,rgba(99,102,241,.4),rgba(99,102,241,.15)); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+        .sp02-cand-name { font-size:13px; font-weight:600; color:var(--fg); flex:1; }
+        .sp02-cand-rate { font-size:12px; color:#22c55e; font-weight:600; }
+        .sp02-cand-status-badge { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:600; }
+        .sp02-cand-status-badge.new    { background:rgba(99,102,241,.2); color:#a5b4fc; }
+        .sp02-cand-status-badge.ok     { background:rgba(34,197,94,.15); color:#22c55e; }
+        .sp02-cand-status-badge.reject { background:rgba(239,68,68,.15); color:#f87171; }
+        .sp02-cand-body { display:none; padding:12px 14px; border-top:1px solid var(--border); }
+        .sp02-cand-body.open { display:block; }
+        .sp02-cand-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+        .sp02-cand-chip { font-size:11px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,.07); color:var(--fg2); }
+        .sp02-cand-loading { display:flex; align-items:center; gap:8px; padding:12px 14px; font-size:12px; color:var(--fg3); border-top:1px solid var(--border); }
+        .sp02-cand-loading .spinner { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
         .sp02-agent-btn { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:5px; border:1px solid var(--accent); background:rgba(99,102,241,.15); color:#a5b4fc; font-size:11px; font-weight:600; cursor:pointer; transition:background .15s; }
         .sp02-agent-btn:hover { background:rgba(99,102,241,.28); }
         .sp02-file-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:4px; background:rgba(255,255,255,.07); border:1px solid var(--border); font-size:11px; color:var(--fg2); margin-top:6px; }
@@ -2969,6 +2993,65 @@ tr:hover td { background: var(--bg3); }
           if(chev) chev.classList.toggle('open', open);
         };
 
+        window.toggleSP02Cand = function(id){
+          const body = document.getElementById('spcandbody_'+id);
+          const chev = document.getElementById('spcandchev_'+id);
+          if(!body) return;
+          const open = body.classList.toggle('open');
+          if(chev) chev.classList.toggle('open', open);
+        };
+
+        window.sp02TogglePlatform = function(seq, platform, el){
+          const sd = getStageData(seq,'TRAINER_RECRUITMENT');
+          let list = sd.platforms || [];
+          if(list.includes(platform)) list = list.filter(p=>p!==platform);
+          else list.push(platform);
+          setStageField(seq,'TRAINER_RECRUITMENT','platforms', list);
+          el.classList.toggle('active', list.includes(platform));
+        };
+
+        window.sp02SetCandStatus = function(seq, candId, status){
+          const sd = getStageData(seq,'TRAINER_RECRUITMENT');
+          const cands = sd.candidates || [];
+          const c = cands.find(c=>c.id===candId);
+          if(c){ c.status = status; setStageField(seq,'TRAINER_RECRUITMENT','candidates', cands); }
+        };
+
+        window.sp02UpdateCandUrl = function(seq, candId, url){
+          const sd = getStageData(seq,'TRAINER_RECRUITMENT');
+          const cands = sd.candidates || [];
+          const c = cands.find(c=>c.id===candId);
+          if(c){ c.url = url; setStageField(seq,'TRAINER_RECRUITMENT','candidates', cands); }
+        };
+
+        window.sp02EnrichCandidate = function(seq, candId, url){
+          // Future: n8n agent browses profile, extracts CV + rate + skills
+          alert('Agent: Profile enrichment coming soon\n\nWill browse to:\n'+url+'\nand extract: name, rate, skills, availability, CV link.');
+        };
+
+        window.sp02AddCandidate = function(oIdx, seq){
+          const inp = document.getElementById('sp02newcand_'+seq);
+          if(!inp || !inp.value.trim()) return;
+          const sd = getStageData(seq,'TRAINER_RECRUITMENT');
+          const cands = sd.candidates || [];
+          const newId = 'c'+(cands.length+1+'_'+Date.now());
+          cands.push({id:newId, name:'New Candidate', url:inp.value.trim(), rate:'?', avail:'?', skills:[], status:'new', enriched:false});
+          setStageField(seq,'TRAINER_RECRUITMENT','candidates', cands);
+          inp.value = '';
+          // Re-render SP-02 body
+          const o = MOCK[oIdx];
+          renderSP02Body(oIdx, PROCESS_STEPS.findIndex(s=>s.id==='SP-02'), PROCESS_STEPS.findIndex(s=>s.id===STATUS_META[o.status]?.sp||'SP-02'));
+        };
+
+        window.sp02AddApprovalMsg = function(seq, msg){
+          if(!msg || !msg.trim()) return;
+          const sd = getStageData(seq,'CANDIDATES_IDENTIFIED');
+          const thread = sd.approvalThread || [];
+          const now = new Date();
+          thread.push({user:'Me', time:now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'), msg:msg.trim(), role:'user'});
+          setStageField(seq,'CANDIDATES_IDENTIFIED','approvalThread', thread);
+        };
+
         function taskCard(oIdx, spId, t, extraHtml=''){
           const ck  = getTask(oIdx, spId, t.id);
           const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
@@ -3066,6 +3149,182 @@ tr:hover td { background: var(--bg3); }
                 <div class="sp02-decision-btns">
                   <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'ALIGNMENT_CALL')">✅ Trainer confirmed → Alignment Call</button>
                   <button class="sp02-advance-secondary" onclick="advanceOrderStatus(${oIdx},'TRAINER_RECRUITMENT')">🔍 No trainer found → Start Recruitment (Path B)</button>
+                </div>
+              </div>`;
+          }
+
+          // ── TRAINER_RECRUITMENT ───────────────────────────────────────────────
+          if(statusKey === 'TRAINER_RECRUITMENT'){
+            const platforms = ['Freelancer.com','Malt','Upwork','Gulp','Xing','LinkedIn'];
+            const active = sd.platforms || [];
+            const platformBadges = platforms.map(p=>`
+              <span class="sp02-platform-badge${active.includes(p)?' active':''}"
+                onclick="sp02TogglePlatform('${o.seq}','${p}',this)">${p}</span>`).join('');
+
+            const candidates = sd.candidates || [
+              {id:'c1', name:'Max Gruber',    url:'https://www.freelancer.com/u/maxgruber',   rate:'€850/day', avail:'Dec 2026', skills:['Python','ML','Berlin'], status:'new', enriched:true},
+              {id:'c2', name:'Sarah Koch',    url:'https://malt.de/profile/sarah-koch',       rate:'€720/day', avail:'flexible', skills:['Python','Data','Remote'], status:'ok', enriched:true},
+              {id:'c3', name:'David Brandt',  url:'https://www.freelancer.com/u/dbrandt',     rate:'?',         avail:'?',         skills:[], status:'new', enriched:false},
+            ];
+            const candCardsHtml = candidates.map(c=>{
+              const skillChips = c.skills.map(s=>`<span class="sp02-cand-chip">${s}</span>`).join('');
+              const statuses = {new:'New',ok:'✅ Shortlisted',reject:'❌ Rejected'};
+              return `<div class="sp02-cand-card" id="spcandc_${c.id}">
+                <div class="sp02-cand-header" onclick="toggleSP02Cand('${c.id}')">
+                  <div class="sp02-cand-avatar">👤</div>
+                  <div class="sp02-cand-name">${c.name}</div>
+                  ${c.rate!=='?' ? `<div class="sp02-cand-rate">${c.rate}</div>` : ''}
+                  <span class="sp02-cand-status-badge ${c.status}">${statuses[c.status]||c.status}</span>
+                  <span class="sp02-email-chevron" id="spcandchev_${c.id}">›</span>
+                </div>
+                <div class="sp02-cand-body" id="spcandbody_${c.id}">
+                  ${c.enriched ? `
+                    <div class="sp02-cand-row">${skillChips}</div>
+                    <div style="font-size:11px;color:var(--fg3);margin-bottom:8px">
+                      🕐 Available: ${c.avail} &nbsp;·&nbsp;
+                      <a href="${c.url}" target="_blank" style="color:#a5b4fc">View profile ↗</a>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <select style="background:var(--surface2,rgba(255,255,255,.06));border:1px solid var(--border);border-radius:5px;color:var(--fg);font-size:11px;padding:4px 8px"
+                        onchange="sp02SetCandStatus('${o.seq}','${c.id}',this.value)">
+                        <option value="new" ${c.status==='new'?'selected':''}>New</option>
+                        <option value="ok" ${c.status==='ok'?'selected':''}>✅ Shortlist</option>
+                        <option value="reject" ${c.status==='reject'?'selected':''}>❌ Reject</option>
+                      </select>
+                    </div>` : `
+                    <div class="sp02-cand-loading">
+                      <div class="spinner"></div>
+                      <span>Not enriched yet — click Enrich to load profile data</span>
+                    </div>`}
+                  <div style="margin-top:10px">
+                    <input class="sp02-inline-input" style="margin-bottom:6px" value="${c.url}" placeholder="Profile URL"
+                      onchange="sp02UpdateCandUrl('${o.seq}','${c.id}',this.value)">
+                    <button class="sp02-agent-btn" onclick="sp02EnrichCandidate('${o.seq}','${c.id}','${c.url}')">🔍 Enrich Profile</button>
+                  </div>
+                </div>
+              </div>`;}).join('');
+
+            return `
+              <div style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Posted on platforms</div>
+                <div class="sp02-platform-row">${platformBadges}</div>
+              </div>
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Search keywords</div>
+                <input class="sp02-inline-input" placeholder="e.g. Python trainer, Berlin, 2 days, intermediate"
+                  value="${sd.recruitKeywords||''}"
+                  onchange="setStageField('${o.seq}','TRAINER_RECRUITMENT','recruitKeywords',this.value)"
+                  style="margin-bottom:6px">
+                <div style="display:flex;gap:8px">
+                  <button class="sp02-agent-btn" onclick="alert('Agent: keyword optimisation from agenda — coming soon')">✨ Optimise from Agenda</button>
+                </div>
+              </div>
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
+                Candidates <span style="font-weight:400;text-transform:none">(${candidates.length} found)</span>
+              </div>
+              <div class="sp02-candidate-list">${candCardsHtml}</div>
+              <div class="sp02-candidate-add">
+                <input id="sp02newcand_${o.seq}" placeholder="Paste profile URL (Freelancer, Malt, LinkedIn…)">
+                <button class="sp02-agent-btn" onclick="sp02AddCandidate('${oIdx}','${o.seq}')">+ Add &amp; Enrich</button>
+              </div>
+              <div style="margin-top:16px">
+                <div class="sp02-advance-primary" style="display:inline-block;cursor:pointer"
+                  onclick="advanceOrderStatus(${oIdx},'CANDIDATES_IDENTIFIED')">
+                  3+ candidates shortlisted → Candidates Identified →
+                </div>
+              </div>`;
+          }
+
+          // ── CANDIDATES_IDENTIFIED ─────────────────────────────────────────────
+          if(statusKey === 'CANDIDATES_IDENTIFIED'){
+            const candidates = getStageData(o.seq,'TRAINER_RECRUITMENT').candidates || [
+              {id:'c1',name:'Max Gruber',  rate:'€850/day', status:'ok',  skills:['Python','ML','Berlin']},
+              {id:'c2',name:'Sarah Koch',  rate:'€720/day', status:'ok',  skills:['Python','Data','Remote']},
+              {id:'c3',name:'David Brandt',rate:'€780/day', status:'new', skills:['Python','Analytics']},
+            ];
+            const shortlisted = candidates.filter(c=>c.status!=='reject');
+            const compTable = `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+              ${shortlisted.map(c=>`
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:6px;border:1px solid ${sd.selectedCandidate===c.id?'rgba(99,102,241,.5)':'var(--border)'}">
+                  <input type="radio" name="selcand_${o.seq}" value="${c.id}" ${sd.selectedCandidate===c.id?'checked':''}
+                    onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','selectedCandidate','${c.id}');document.getElementById('selcand_name_${o.seq}').value='${c.name}'">
+                  <div style="font-weight:600;color:var(--fg);flex:1">${c.name}</div>
+                  <div style="color:#22c55e;font-weight:600">${c.rate}</div>
+                  <div>${c.skills.map(s=>`<span class="sp02-cand-chip">${s}</span>`).join(' ')}</div>
+                </div>`).join('')}
+            </div>`;
+
+            // Simple approval thread
+            const thread = sd.approvalThread || [
+              {user:'Christian H.', time:'17:12', msg:'Preference for Sarah Koch — good price/quality ratio, remote works for us.', role:'coord'},
+            ];
+            const threadHtml = thread.map(m=>`
+              <div style="display:flex;gap:8px;margin-bottom:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${m.user.split(' ').map(w=>w[0]).join('')}</div>
+                <div>
+                  <div style="font-size:11px;color:var(--fg3);margin-bottom:2px">${m.user} · ${m.time}</div>
+                  <div style="font-size:12px;color:var(--fg2)">${m.msg}</div>
+                </div>
+              </div>`).join('');
+
+            return `
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Candidate comparison</div>
+              ${compTable}
+
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Team decision &amp; discussion</div>
+              <div style="padding:10px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid var(--border);margin-bottom:8px;min-height:48px">
+                ${threadHtml || '<div style="font-size:12px;color:var(--fg3)">No discussion yet.</div>'}
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:14px">
+                <input id="ci_msg_${o.seq}" class="sp02-inline-input" placeholder="Add comment or decision note…">
+                <button class="sp02-agent-btn" onclick="sp02AddApprovalMsg('${o.seq}',document.getElementById('ci_msg_${o.seq}').value)">Post</button>
+              </div>
+
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Selected trainer &amp; agreed rate</div>
+              <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                <input id="selcand_name_${o.seq}" class="sp02-inline-input" style="flex:1;min-width:140px"
+                  placeholder="Trainer name" value="${sd.selectedCandidateName||''}"
+                  onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','selectedCandidateName',this.value)">
+                <input class="sp02-inline-input" style="width:120px"
+                  placeholder="Agreed rate (€/day)" value="${sd.agreedRate||''}"
+                  onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','agreedRate',this.value)">
+              </div>
+              <div style="font-size:11px;color:var(--fg3);margin-bottom:4px">📧 Rate agreement email reference</div>
+              <input class="sp02-inline-input" placeholder="Email subject or link (auto-populated from Gmail — coming soon)"
+                value="${sd.rateEmailRef||''}"
+                onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','rateEmailRef',this.value)"
+                style="margin-bottom:12px">
+
+              <div style="padding:10px 12px;background:rgba(255,255,255,.04);border-radius:6px;border:1px solid var(--border);margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:${sd.onboardingInitiated?'10px':'0'}">
+                  <input type="checkbox" id="ci_onboard_${o.seq}" ${sd.onboardingInitiated?'checked':''}
+                    onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','onboardingInitiated',this.checked);this.closest('div[style]').querySelector('.sp02-onboard-extra').style.display=this.checked?'block':'none'">
+                  <label for="ci_onboard_${o.seq}" style="font-size:12px;color:var(--fg);cursor:pointer">
+                    Trainer onboarding initiated <span style="color:var(--fg3)">(only if new trainer)</span>
+                  </label>
+                </div>
+                <div class="sp02-onboard-extra" style="display:${sd.onboardingInitiated?'block':'none'}">
+                  <div style="font-size:11px;color:var(--fg3);margin-bottom:6px">📅 Google Calendar — Onboarding appointment</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <input class="sp02-inline-input" style="flex:1;min-width:160px"
+                      placeholder="Onboarding date/time (e.g. 2026-12-02 10:00)"
+                      value="${sd.onboardingDate||''}"
+                      onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','onboardingDate',this.value)">
+                    <button class="sp02-agent-btn" onclick="alert('Agent: creates Google Calendar event for onboarding — coming soon')">📅 Create Calendar Event</button>
+                  </div>
+                  ${sd.onboardingCalLink ? `<div style="margin-top:6px;font-size:11px"><a href="${sd.onboardingCalLink}" target="_blank" style="color:#a5b4fc">📅 Calendar event created ↗</a></div>` : ''}
+                  <textarea class="sp02-comment" style="margin-top:8px;min-height:44px"
+                    placeholder="Onboarding notes — what needs to be prepared, who is involved…"
+                    onchange="setStageField('${o.seq}','CANDIDATES_IDENTIFIED','onboardingNotes',this.value)">${sd.onboardingNotes||''}</textarea>
+                </div>
+              </div>
+
+              <div class="sp02-decision">
+                <div class="sp02-decision-label">Advance</div>
+                <div class="sp02-decision-btns">
+                  <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'RECRUITMENT_DONE')">
+                    Rate agreed &amp; trainer confirmed → Recruitment Done →
+                  </button>
                 </div>
               </div>`;
           }
