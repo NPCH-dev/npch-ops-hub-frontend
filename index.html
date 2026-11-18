@@ -4043,6 +4043,11 @@ tr:hover td { background: var(--bg3); }
           DEV_ROLE=r;
           updateRoleUI();
           applyNavAccess();
+          // Re-render costs if that tab is currently open
+          if(typeof currentOrderIdx !== 'undefined' && currentOrderIdx >= 0){
+            const costsBody = document.getElementById('od-costs-body');
+            if(costsBody && costsBody.offsetParent !== null) renderCosts(currentOrderIdx);
+          }
         }
         function canEdit(){ return ['coordination','admin','management'].includes(DEV_ROLE); }
 
@@ -4274,56 +4279,103 @@ tr:hover td { background: var(--bg3); }
           if(!o.simpleCosts) o.simpleCosts = {};
           const sc = o.simpleCosts;
 
-          // Booking dimensions — editable in the panel, default from order mock
-          if(sc.days         === undefined) sc.days         = parseInt(o.days)||1;
-          if(sc.hoursPerDay  === undefined) sc.hoursPerDay  = parseInt(o.dailyHours)||7;
-          if(sc.participants === undefined) sc.participants = parseInt(o.delegates)||1;
-
-          const days         = sc.days;
-          const hoursPerDay  = sc.hoursPerDay;
-          const participants = sc.participants;
-          const totalHours   = days * hoursPerDay;
-
-          const revenue = o.amountNum || 0;
+          // ── Defaults ────────────────────────────────────────────────────────
+          if(sc.deliveryFormat    === undefined) sc.deliveryFormat    = 'online';
+          if(sc.days              === undefined) sc.days              = parseInt(o.days)||1;
+          if(sc.hoursPerDay       === undefined) sc.hoursPerDay       = parseInt(o.dailyHours)||7;
+          if(sc.participants      === undefined) sc.participants      = parseInt(o.delegates)||1;
+          if(sc.maxParticipants   === undefined) sc.maxParticipants   = sc.participants + 2;
 
           if(sc.trainerRatePerDay === undefined) sc.trainerRatePerDay = 0;
           if(sc.travelFlat        === undefined) sc.travelFlat        = 0;
           if(sc.accomRatePerNight === undefined) sc.accomRatePerNight = 0;
-          if(sc.accomNights       === undefined) sc.accomNights       = Math.max(0, days - 1);
-          if(sc.daDesktopPerDay   === undefined) sc.daDesktopPerDay   = 0;
-          if(sc.otherFlat         === undefined) sc.otherFlat         = 0;
+          if(sc.accomNights       === undefined) sc.accomNights       = Math.max(0, sc.days - 1);
+          if(sc.prepHours         === undefined) sc.prepHours         = 0;
+          if(sc.prepRate          === undefined) sc.prepRate          = 0;
+          if(sc.daDesktopRate     === undefined) sc.daDesktopRate     = 0;  // per desktop per day
+          if(sc.softFlat          === undefined) sc.softFlat          = 0;  // flat bundle
+          if(sc.softPerPax        === undefined) sc.softPerPax        = 0;  // per participant
+          if(sc.skillAssessFlat   === undefined) sc.skillAssessFlat   = 0;
+          if(sc.skillAssessPerPax === undefined) sc.skillAssessPerPax = 0;
+          if(sc.followupHours     === undefined) sc.followupHours     = 0;
+          if(sc.certPerPax        === undefined) sc.certPerPax        = 0;
+          if(sc.classroomRental   === undefined) sc.classroomRental   = 0;
+          if(sc.cateringPerPaxDay === undefined) sc.cateringPerPaxDay = 0;
 
-          const trainerTotal  = sc.trainerRatePerDay * days;
-          const accomTotal    = sc.accomRatePerNight * sc.accomNights;
-          const daTotal       = sc.daDesktopPerDay   * days;
-          const sysFeeAmt     = revenue * 0.175;  // System Fee 17.5% — fixed, not editable
-          const directCosts   = trainerTotal + sc.travelFlat + accomTotal + daTotal + sc.otherFlat + sysFeeAmt;
+          // Revenue — overridable suggestion
+          if(sc.revenueOverride   === undefined) sc.revenueOverride   = null;
+          if(sc.travelToCustomer  === undefined) sc.travelToCustomer  = 0;
+          if(sc.pricePerAddPax    === undefined) sc.pricePerAddPax    = 0;
 
-          // Gross Margin (visible to all) — target ≥ 45%
-          const grossMargin    = revenue - directCosts;
+          const fmt_ = sc;
+          const days         = sc.days;
+          const hoursPerDay  = sc.hoursPerDay;
+          const participants = sc.participants;
+          const maxPax       = sc.maxParticipants;
+          const totalHours   = days * hoursPerDay;
+          const delivery     = sc.deliveryFormat;
+
+          const baseRevenue    = o.amountNum || 0;
+          const revenue        = sc.revenueOverride !== null ? sc.revenueOverride : baseRevenue;
+
+          const isManagement = ['management','admin'].includes(DEV_ROLE);
+
+          // ── Cost calculations ───────────────────────────────────────────────
+          // Per-requested-pax totals
+          function calcCosts(pax){
+            const trainerTotal  = sc.trainerRatePerDay * days;
+            const travelTotal   = (delivery==='onsite'||delivery==='classroom') ? sc.travelFlat : 0;
+            const accomTotal    = (delivery==='onsite'||delivery==='classroom') ? sc.accomRatePerNight * sc.accomNights : 0;
+            const prepTotal     = sc.prepHours * sc.prepRate;
+            const daTotal       = sc.daDesktopRate * pax * days;
+            const softTotal     = sc.softFlat + sc.softPerPax * pax;
+            const skillTotal    = sc.skillAssessFlat + sc.skillAssessPerPax * pax;
+            const followupTotal = sc.followupHours * sc.trainerRatePerDay / (hoursPerDay||7);
+            const certTotal     = sc.certPerPax * pax;
+            const classroomTotal= delivery==='classroom' ? sc.classroomRental : 0;
+            const cateringTotal = delivery==='classroom' ? sc.cateringPerPaxDay * pax * days : 0;
+            const sysFeeAmt     = revenue * 0.175;
+            const direct = trainerTotal + travelTotal + accomTotal + prepTotal + daTotal +
+                           softTotal + skillTotal + followupTotal + certTotal +
+                           classroomTotal + cateringTotal + sysFeeAmt;
+            return { trainerTotal, travelTotal, accomTotal, prepTotal, daTotal,
+                     softTotal, skillTotal, followupTotal, certTotal,
+                     classroomTotal, cateringTotal, sysFeeAmt, direct };
+          }
+          const C  = calcCosts(participants);    // requested count
+          const Cm = calcCosts(maxPax);           // max count
+
+          const grossMargin    = revenue - C.direct;
           const grossMarginPct = revenue > 0 ? (grossMargin / revenue * 100) : 0;
           const gmCls = grossMarginPct >= 45 ? 'od-profit-pos' : grossMarginPct >= 30 ? 'od-profit-warn' : 'od-profit-neg';
 
-          // Management-only P&L overhead (% of revenue)
-          const cosAmt  = revenue * 0.10;  // Cost of Sales
-          const cpmAmt  = revenue * 0.05;  // Cost of Project Management
-          const riskAmt = revenue * 0.10;  // Risk
+          const grossMarginM    = revenue - Cm.direct;
+          const grossMarginMPct = revenue > 0 ? (grossMarginM / revenue * 100) : 0;
+          const gmMCls = grossMarginMPct >= 45 ? 'od-profit-pos' : grossMarginMPct >= 30 ? 'od-profit-warn' : 'od-profit-neg';
+
+          // Per-pax pricing display
+          const pricePerPax    = participants > 0 ? revenue / participants : 0;
+          const pricePerAddPax = sc.pricePerAddPax;
+
+          // Management P&L
+          const cosAmt  = revenue * 0.10;
+          const cpmAmt  = revenue * 0.05;
+          const riskAmt = revenue * 0.10;
           const pnlOverhead   = cosAmt + cpmAmt + riskAmt;
           const profitLoss    = grossMargin - pnlOverhead;
           const profitLossPct = revenue > 0 ? (profitLoss / revenue * 100) : 0;
           const plCls = profitLoss >= 0 ? 'od-profit-pos' : 'od-profit-neg';
 
-          const isManagement = ['management','admin'].includes(DEV_ROLE);
           const canConfirm       = sc.trainerRatePerDay > 0;
           const alreadyConfirmed = o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
 
-          // Dimension field (editable number or read-only)
-          function dimField(label, key, val, min, step){
+          // ── Helpers ─────────────────────────────────────────────────────────
+          function dimField(label, key, val, min, step, unit){
             const readOnly = key === null;
             return `<div style="display:flex;flex-direction:column;gap:4px">
               <span style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em">${label}</span>
               ${readOnly
-                ? `<span style="font-size:16px;font-weight:700;color:var(--fg);padding:5px 0">${val}</span>`
+                ? `<span style="font-size:16px;font-weight:700;color:var(--fg);padding:5px 0">${val}${unit?`<span style="font-size:10px;font-weight:400;color:var(--fg3);margin-left:2px">${unit}</span>`:''}</span>`
                 : `<input type="number" min="${min}" step="${step}" value="${val}"
                      style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600;color:var(--fg);text-align:center;"
                      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
@@ -4332,7 +4384,7 @@ tr:hover td { background: var(--bg3); }
             </div>`;
           }
 
-          // Build a table row: NAME col | UNIT COST col | TOTAL col
+          // Single-input row (flat or per-day rate)
           function row(name, hint, key, val, total, required){
             const cls = required ? 'cb-unit-input cb-required-field' : 'cb-unit-input';
             const totalCls = total === 0 ? 'cb-td-total cb-zero' : 'cb-td-total';
@@ -4351,33 +4403,131 @@ tr:hover td { background: var(--bg3); }
             </tr>`;
           }
 
-          // Accommodation row has editable nights
-          const accomHint = `<span class="cb-nights-wrap">${sc.accomNights} night${sc.accomNights!==1?'s':''} &nbsp;
+          // Two-input row (flat + per-pax)
+          function row2(name, hint, keyFlat, valFlat, keyPax, valPax, total){
+            const totalCls = total === 0 ? 'cb-td-total cb-zero' : 'cb-td-total';
+            return `<tr>
+              <td class="cb-td-name">${name}${hint?`<span class="cb-td-hint">${hint}</span>`:''}
+              </td>
+              <td class="cb-td-unit" style="vertical-align:top">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div class="cb-unit-wrap">
+                    <span class="cb-cur-tag">${cur}</span>
+                    <input class="cb-unit-input" type="number" min="0" step="0.01" value="${valFlat}"
+                      title="Flat amount" onchange="updateSC(${oIdx},'${keyFlat}',this.value)" placeholder="flat" />
+                  </div>
+                  <div class="cb-unit-wrap">
+                    <span class="cb-cur-tag">${cur}/p</span>
+                    <input class="cb-unit-input" type="number" min="0" step="0.01" value="${valPax}"
+                      title="Per participant" onchange="updateSC(${oIdx},'${keyPax}',this.value)" placeholder="per pax" />
+                  </div>
+                </div>
+              </td>
+              <td class="${totalCls}">${fmt(total)}</td>
+            </tr>`;
+          }
+
+          // Accommodation row (rate per night + editable nights)
+          const accomHint = `<span class="cb-nights-wrap">${sc.accomNights} night${sc.accomNights!==1?'s':''}&nbsp;
             <input class="cb-nights-input" type="number" min="0" step="1" value="${sc.accomNights}"
               title="Override nights" onchange="updateSC(${oIdx},'accomNights',this.value)" />
             </span>`;
 
+          // Prep time row (hours × rate)
+          const prepHint = `<span class="cb-nights-wrap">${sc.prepHours}h &times;
+            <span class="cb-cur-tag" style="display:inline">${cur}</span>
+            <input class="cb-nights-input" type="number" min="0" step="0.5" value="${sc.prepHours}"
+              title="Prep hours" onchange="updateSC(${oIdx},'prepHours',this.value)" />
+            </span>`;
+
+          // Follow-up row (hours × trainer rate / hoursPerDay)
+          const fuHint = `<span class="cb-nights-wrap">${sc.followupHours}h &times; trainer rate / day</span>`;
+
+          // Format selector buttons
+          const fmtBtn = (val, label) =>
+            `<button onclick="updateSC(${oIdx},'deliveryFormat','${val}')"
+              style="padding:5px 14px;border-radius:20px;border:1px solid ${delivery===val?'var(--accent)':'var(--border)'};
+                background:${delivery===val?'rgba(99,102,241,.15)':'transparent'};
+                color:${delivery===val?'var(--accent)':'var(--fg3)'};
+                font-size:12px;font-weight:${delivery===val?'700':'500'};cursor:pointer;transition:.15s">
+              ${label}
+            </button>`;
+
+          // Margin pill helper
+          const marginPill = (pct, cls) =>
+            `<span class="${cls}" style="font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;
+              background:${pct>=45?'rgba(16,185,129,.12)':pct>=30?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)'}">
+              ${pct.toFixed(1)}%
+            </span>`;
+
           document.getElementById('od-costs-body').innerHTML = `
-            <div style="padding:16px 20px;max-width:520px">
+            <div style="padding:16px 20px;max-width:560px">
+
+              <!-- Delivery Format selector -->
+              <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Delivery Format</div>
+                <div style="display:flex;gap:8px">
+                  ${fmtBtn('online','Online')}
+                  ${fmtBtn('onsite','Onsite')}
+                  ${fmtBtn('classroom','Classroom')}
+                </div>
+              </div>
 
               <!-- Booking dimensions -->
               <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
                 <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Booking Details</div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-                  ${dimField('No of Days',     'days',         days,         1,  1)}
-                  ${dimField('Hours / Day',    'hoursPerDay',  hoursPerDay,  1,  1)}
-                  ${dimField('Total Hours',    null,           totalHours,   null,null)}
-                  ${dimField('Participants',   'participants', participants, 1,  1)}
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+                  ${dimField('Days',       'days',           days,         1, 1)}
+                  ${dimField('Hrs / Day',  'hoursPerDay',    hoursPerDay,  1, 1)}
+                  ${dimField('Total Hrs',  null,             totalHours,   null,null)}
+                  ${dimField('Pax',        'participants',   participants, 1, 1)}
+                  ${dimField('Max Pax',    'maxParticipants',maxPax,       1, 1)}
                 </div>
               </div>
 
-              <!-- Revenue header -->
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-                <div>
-                  <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em">Revenue</div>
-                  <div style="font-size:11px;color:var(--fg3);margin-top:2px">from booking · fixed</div>
+              <!-- Revenue (overridable) -->
+              <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Revenue</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end">
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Total Course Price</div>
+                    <div class="cb-unit-wrap">
+                      <span class="cb-cur-tag">${cur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01"
+                        value="${sc.revenueOverride !== null ? sc.revenueOverride : baseRevenue}"
+                        placeholder="${fmt(baseRevenue)}"
+                        onchange="updateSC(${oIdx},'revenueOverride',this.value)" />
+                    </div>
+                    ${sc.revenueOverride !== null ? `<div style="font-size:10px;color:var(--fg3);margin-top:3px">Booking: ${fmtCur(baseRevenue)}</div>` : ''}
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Travel to Customer</div>
+                    <div class="cb-unit-wrap">
+                      <span class="cb-cur-tag">${cur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
+                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Price / Add. Participant</div>
+                    <div class="cb-unit-wrap">
+                      <span class="cb-cur-tag">${cur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.pricePerAddPax}"
+                        onchange="updateSC(${oIdx},'pricePerAddPax',this.value)" placeholder="0.00" />
+                    </div>
+                  </div>
                 </div>
-                <span style="font-size:20px;font-weight:700;color:var(--fg)">${fmtCur(revenue)}</span>
+                <!-- Per-pax pricing info -->
+                <div style="display:flex;gap:24px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3)">Price / Participant</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(pricePerPax)}</div>
+                  </div>
+                  ${pricePerAddPax > 0 ? `<div>
+                    <div style="font-size:10px;color:var(--fg3)">Price / Add. Participant</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(pricePerAddPax)}</div>
+                  </div>` : ''}
+                </div>
               </div>
 
               <!-- Direct Costs table -->
@@ -4387,12 +4537,16 @@ tr:hover td { background: var(--bg3); }
                   <tr>
                     <th>Name</th>
                     <th class="cb-th-r">Unit Cost</th>
-                    <th class="cb-th-r">Total</th>
+                    <th class="cb-th-r">Total (${participants} pax)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${row('Trainer', `${days} day${days!==1?'s':''}`, 'trainerRatePerDay', sc.trainerRatePerDay, trainerTotal, true)}
-                  ${row('Travel', 'flat (flight / train / car)', 'travelFlat', sc.travelFlat, sc.travelFlat, false)}
+                  <!-- Trainer — always shown -->
+                  ${row('Trainer', `${days} day${days!==1?'s':''}`, 'trainerRatePerDay', sc.trainerRatePerDay, C.trainerTotal, true)}
+
+                  <!-- Travel + Accommodation — onsite + classroom only -->
+                  ${(delivery==='onsite'||delivery==='classroom') ? `
+                  ${row('Travel', 'flat (flight / train / car)', 'travelFlat', sc.travelFlat, C.travelTotal, false)}
                   <tr>
                     <td class="cb-td-name">Accommodation
                       <span class="cb-td-hint">${accomHint}</span>
@@ -4404,10 +4558,57 @@ tr:hover td { background: var(--bg3); }
                           onchange="updateSC(${oIdx},'accomRatePerNight',this.value)" placeholder="0.00" />
                       </div>
                     </td>
-                    <td class="${accomTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(accomTotal)}</td>
+                    <td class="${C.accomTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.accomTotal)}</td>
+                  </tr>` : ''}
+
+                  <!-- Preparation Time — always shown -->
+                  <tr>
+                    <td class="cb-td-name">Preparation Time
+                      <span class="cb-td-hint">${prepHint}</span>
+                    </td>
+                    <td class="cb-td-unit">
+                      <div class="cb-unit-wrap">
+                        <span class="cb-cur-tag">${cur}/h</span>
+                        <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.prepRate}"
+                          onchange="updateSC(${oIdx},'prepRate',this.value)" placeholder="0.00" />
+                      </div>
+                    </td>
+                    <td class="${C.prepTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.prepTotal)}</td>
                   </tr>
-                  ${row('Remote Desktop', `${days} day${days!==1?'s':''}`, 'daDesktopPerDay', sc.daDesktopPerDay, daTotal, false)}
-                  ${row('Other', '', 'otherFlat', sc.otherFlat, sc.otherFlat, false)}
+
+                  <!-- DaDesktop (variable ×pax×days) — always shown -->
+                  ${row('DaDesktop', `${cur}/desktop/day × ${participants} pax × ${days} day${days!==1?'s':''}`, 'daDesktopRate', sc.daDesktopRate, C.daTotal, false)}
+
+                  <!-- Software Licenses (flat + per pax) — always shown -->
+                  ${row2('Software Licenses', 'flat bundle + per participant', 'softFlat', sc.softFlat, 'softPerPax', sc.softPerPax, C.softTotal)}
+
+                  <!-- Skill Assessment (flat + per pax) — always shown -->
+                  ${row2('Skill Assessment', 'flat + per participant', 'skillAssessFlat', sc.skillAssessFlat, 'skillAssessPerPax', sc.skillAssessPerPax, C.skillTotal)}
+
+                  <!-- Follow-up Session — always shown -->
+                  <tr>
+                    <td class="cb-td-name">Follow-up Session
+                      <span class="cb-td-hint">${fuHint}</span>
+                    </td>
+                    <td class="cb-td-unit">
+                      <div class="cb-unit-wrap">
+                        <span class="cb-cur-tag">h</span>
+                        <input class="cb-unit-input" type="number" min="0" step="0.5" value="${sc.followupHours}"
+                          onchange="updateSC(${oIdx},'followupHours',this.value)" placeholder="0" />
+                      </div>
+                    </td>
+                    <td class="${C.followupTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.followupTotal)}</td>
+                  </tr>
+
+                  <!-- Classroom Rental + Catering — classroom only -->
+                  ${delivery==='classroom' ? `
+                  ${row('Classroom Rental', 'flat per course', 'classroomRental', sc.classroomRental, C.classroomTotal, false)}
+                  ${row('Catering', `${cur}/pax/day × ${participants} pax × ${days} day${days!==1?'s':''}`, 'cateringPerPaxDay', sc.cateringPerPaxDay, C.cateringTotal, false)}` : ''}
+
+                  <!-- Certificates (per pax) — always shown -->
+                  ${row('Certificates', `${cur}/pax × ${participants} pax`, 'certPerPax', sc.certPerPax, C.certTotal, false)}
+
+                  <!-- System Fee — always shown, fixed -->
                   <tr>
                     <td class="cb-td-name">System Fee
                       <span class="cb-td-hint">17.5% of revenue · fixed</span>
@@ -4415,34 +4616,43 @@ tr:hover td { background: var(--bg3); }
                     <td class="cb-td-unit" style="text-align:right">
                       <span style="font-size:12px;font-weight:600;color:var(--fg3)">17.5%</span>
                     </td>
-                    <td class="${sysFeeAmt===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(sysFeeAmt)}</td>
+                    <td class="${C.sysFeeAmt===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.sysFeeAmt)}</td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr class="cb-tfoot-row">
                     <td colspan="2">Total Direct Costs</td>
-                    <td class="cb-td-total">${fmt(directCosts)}</td>
+                    <td class="cb-td-total">${fmt(C.direct)}</td>
                   </tr>
                 </tfoot>
               </table>
 
-              <!-- Gross Margin (visible to all) -->
-              <div class="cb-margin-block" style="margin-top:14px;margin-bottom:4px">
-                <div>
-                  <span class="cb-margin-label">Gross Margin</span>
-                  <div style="font-size:10px;color:var(--fg3);margin-top:2px">Revenue − Direct Costs · target ≥ 45%</div>
+              <!-- Gross Margin — dual scenario -->
+              <div style="margin-top:14px;margin-bottom:4px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <!-- Requested pax -->
+                  <div class="cb-margin-block" style="flex-direction:column;align-items:flex-start;gap:6px;padding:12px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)">
+                    <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em">Gross Margin · ${participants} Pax</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span class="${gmCls}" style="font-size:18px;font-weight:700">${fmtCur(grossMargin)}</span>
+                      ${marginPill(grossMarginPct, gmCls)}
+                    </div>
+                    <div style="font-size:10px;color:var(--fg3)">target ≥ 45%</div>
+                  </div>
+                  <!-- Max pax scenario -->
+                  <div class="cb-margin-block" style="flex-direction:column;align-items:flex-start;gap:6px;padding:12px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);opacity:.85">
+                    <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em">Gross Margin · ${maxPax} Pax (max)</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span class="${gmMCls}" style="font-size:18px;font-weight:700">${fmtCur(grossMarginM)}</span>
+                      ${marginPill(grossMarginMPct, gmMCls)}
+                    </div>
+                    <div style="font-size:10px;color:var(--fg3)">additional pax increase costs</div>
+                  </div>
                 </div>
-                <div class="cb-margin-values">
-                  <span class="${gmCls}" style="font-size:18px;font-weight:700">${fmtCur(grossMargin)}</span>
-                  <span class="${gmCls}" style="font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;
-                    background:${grossMarginPct>=45?'rgba(16,185,129,.12)':grossMarginPct>=30?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)'}">
-                    ${grossMarginPct.toFixed(1)}%
-                  </span>
-                </div>
+                ${grossMarginPct < 45 ? `<div style="font-size:11px;color:${grossMarginPct>=30?'#f59e0b':'#f87171'};margin-top:6px;padding:0 2px">
+                  ⚠ ${grossMarginPct>=30?'Below target — review direct costs':'Below minimum — not viable at current rates'}
+                </div>` : ''}
               </div>
-              ${grossMarginPct < 45 ? `<div style="font-size:11px;color:${grossMarginPct>=30?'#f59e0b':'#f87171'};margin-bottom:4px;padding:0 2px">
-                ⚠ ${grossMarginPct>=30?'Below target — review direct costs':'Below minimum — not viable at current rates'}
-              </div>` : ''}
 
               <!-- Management-only P&L section -->
               ${isManagement ? `
@@ -4505,7 +4715,15 @@ tr:hover td { background: var(--bg3); }
 
         window.updateSC = function(oIdx, key, val){
           if(!MOCK[oIdx].simpleCosts) MOCK[oIdx].simpleCosts={};
-          MOCK[oIdx].simpleCosts[key] = parseFloat(val)||0;
+          const sc = MOCK[oIdx].simpleCosts;
+          if(key === 'deliveryFormat'){
+            sc[key] = val;  // string enum
+          } else if(key === 'revenueOverride'){
+            const n = parseFloat(val);
+            sc[key] = (val === '' || val === null || isNaN(n)) ? null : n;
+          } else {
+            sc[key] = parseFloat(val)||0;
+          }
           renderCosts(oIdx);
         };
 
