@@ -2955,8 +2955,9 @@ tr:hover td { background: var(--bg3); }
             const metaText = isDone ? 'Completed' : isActive ? 'Active' : 'Not started';
             const pathBadge = sec.path==='B' ? `<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(245,158,11,.18);color:#fbbf24;margin-left:6px">Path B</span>` : '';
 
-            const bodyContent = isActive ? renderSP02SectionBody(oIdx, sec.key, si, currentSp)
-                              : isDone   ? renderSP02SectionBodyReadonly(oIdx, sec.key)
+            // Always render full rich body for active + completed — only "not started" gets placeholder
+            const bodyContent = !isUpcoming
+                              ? renderSP02SectionBody(oIdx, sec.key, si, currentSp)
                               : `<div style="color:var(--fg3);font-size:12px">Not started yet.</div>`;
 
             const isOpen = isActive; // only active section open by default
@@ -3071,6 +3072,7 @@ tr:hover td { background: var(--bg3); }
           const sp  = PROCESS_STEPS[1];
           const tasks = sp.tasks.filter(t => t.status === statusKey);
           const sd  = getStageData(o.seq, statusKey);
+          const isCurrentStatus = o.status === statusKey; // show advance buttons only here
 
           if(statusKey === 'TRAINER_SELECTION'){
             // ── Mock data (replaced by real API calls later) ──────────────────
@@ -3146,10 +3148,10 @@ tr:hover td { background: var(--bg3); }
                 <textarea class="sp02-comment" style="min-height:90px;border-color:rgba(99,102,241,.3)"
                   placeholder="Summary: who was selected, why, agreed rate — or why no trainer was found and next steps…"
                   onchange="setStageField('${o.seq}','TRAINER_SELECTION','decisionNotes',this.value)">${sd.decisionNotes||''}</textarea>
-                <div class="sp02-decision-btns">
+                ${isCurrentStatus ? `<div class="sp02-decision-btns">
                   <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'ALIGNMENT_CALL')">✅ Trainer confirmed → Alignment Call</button>
                   <button class="sp02-advance-secondary" onclick="advanceOrderStatus(${oIdx},'TRAINER_RECRUITMENT')">🔍 No trainer found → Start Recruitment (Path B)</button>
-                </div>
+                </div>` : ''}
               </div>`;
           }
 
@@ -3227,12 +3229,13 @@ tr:hover td { background: var(--bg3); }
                 <input id="sp02newcand_${o.seq}" placeholder="Paste profile URL (Freelancer, Malt, LinkedIn…)">
                 <button class="sp02-agent-btn" onclick="sp02AddCandidate('${oIdx}','${o.seq}')">+ Add &amp; Enrich</button>
               </div>
-              <div style="margin-top:16px">
-                <div class="sp02-advance-primary" style="display:inline-block;cursor:pointer"
+              ${isCurrentStatus ? `<div style="margin-top:16px">
+                <button class="sp02-advance-primary"
                   onclick="advanceOrderStatus(${oIdx},'CANDIDATES_IDENTIFIED')">
                   3+ candidates shortlisted → Candidates Identified →
-                </div>
-              </div>`;
+                </button>
+              </div>` : ''}`;
+
           }
 
           // ── CANDIDATES_IDENTIFIED ─────────────────────────────────────────────
@@ -3319,14 +3322,15 @@ tr:hover td { background: var(--bg3); }
                 </div>
               </div>
 
-              <div class="sp02-decision">
+              ${isCurrentStatus ? `<div class="sp02-decision">
                 <div class="sp02-decision-label">Advance</div>
                 <div class="sp02-decision-btns">
                   <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'RECRUITMENT_DONE')">
                     Rate agreed &amp; trainer confirmed → Recruitment Done →
                   </button>
                 </div>
-              </div>`;
+              </div>` : ''}`;
+
           }
 
           // Generic: simple task checkboxes + comment field for other statuses
