@@ -1745,9 +1745,10 @@ tr:hover td { background: var(--bg3); }
         .od-ribbon-step:hover { color:var(--fg); background:rgba(255,255,255,.04); }
         .od-ribbon-step .od-rsp-id { font-size:9px; letter-spacing:.04em; }
         .od-ribbon-step .od-rsp-cnt { font-size:9px; opacity:.5; font-weight:400; }
-        .od-ribbon-step.rib-done { color:#34d399; }
-        .od-ribbon-step.rib-active { color:var(--accent); border-bottom-color:var(--accent); background:rgba(99,102,241,.07); }
-        .od-ribbon-step.rib-viewing { background:var(--bg); border-bottom-color:var(--fg2) !important; color:var(--fg) !important; }
+        .od-ribbon-step.rib-done   { color:#34d399; border-bottom-color:#34d399; }
+        .od-ribbon-step.rib-active { color:#fbbf24; border-bottom-color:#f59e0b; background:rgba(245,158,11,.08); }
+        .od-ribbon-step.rib-future { color:#f87171; }
+        .od-ribbon-step.rib-viewing { background:var(--bg); border-bottom-color:#fff !important; color:#fff !important; }
 
         /* Step Body */
         .od-step-body { padding:18px 20px; overflow-y:auto; flex:1; }
@@ -2768,8 +2769,9 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-ribbon').innerHTML = PROCESS_STEPS.map((sp,i)=>{
             const done = sp.tasks.filter(t=>getTask(oIdx,sp.id,t.id)).length;
             let cls = 'od-ribbon-step';
-            if(i < currentSp)   cls += ' rib-done';
+            if(i < currentSp)      cls += ' rib-done';
             else if(i===currentSp) cls += ' rib-active';
+            else                   cls += ' rib-future';
             if(i===viewingStepIdx) cls += ' rib-viewing';
             return `<div class="${cls}" onclick="viewStep(${i})">
               <span class="od-rsp-id">${sp.id}</span>
