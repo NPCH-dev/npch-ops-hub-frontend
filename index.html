@@ -1632,6 +1632,10 @@ tr:hover td { background: var(--bg3); }
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               Comments
             </button>
+            <button class="od-tab" data-tab="files" onclick="switchDetailTab('files')" id="od-tab-files">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Files
+            </button>
           </div>
           <div class="od-step-body" id="od-step-body"></div>
           <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
@@ -1640,6 +1644,7 @@ tr:hover td { background: var(--bg3); }
           <div id="od-enquiry-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-activities-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
           <div id="od-comments-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
+          <div id="od-files-body" style="display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
@@ -4328,6 +4333,8 @@ tr:hover td { background: var(--bg3); }
           if(ab) ab.style.display = tab==='activities' ? 'flex' : 'none';
           const cb = document.getElementById('od-comments-body');
           if(cb) cb.style.display = tab==='comments' ? 'flex' : 'none';
+          const fb = document.getElementById('od-files-body');
+          if(fb) fb.style.display = tab==='files' ? 'flex' : 'none';
           if(currentOrderIdx < 0) return;
           if(tab==='insights')    renderInsights(currentOrderIdx);
           if(tab==='costs')       renderCosts(currentOrderIdx);
@@ -4335,6 +4342,7 @@ tr:hover td { background: var(--bg3); }
           if(tab==='enquiry')     renderEnquiry(currentOrderIdx);
           if(tab==='activities')  renderActivities(currentOrderIdx);
           if(tab==='comments')    renderComments(currentOrderIdx);
+          if(tab==='files')       renderFiles(currentOrderIdx);
         };
 
         // ── Activities / Task Management / Board ─────────────────────────────
@@ -6534,6 +6542,229 @@ tr:hover td { background: var(--bg3); }
           });
           renderComments(oIdx);
           showToast('Comment posted');
+        };
+
+        // ── renderFiles: Project Folder / Google Drive Mock ──────────────────
+        const FILES_MOCK = {
+          'agenda': [
+            { name:'Training Agenda v1.0.docx',    size:'48 KB',  modified:'2026-11-10', type:'docx', owner:'Sarah M.' },
+            { name:'Training Agenda v1.1.docx',    size:'51 KB',  modified:'2026-11-14', type:'docx', owner:'Sarah M.' },
+          ],
+          'materials': [
+            { name:'Slide Deck — Day 1.pptx',       size:'4.2 MB', modified:'2026-11-12', type:'pptx', owner:'Trainer' },
+            { name:'Exercise Files.zip',             size:'12 MB',  modified:'2026-11-12', type:'zip',  owner:'Trainer' },
+            { name:'Participant Handout.pdf',        size:'980 KB', modified:'2026-11-13', type:'pdf',  owner:'Trainer' },
+          ],
+          'contracts': [
+            { name:'Order Confirmation signed.pdf', size:'220 KB', modified:'2026-11-08', type:'pdf',  owner:'Sales' },
+            { name:'Trainer Agreement.pdf',         size:'185 KB', modified:'2026-11-09', type:'pdf',  owner:'Coordination' },
+          ],
+          'invoices': [],
+          'misc': [
+            { name:'Hotel Booking Confirmation.pdf',size:'310 KB', modified:'2026-11-15', type:'pdf',  owner:'You' },
+          ],
+        };
+        const FILE_ICONS = {
+          docx:'📝', pptx:'📊', pdf:'📄', xlsx:'📈', zip:'🗜️', png:'🖼️', jpg:'🖼️', mp4:'🎬', default:'📎'
+        };
+        function fileIcon(type){ return FILE_ICONS[type] || FILE_ICONS.default; }
+
+        function renderFiles(oIdx){
+          const o = MOCK[oIdx];
+          if(!o) return;
+          const orderRef = o.name || o.seq || 'NP-DACH-2026-0001';
+          const driveRoot = 'https://drive.google.com/drive/folders/1-7zbYkhLwzjjoO9Yh4eqyD_ltm_4zpLP';
+
+          // Current folder from state (default: root)
+          if(!o._filesFolder) o._filesFolder = 'root';
+          const curFolder = o._filesFolder;
+
+          const folders = [
+            { key:'agenda',    label:'Agenda',            icon:'📋' },
+            { key:'materials', label:'Training Materials', icon:'📚' },
+            { key:'contracts', label:'Contracts',          icon:'📃' },
+            { key:'invoices',  label:'Invoices',           icon:'🧾' },
+            { key:'misc',      label:'Miscellaneous',      icon:'📂' },
+          ];
+
+          const mockDriveConnected = !!o._driveLinked;
+
+          // Sidebar nav
+          const sidebarHtml = folders.map(f=>`
+            <div class="fl-nav-item ${curFolder===f.key?'active':''}"
+                 onclick="filesSetFolder(${oIdx},'${f.key}')">
+              <span class="fl-nav-icon">${f.icon}</span>
+              <span>${f.label}</span>
+              <span class="fl-nav-count">${(FILES_MOCK[f.key]||[]).length}</span>
+            </div>`).join('');
+
+          // File list
+          const files = curFolder === 'root' ? [] : (FILES_MOCK[curFolder] || []);
+          const folderLabel = curFolder === 'root' ? orderRef : (folders.find(f=>f.key===curFolder)||{}).label || curFolder;
+
+          let filesHtml;
+          if(files.length === 0){
+            filesHtml = `<div class="fl-empty">
+              <div class="fl-empty-icon">📂</div>
+              <div class="fl-empty-text">No files here yet</div>
+              <div class="fl-empty-sub">Upload files or drop them here</div>
+            </div>`;
+          } else {
+            filesHtml = `<div class="fl-file-list">
+              <div class="fl-file-header">
+                <span>Name</span><span>Modified</span><span>Size</span><span>Owner</span><span></span>
+              </div>
+              ${files.map(f=>`
+                <div class="fl-file-row">
+                  <span class="fl-file-name"><span class="fl-file-ico">${fileIcon(f.type)}</span>${f.name}</span>
+                  <span class="fl-file-meta">${f.modified}</span>
+                  <span class="fl-file-meta">${f.size}</span>
+                  <span class="fl-file-meta">${f.owner}</span>
+                  <span class="fl-file-actions">
+                    <button class="fl-btn-sm" onclick="showToast('Opening in Drive… (mock)')">Open</button>
+                    <button class="fl-btn-sm" onclick="showToast('Download started… (mock)')">↓</button>
+                  </span>
+                </div>`).join('')}
+            </div>`;
+          }
+
+          const connectBanner = !mockDriveConnected ? `
+            <div class="fl-connect-banner">
+              <div class="fl-connect-left">
+                <svg width="20" height="20" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L28 48.9H0c0 1.55.4 3.1 1.2 4.5l5.4 13.45z" fill="#0066DA"/><path d="M43.65 25 29.4 0a9.14 9.14 0 0 0-3.3 3.3L1.2 44.4A9.3 9.3 0 0 0 0 48.9h28l15.65-23.9z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.1l5.9 11.7 8.55 12.1z" fill="#EA4335"/><path d="M43.65 25 57.9 0c-1.35-.8-2.9-1.2-4.5-1.2H33.75c-1.6 0-3.15.45-4.5 1.2L43.65 25z" fill="#00832D"/><path d="M59.1 48.9H28L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2L59.1 48.9z" fill="#2684FC"/><path d="m73.55 76.8-14.45-27.9H87.3c0-1.55-.4-3.1-1.2-4.5L62.95 3.3c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l15.45 23.9 14.45 27.9z" fill="#FFBA00"/></svg>
+                <div>
+                  <div class="fl-connect-title">Connect Project Folder</div>
+                  <div class="fl-connect-sub">Link this order to a Google Drive folder in <strong>Shared Drive — Training Coordination</strong> for file sharing and document management.</div>
+                </div>
+              </div>
+              <div class="fl-connect-actions">
+                <button class="fl-btn-primary" onclick="fileLinkDrive(${oIdx})">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Link Existing Folder
+                </button>
+                <button class="fl-btn-outline" onclick="fileCreateDrive(${oIdx}, '${orderRef}')">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                  Create New Folder
+                </button>
+              </div>
+            </div>` : `
+            <div class="fl-linked-bar">
+              <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span>Linked to <strong>${orderRef}</strong> in Training Coordination Drive</span>
+              <a href="${driveRoot}" target="_blank" class="fl-open-drive">Open in Drive ↗</a>
+              <button class="fl-unlink-btn" onclick="fileUnlinkDrive(${oIdx})">Unlink</button>
+            </div>`;
+
+          document.getElementById('od-files-body').innerHTML = `
+            <style>
+              .fl-wrap{display:flex;flex:1;min-height:0;overflow:hidden}
+              .fl-sidebar{width:180px;flex-shrink:0;border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+              .fl-sidebar-title{font-size:10px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px 8px}
+              .fl-nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--fg2);transition:background .15s}
+              .fl-nav-item:hover{background:var(--bg3)}
+              .fl-nav-item.active{background:var(--accent-bg);color:var(--fg)}
+              .fl-nav-icon{font-size:14px}
+              .fl-nav-count{margin-left:auto;font-size:11px;color:var(--fg3);background:var(--bg4);padding:1px 6px;border-radius:9px}
+              .fl-main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+              .fl-connect-banner{margin:16px;padding:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;display:flex;flex-direction:column;gap:14px}
+              .fl-connect-left{display:flex;gap:12px;align-items:flex-start}
+              .fl-connect-title{font-size:13.5px;font-weight:600;color:var(--fg);margin-bottom:4px}
+              .fl-connect-sub{font-size:12px;color:var(--fg2);line-height:1.5}
+              .fl-connect-actions{display:flex;gap:8px;flex-wrap:wrap}
+              .fl-btn-primary{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;background:#0057b8;color:#fff;font-size:12.5px;font-weight:500;cursor:pointer}
+              .fl-btn-primary:hover{background:#0066d6}
+              .fl-btn-outline{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--fg);font-size:12.5px;font-weight:500;cursor:pointer}
+              .fl-btn-outline:hover{background:var(--bg3)}
+              .fl-linked-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(16,185,129,.06);font-size:12.5px;color:var(--fg2);flex-shrink:0}
+              .fl-linked-bar svg{flex-shrink:0}
+              .fl-open-drive{color:#3b82f6;text-decoration:none;margin-left:auto}
+              .fl-unlink-btn{padding:3px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--fg3);font-size:11.5px;cursor:pointer}
+              .fl-toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+              .fl-toolbar-title{font-size:13px;font-weight:600;color:var(--fg);flex:1}
+              .fl-btn-sm{padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--fg2);font-size:11.5px;cursor:pointer}
+              .fl-btn-sm:hover{background:var(--bg4)}
+              .fl-upload-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;border:none;background:var(--bg4);color:var(--fg);font-size:12px;font-weight:500;cursor:pointer}
+              .fl-upload-btn:hover{background:var(--border2)}
+              .fl-content{flex:1;overflow-y:auto;padding:0 16px 16px}
+              .fl-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;gap:8px;text-align:center}
+              .fl-empty-icon{font-size:36px;opacity:.4}
+              .fl-empty-text{font-size:14px;font-weight:500;color:var(--fg2)}
+              .fl-empty-sub{font-size:12px;color:var(--fg3)}
+              .fl-drop-zone{border:2px dashed var(--border2);border-radius:8px;padding:32px;text-align:center;margin-top:16px;cursor:pointer;transition:border-color .2s,background .2s}
+              .fl-drop-zone:hover{border-color:#3b82f6;background:rgba(59,130,246,.05)}
+              .fl-drop-label{font-size:12.5px;color:var(--fg3)}
+              .fl-file-list{margin-top:12px}
+              .fl-file-header{display:grid;grid-template-columns:1fr 100px 80px 90px 80px;gap:8px;padding:6px 10px;font-size:11px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)}
+              .fl-file-row{display:grid;grid-template-columns:1fr 100px 80px 90px 80px;gap:8px;align-items:center;padding:9px 10px;border-radius:6px;font-size:12.5px}
+              .fl-file-row:hover{background:var(--bg3)}
+              .fl-file-name{display:flex;align-items:center;gap:8px;font-weight:500;color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+              .fl-file-ico{font-size:15px;flex-shrink:0}
+              .fl-file-meta{color:var(--fg3);font-size:12px}
+              .fl-file-actions{display:flex;gap:4px;justify-content:flex-end}
+              .fl-breadcrumb{font-size:12px;color:var(--fg3);margin-bottom:4px}
+              .fl-breadcrumb span{cursor:pointer;color:#3b82f6}
+              .fl-breadcrumb span:hover{text-decoration:underline}
+            </style>
+            ${connectBanner}
+            <div class="fl-wrap">
+              <div class="fl-sidebar">
+                <div class="fl-sidebar-title">Project Folder</div>
+                ${sidebarHtml}
+              </div>
+              <div class="fl-main">
+                <div class="fl-toolbar">
+                  <div>
+                    <div class="fl-breadcrumb"><span onclick="filesSetFolder(${oIdx},'root')">${orderRef}</span>${curFolder!=='root'?' / '+folderLabel:''}</div>
+                    <div class="fl-toolbar-title">${folderLabel}</div>
+                  </div>
+                  <button class="fl-upload-btn" onclick="showToast('Upload dialog — coming once Drive is connected')">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload
+                  </button>
+                  <button class="fl-btn-sm" onclick="showToast('New folder — coming once Drive is connected')">+ Folder</button>
+                </div>
+                <div class="fl-content">
+                  ${filesHtml}
+                  <div class="fl-drop-zone" onclick="showToast('Upload dialog — coming once Drive is connected')">
+                    <div style="font-size:22px;margin-bottom:8px">⬆️</div>
+                    <div class="fl-drop-label">Drop files here or <strong>click to upload</strong></div>
+                    <div style="font-size:11px;color:var(--fg3);margin-top:4px">Supports all file types · Max 100 MB per file</div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        }
+
+        window.filesSetFolder = function(oIdx, folder){
+          const o = MOCK[oIdx];
+          if(!o) return;
+          o._filesFolder = folder;
+          renderFiles(oIdx);
+        };
+
+        window.fileLinkDrive = function(oIdx){
+          const url = prompt('Paste the Google Drive folder URL or ID:');
+          if(!url || !url.trim()) return;
+          MOCK[oIdx]._driveLinked = url.trim();
+          renderFiles(oIdx);
+          showToast('Drive folder linked ✓');
+        };
+
+        window.fileCreateDrive = function(oIdx, ref){
+          const name = ref || (MOCK[oIdx] && (MOCK[oIdx].name || MOCK[oIdx].seq)) || 'New Project';
+          showToast('Creating folder "'+name+'" in Training Coordination… (mock)');
+          setTimeout(()=>{
+            MOCK[oIdx]._driveLinked = 'https://drive.google.com/drive/folders/mock-'+oIdx;
+            renderFiles(oIdx);
+            showToast('Folder "'+name+'" created and linked ✓');
+          }, 1200);
+        };
+
+        window.fileUnlinkDrive = function(oIdx){
+          if(!confirm('Unlink this Drive folder? Files in Drive are not deleted.')) return;
+          MOCK[oIdx]._driveLinked = null;
+          renderFiles(oIdx);
+          showToast('Drive folder unlinked');
         };
 
         // ── renderEnquiry: extend with Booking Received data ──────────────────
