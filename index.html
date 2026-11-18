@@ -1981,7 +1981,8 @@ tr:hover td { background: var(--bg3); }
         .sp02-agent-btn:hover { background:rgba(99,102,241,.28); }
         .sp02-file-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:4px; background:rgba(255,255,255,.07); border:1px solid var(--border); font-size:11px; color:var(--fg2); margin-top:6px; }
         .sp02-decision { margin-top:4px; padding:14px 16px; background:rgba(99,102,241,.07); border-radius:8px; border:1px solid rgba(99,102,241,.25); }
-        .sp02-decision-label { font-size:11px; font-weight:700; color:#a5b4fc; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+        .sp02-decision-label { font-size:11px; font-weight:700; color:#a5b4fc; text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; }
+        .sp02-decision input.sp02-comment { width:100%; box-sizing:border-box; }
         .sp02-decision textarea { width:100%; box-sizing:border-box; background:rgba(255,255,255,.06); border:1px solid rgba(99,102,241,.3); border-radius:5px; color:var(--fg); font-size:12px; padding:8px 10px; resize:vertical; min-height:70px; font-family:inherit; }
         .sp02-decision textarea:focus { outline:none; border-color:var(--accent); }
         .sp02-decision-btns { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
@@ -3044,6 +3045,43 @@ tr:hover td { background: var(--bg3); }
           renderSP02Body(oIdx, PROCESS_STEPS.findIndex(s=>s.id==='SP-02'), PROCESS_STEPS.findIndex(s=>s.id===STATUS_META[o.status]?.sp||'SP-02'));
         };
 
+        // ── Trainer Selection: smart "Push to Next" routing ──────────────────
+        window.sp02FinishTrainerSelection = function(oIdx, seq){
+          const sd = getStageData(seq, 'TRAINER_SELECTION');
+          const preferred = (sd.preferredTrainer || '').trim();
+
+          if(preferred){
+            // Trainer named → go straight to Alignment Call
+            advanceOrderStatus(oIdx, 'ALIGNMENT_CALL');
+          } else {
+            // No trainer → modal: start recruitment or wait?
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+            modal.innerHTML = `
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:400px;width:90%">
+                <div style="font-size:16px;font-weight:600;color:var(--fg);margin-bottom:8px">⚠️ No Preferred Trainer</div>
+                <div style="font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.6">
+                  No preferred trainer has been entered yet.<br>
+                  Do you want to start external <strong>Recruitment (Path B)</strong>, or wait and keep searching?
+                </div>
+                <div style="display:flex;gap:10px">
+                  <button id="ts-modal-recruit"
+                    style="flex:1;padding:9px 14px;border-radius:6px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:13px">
+                    🔍 Start Recruitment
+                  </button>
+                  <button id="ts-modal-wait"
+                    style="flex:1;padding:9px 14px;border-radius:6px;background:transparent;color:var(--fg2);border:1px solid var(--border);cursor:pointer;font-size:13px">
+                    ⏳ Keep Waiting
+                  </button>
+                </div>
+              </div>`;
+            document.body.appendChild(modal);
+            modal.querySelector('#ts-modal-recruit').onclick = ()=>{ document.body.removeChild(modal); advanceOrderStatus(oIdx,'TRAINER_RECRUITMENT'); };
+            modal.querySelector('#ts-modal-wait').onclick   = ()=> document.body.removeChild(modal);
+            modal.onclick = e=>{ if(e.target===modal) document.body.removeChild(modal); };
+          }
+        };
+
         window.sp02AddApprovalMsg = function(seq, msg){
           if(!msg || !msg.trim()) return;
           const sd = getStageData(seq,'CANDIDATES_IDENTIFIED');
@@ -3142,15 +3180,55 @@ tr:hover td { background: var(--bg3); }
                   onchange="setStageField('${o.seq}','TRAINER_SELECTION','followupNotes',this.value)">${sd.followupNotes||''}</textarea>
               `);
 
+            // ── Preferred trainer selection block ─────────────────────────
+            const pt = sd.preferredTrainer || '';
+            const opt2 = sd.trainerOpt2 || '';
+            const opt3 = sd.trainerOpt3 || '';
+
             return `${tasksHtml}
               <div class="sp02-decision">
-                <div class="sp02-decision-label">Decision &amp; Summary</div>
-                <textarea class="sp02-comment" style="min-height:90px;border-color:rgba(99,102,241,.3)"
-                  placeholder="Summary: who was selected, why, agreed rate — or why no trainer was found and next steps…"
+                <div class="sp02-decision-label">Trainer Selection &amp; Decision</div>
+
+                <!-- Preferred trainer + options -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+                  <div>
+                    <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">⭐ Preferred Trainer <span style="color:#f87171">*</span></label>
+                    <input id="ts-pref-${o.seq}" class="sp02-comment" style="padding:7px 10px;min-height:0"
+                      placeholder="Name or profile URL…"
+                      value="${pt}"
+                      oninput="setStageField('${o.seq}','TRAINER_SELECTION','preferredTrainer',this.value)">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">2nd Option</label>
+                    <input class="sp02-comment" style="padding:7px 10px;min-height:0"
+                      placeholder="Backup trainer…"
+                      value="${opt2}"
+                      oninput="setStageField('${o.seq}','TRAINER_SELECTION','trainerOpt2',this.value)">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">3rd Option</label>
+                    <input class="sp02-comment" style="padding:7px 10px;min-height:0"
+                      placeholder="3rd option…"
+                      value="${opt3}"
+                      oninput="setStageField('${o.seq}','TRAINER_SELECTION','trainerOpt3',this.value)">
+                  </div>
+                </div>
+
+                <!-- Summary notes -->
+                <textarea class="sp02-comment" style="min-height:70px;border-color:rgba(99,102,241,.3)"
+                  placeholder="Summary: agreed rate, availability, why selected — or why no trainer found…"
                   onchange="setStageField('${o.seq}','TRAINER_SELECTION','decisionNotes',this.value)">${sd.decisionNotes||''}</textarea>
-                ${isCurrentStatus ? `<div class="sp02-decision-btns">
-                  <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'ALIGNMENT_CALL')">✅ Trainer confirmed → Alignment Call</button>
-                  <button class="sp02-advance-secondary" onclick="advanceOrderStatus(${oIdx},'TRAINER_RECRUITMENT')">🔍 No trainer found → Start Recruitment (Path B)</button>
+
+                ${isCurrentStatus ? `
+                <!-- Push to Next button — smart routing -->
+                <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+                  <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
+                    onclick="sp02FinishTrainerSelection(${oIdx},'${o.seq}')">
+                    Push to Next Stage →
+                  </button>
+                  <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
+                    Preferred trainer filled → <strong style="color:#a5b4fc">Alignment Call</strong> &nbsp;|&nbsp; Empty → prompt to start <strong style="color:#fbbf24">Recruitment</strong>
+                  </div>
                 </div>` : ''}
               </div>`;
           }
