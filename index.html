@@ -1934,12 +1934,25 @@ tr:hover td { background: var(--bg3); }
         .sp02-comment:focus { outline:none; border-color:var(--accent); }
         .sp02-inline-input { background:var(--input-bg,rgba(255,255,255,.06)); border:1px solid var(--border); border-radius:5px; color:var(--fg); font-size:12px; padding:5px 8px; width:100%; box-sizing:border-box; }
         .sp02-inline-input:focus { outline:none; border-color:var(--accent); }
-        .sp02-email-list { margin-top:6px; display:flex; flex-direction:column; gap:5px; }
-        .sp02-email-item { display:flex; align-items:center; gap:8px; padding:6px 10px; background:rgba(255,255,255,.04); border-radius:5px; font-size:12px; color:var(--fg2); }
-        .sp02-email-item .sp02-email-name { font-weight:500; color:var(--fg); min-width:140px; }
-        .sp02-email-item .sp02-email-status { margin-left:auto; font-size:11px; }
-        .sp02-email-item .sp02-email-status.replied { color:#22c55e; }
-        .sp02-email-item .sp02-email-status.sent { color:var(--fg3); }
+        .sp02-email-list { margin-top:6px; display:flex; flex-direction:column; gap:4px; }
+        .sp02-email-item { border-radius:6px; background:rgba(255,255,255,.04); border:1px solid transparent; overflow:hidden; }
+        .sp02-email-item-row { display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:pointer; font-size:12px; color:var(--fg2); transition:background .15s; }
+        .sp02-email-item-row:hover { background:rgba(255,255,255,.06); }
+        .sp02-email-name { font-weight:500; color:var(--fg); min-width:130px; }
+        .sp02-email-addr { color:var(--fg3); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .sp02-email-status { font-size:11px; white-space:nowrap; }
+        .sp02-email-status.replied { color:#22c55e; }
+        .sp02-email-status.sent { color:var(--fg3); }
+        .sp02-email-chevron { font-size:11px; color:var(--fg3); transition:transform .2s; margin-left:4px; }
+        .sp02-email-chevron.open { transform:rotate(90deg); }
+        .sp02-email-preview { display:none; padding:10px 14px; border-top:1px solid var(--border); font-size:12px; color:var(--fg2); }
+        .sp02-email-preview.open { display:block; }
+        .sp02-email-preview-subject { font-weight:600; color:var(--fg); margin-bottom:6px; }
+        .sp02-email-preview-body { white-space:pre-wrap; line-height:1.6; color:var(--fg2); }
+        .sp02-agenda-log { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+        .sp02-agenda-entry { display:flex; align-items:center; gap:8px; padding:5px 10px; background:rgba(255,255,255,.04); border-radius:5px; font-size:12px; }
+        .sp02-agenda-entry-name { color:var(--fg); flex:1; }
+        .sp02-agenda-entry-date { color:var(--fg3); font-size:11px; }
         .sp02-agent-btn { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:5px; border:1px solid var(--accent); background:rgba(99,102,241,.15); color:#a5b4fc; font-size:11px; font-weight:600; cursor:pointer; transition:background .15s; }
         .sp02-agent-btn:hover { background:rgba(99,102,241,.28); }
         .sp02-file-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:4px; background:rgba(255,255,255,.07); border:1px solid var(--border); font-size:11px; color:var(--fg2); margin-top:6px; }
@@ -2948,6 +2961,14 @@ tr:hover td { background: var(--bg3); }
           if(chev) chev.classList.toggle('open', open);
         };
 
+        window.toggleSP02Email = function(id){
+          const prev = document.getElementById('spemailprev_'+id);
+          const chev = document.getElementById('spemailchev_'+id);
+          if(!prev) return;
+          const open = prev.classList.toggle('open');
+          if(chev) chev.classList.toggle('open', open);
+        };
+
         function taskCard(oIdx, spId, t, extraHtml=''){
           const ck  = getTask(oIdx, spId, t.id);
           const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
@@ -2969,44 +2990,78 @@ tr:hover td { background: var(--bg3); }
           const sd  = getStageData(o.seq, statusKey);
 
           if(statusKey === 'TRAINER_SELECTION'){
-            const t = (id) => tasks.find(t=>t.id===id) || {id,label:'',status:statusKey};
+            // ── Mock data (replaced by real API calls later) ──────────────────
+            const mockAgendas = sd.agendaLog || [
+              {name:'Agenda_Python_DE.pdf', date:'2026-11-17'},
+              {name:'Agenda_Python_EN.pdf', date:'2026-11-17'},
+            ];
+            const agendaLogHtml = mockAgendas.length
+              ? `<div class="sp02-agenda-log">${mockAgendas.map(a=>`
+                  <div class="sp02-agenda-entry">
+                    <span>📄</span>
+                    <span class="sp02-agenda-entry-name">${a.name}</span>
+                    <span class="sp02-agenda-entry-date">${a.date}</span>
+                  </div>`).join('')}</div>`
+              : `<div style="font-size:11px;color:var(--fg3);margin-top:4px">No agenda generated yet.</div>`;
+
             const mockEmails = [
-              {name:'John Smith',email:'j.smith@trainer.com',status:'replied'},
-              {name:'Anna Müller',email:'a.mueller@example.de',status:'sent'},
-              {name:'Tom Weber',email:'t.weber@freelance.de',status:'sent'},
+              {id:'em1', name:'John Smith',   email:'j.smith@trainer.com',      status:'replied',
+               subject:'Training inquiry — Python for Data Science, 2 days, Berlin',
+               body:`Hi John,\n\nwe are looking for a trainer for a 2-day Python for Data Science course in Berlin, early December.\n\nScope: 10–12 participants, intermediate level.\nRate: open for discussion.\n\nAre you available? Please send us your CV and daily rate.\n\nBest regards,\nChristian`},
+              {id:'em2', name:'Anna Müller',  email:'a.mueller@example.de',     status:'sent',
+               subject:'Training inquiry — Python for Data Science, 2 days, Berlin',
+               body:`Hi Anna,\n\nwe are looking for a trainer for a 2-day Python for Data Science course in Berlin, early December.\n\nScope: 10–12 participants, intermediate level.\nRate: open for discussion.\n\nAre you available? Please send us your CV and daily rate.\n\nBest regards,\nChristian`},
+              {id:'em3', name:'Tom Weber',    email:'t.weber@freelance.de',      status:'sent',
+               subject:'Training inquiry — Python for Data Science, 2 days, Berlin',
+               body:`Hi Tom,\n\nwe are looking for a trainer for a 2-day Python for Data Science course in Berlin, early December.\n\nScope: 10–12 participants, intermediate level.\nRate: open for discussion.\n\nAre you available? Please send us your CV and daily rate.\n\nBest regards,\nChristian`},
             ];
             const emailListHtml = mockEmails.map(e=>`
-              <div class="sp02-email-item">
-                <span class="sp02-email-name">${e.name}</span>
-                <span style="color:var(--fg3)">${e.email}</span>
-                <span class="sp02-email-status ${e.status}">${e.status==='replied'?'✅ Replied':'📤 Sent'}</span>
+              <div class="sp02-email-item" id="spemail_${e.id}">
+                <div class="sp02-email-item-row" onclick="toggleSP02Email('${e.id}')">
+                  <span class="sp02-email-name">${e.name}</span>
+                  <span class="sp02-email-addr">${e.email}</span>
+                  <span class="sp02-email-status ${e.status}">${e.status==='replied'?'✅ Replied':'📤 Sent'}</span>
+                  <span class="sp02-email-chevron" id="spemailchev_${e.id}">›</span>
+                </div>
+                <div class="sp02-email-preview" id="spemailprev_${e.id}">
+                  <div class="sp02-email-preview-subject">📧 ${e.subject}</div>
+                  <div class="sp02-email-preview-body">${e.body}</div>
+                </div>
               </div>`).join('');
 
             const tasksHtml =
+              // ① Agenda Prepared — agent button + document log
               taskCard(oIdx,'SP-02',tasks[0]||{id:'ts1',label:'Agenda prepared (DE + EN, no prices)',status:'TRAINER_SELECTION'},`
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
                   <button class="sp02-agent-btn" onclick="alert('Agent: Agenda generation coming soon — BE-013')">⚡ Generate from Offer</button>
-                  ${sd.agendaFile ? `<span class="sp02-file-pill">📄 ${sd.agendaFile}</span>` : ''}
                 </div>
+                ${agendaLogHtml}
               `) +
+              // ② HR Portal Search — keyword input + search notes textarea
               taskCard(oIdx,'SP-02',tasks[1]||{id:'ts2',label:'HR portal (hr.nobleprog.com) searched',status:'TRAINER_SELECTION'},`
-                <input class="sp02-inline-input" placeholder="Search keywords used (e.g. Python, Berlin, 2 days)"
+                <input class="sp02-inline-input" placeholder="Search keywords (e.g. Python, Berlin, 2 days)"
                   value="${sd.hrKeywords||''}"
-                  onchange="setStageField('${o.seq}','TRAINER_SELECTION','hrKeywords',this.value)">
+                  onchange="setStageField('${o.seq}','TRAINER_SELECTION','hrKeywords',this.value)"
+                  style="margin-bottom:6px">
+                <textarea class="sp02-comment" placeholder="Search notes — results found, profiles checked, reasons for shortlist…"
+                  onchange="setStageField('${o.seq}','TRAINER_SELECTION','hrNotes',this.value)">${sd.hrNotes||''}</textarea>
               `) +
+              // ③ Enquiry Emails — expandable email list
               taskCard(oIdx,'SP-02',tasks[2]||{id:'ts3',label:'Enquiry emails sent to 5–6 candidates',status:'TRAINER_SELECTION'},`
                 <div class="sp02-email-list">${emailListHtml}</div>
-                <div style="margin-top:6px;font-size:11px;color:var(--fg3)">📬 Loaded from Gmail — enquiry template emails</div>
+                <div style="margin-top:6px;font-size:11px;color:var(--fg3)">📬 Mock data — will load from Gmail (BE-012)</div>
               `) +
+              // ④ Follow-up Calls — small comment field
               taskCard(oIdx,'SP-02',tasks[3]||{id:'ts4',label:'Follow-up calls done (~2–3 days later)',status:'TRAINER_SELECTION'},`
-                <textarea class="sp02-comment" placeholder="Follow-up notes (who answered, when, outcome…)"
+                <textarea class="sp02-comment" style="min-height:44px" placeholder="Who answered, when called, outcome…"
                   onchange="setStageField('${o.seq}','TRAINER_SELECTION','followupNotes',this.value)">${sd.followupNotes||''}</textarea>
               `);
 
             return `${tasksHtml}
               <div class="sp02-decision">
-                <div class="sp02-decision-label">Decision</div>
-                <textarea placeholder="Summary: trainer search result, who was selected / why no one found…"
+                <div class="sp02-decision-label">Decision &amp; Summary</div>
+                <textarea class="sp02-comment" style="min-height:90px;border-color:rgba(99,102,241,.3)"
+                  placeholder="Summary: who was selected, why, agreed rate — or why no trainer was found and next steps…"
                   onchange="setStageField('${o.seq}','TRAINER_SELECTION','decisionNotes',this.value)">${sd.decisionNotes||''}</textarea>
                 <div class="sp02-decision-btns">
                   <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'ALIGNMENT_CALL')">✅ Trainer confirmed → Alignment Call</button>
