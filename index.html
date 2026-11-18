@@ -1750,6 +1750,60 @@ tr:hover td { background: var(--bg3); }
         .od-field-value { font-size:13px; color:var(--fg); line-height:1.4; }
         .od-field-value.is-link { color:var(--accent); text-decoration:none; font-size:11px; word-break:break-all; display:block; }
         .od-field-value.is-link:hover { text-decoration:underline; }
+
+        /* ── Field-level inline comments (Google Sheets style) ── */
+        .fc-field-wrap { position:relative; }
+        .fc-field-wrap:hover .fc-trigger { opacity:1; }
+        .fc-trigger { position:absolute; top:0; right:0; opacity:0; transition:opacity .15s;
+          background:none; border:none; cursor:pointer; padding:2px 3px; line-height:1;
+          font-size:12px; color:var(--fg3); }
+        .fc-trigger:hover { color:#f59e0b; }
+        .fc-dot { position:absolute; top:0; right:0; width:0; height:0;
+          border-style:solid; border-width:0 8px 8px 0;
+          border-color:transparent #f59e0b transparent transparent;
+          pointer-events:none; }
+        /* Bubble */
+        .fc-bubble { position:fixed; z-index:9000; width:300px; background:var(--bg2);
+          border:1px solid var(--border2); border-radius:10px;
+          box-shadow:0 8px 32px rgba(0,0,0,.28); overflow:hidden; }
+        .fc-bubble-header { display:flex; align-items:center; justify-content:space-between;
+          padding:10px 14px 8px; border-bottom:1px solid var(--border); }
+        .fc-bubble-title { font-size:12px; font-weight:600; color:var(--fg); }
+        .fc-bubble-close { background:none; border:none; cursor:pointer; color:var(--fg3);
+          font-size:16px; line-height:1; padding:0; }
+        .fc-thread { max-height:200px; overflow-y:auto; padding:10px 14px; display:flex;
+          flex-direction:column; gap:10px; }
+        .fc-thread-empty { font-size:12px; color:var(--fg3); text-align:center; padding:8px 0; }
+        .fc-comment-item { display:flex; gap:8px; }
+        .fc-avatar { width:24px; height:24px; border-radius:50%; flex-shrink:0;
+          display:flex; align-items:center; justify-content:center;
+          font-size:11px; font-weight:700; color:#fff; }
+        .fc-comment-body { flex:1; min-width:0; }
+        .fc-comment-meta { font-size:11px; color:var(--fg3); margin-bottom:2px; }
+        .fc-comment-meta strong { color:var(--fg2); }
+        .fc-comment-text { font-size:12.5px; color:var(--fg); line-height:1.5; word-break:break-word; }
+        .fc-comment-text .fc-mention { color:#3b82f6; font-weight:600; }
+        .fc-compose { padding:10px 14px 12px; border-top:1px solid var(--border); position:relative; }
+        .fc-compose-input { width:100%; box-sizing:border-box; background:var(--bg3);
+          border:1px solid var(--border2); border-radius:6px; color:var(--fg);
+          font-size:12.5px; padding:7px 10px; resize:none; font-family:inherit;
+          outline:none; min-height:56px; }
+        .fc-compose-input:focus { border-color:#3b82f6; }
+        .fc-compose-footer { display:flex; justify-content:flex-end; gap:6px; margin-top:7px; }
+        .fc-btn-cancel { padding:5px 12px; border-radius:5px; border:1px solid var(--border2);
+          background:transparent; color:var(--fg2); font-size:12px; cursor:pointer; }
+        .fc-btn-post { padding:5px 14px; border-radius:5px; border:none;
+          background:#3b82f6; color:#fff; font-size:12px; font-weight:500; cursor:pointer; }
+        .fc-btn-post:hover { background:#2563eb; }
+        /* @mention dropdown */
+        .fc-mention-drop { position:absolute; left:14px; right:14px; background:var(--bg2);
+          border:1px solid var(--border2); border-radius:7px;
+          box-shadow:0 4px 16px rgba(0,0,0,.22); z-index:9100; overflow:hidden; }
+        .fc-mention-item { display:flex; align-items:center; gap:8px; padding:7px 12px;
+          cursor:pointer; font-size:12.5px; color:var(--fg); }
+        .fc-mention-item:hover, .fc-mention-item.selected { background:var(--bg3); }
+        .fc-mention-name { font-weight:500; }
+        .fc-mention-role { font-size:11px; color:var(--fg3); margin-left:auto; }
         .od-tasks-wrap { border-top:1px solid var(--border); padding-top:14px; }
         .od-task { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04); }
         .od-task:last-child { border-bottom:none; }
@@ -2734,7 +2788,13 @@ tr:hover td { background: var(--bg3); }
             if(f.isBool)      valHtml = `<div class="od-field-value">${bool(val)}</div>`;
             else if(f.isLink && val) valHtml = `<a href="${val}" target="_blank" rel="noopener" class="od-field-value is-link">${val}</a>`;
             else valHtml = `<div class="od-field-value">${val||'—'}</div>`;
-            return `<div><div class="od-field-label">${f.label}</div>${valHtml}</div>`;
+            const fkey = `${o.seq}::overview::${f.key}`;
+            const hasCmt = (window.FC_STORE && window.FC_STORE[fkey] && window.FC_STORE[fkey].length > 0);
+            return `<div class="fc-field-wrap">
+              ${hasCmt ? `<div class="fc-dot"></div>` : ''}
+              <button class="fc-trigger" title="Add comment" onclick="fcOpen(event,'${fkey}','${f.label.replace(/'/g,"\\'")}')">💬</button>
+              <div class="od-field-label">${f.label}</div>${valHtml}
+            </div>`;
           }).join('');
 
           let tasksHtml = '';
@@ -6541,6 +6601,187 @@ tr:hover td { background: var(--bg3); }
             text, createdAt: new Date().toISOString(), type:'comment'
           });
           renderComments(oIdx);
+          showToast('Comment posted');
+        };
+
+        // ── Field Comments (Google Sheets style) ─────────────────────────────
+        window.FC_STORE = {};   // { 'seq::ctx::fieldKey': [{id,author,role,text,ts}] }
+
+        // User list — tries live API, falls back to mock
+        let FC_USERS = null;
+        async function fcLoadUsers(){
+          if(FC_USERS) return FC_USERS;
+          try{
+            const data = await api('/users');
+            FC_USERS = (data.items||data||[]).map(u=>({
+              name: u.full_name||u.name||u.username||u.email,
+              role: u.role||'user',
+              id:   u.id||u.username
+            })).filter(u=>u.name);
+          }catch(e){
+            FC_USERS = [
+              {name:'Sarah M.',      role:'coordination', id:'sarah'},
+              {name:'Thomas K.',     role:'sales',        id:'thomas'},
+              {name:'Anna L.',       role:'finance',      id:'anna'},
+              {name:'Marcus H.',     role:'management',   id:'marcus'},
+              {name:'Julia S.',      role:'recruitment',  id:'julia'},
+            ];
+          }
+          return FC_USERS;
+        }
+
+        const FC_ROLE_COLOR = r=>({management:'#6366f1',admin:'#6366f1',coordination:'#f59e0b',
+          finance:'#10b981',sales:'#3b82f6',recruitment:'#8b5cf6',system:'#64748b',trainer:'#ec4899'}[r]||'#64748b');
+
+        let _fcCurrentBubble = null;
+
+        function fcCloseBubble(){
+          if(_fcCurrentBubble){ _fcCurrentBubble.remove(); _fcCurrentBubble = null; }
+          document.removeEventListener('mousedown', _fcOutsideClick);
+        }
+
+        function _fcOutsideClick(e){
+          if(_fcCurrentBubble && !_fcCurrentBubble.contains(e.target)) fcCloseBubble();
+        }
+
+        window.fcOpen = async function(evt, fieldKey, fieldLabel){
+          evt.stopPropagation();
+          fcCloseBubble();
+          await fcLoadUsers();
+
+          const comments = window.FC_STORE[fieldKey] || [];
+          const triggerEl = evt.currentTarget;
+          const rect = triggerEl.getBoundingClientRect();
+
+          const bubble = document.createElement('div');
+          bubble.className = 'fc-bubble';
+          bubble.id = 'fc-bubble-active';
+
+          const threadHtml = comments.length
+            ? comments.map(c=>`
+                <div class="fc-comment-item">
+                  <div class="fc-avatar" style="background:${FC_ROLE_COLOR(c.role)}">${c.author.charAt(0).toUpperCase()}</div>
+                  <div class="fc-comment-body">
+                    <div class="fc-comment-meta"><strong>${c.author}</strong> · ${c.ts}</div>
+                    <div class="fc-comment-text">${fcRenderMentions(c.text)}</div>
+                  </div>
+                </div>`).join('')
+            : `<div class="fc-thread-empty">No comments yet</div>`;
+
+          bubble.innerHTML = `
+            <div class="fc-bubble-header">
+              <span class="fc-bubble-title">💬 ${fieldLabel}</span>
+              <button class="fc-bubble-close" onclick="fcCloseBubble()">×</button>
+            </div>
+            <div class="fc-thread" id="fc-thread-inner">${threadHtml}</div>
+            <div class="fc-compose" id="fc-compose-wrap">
+              <textarea class="fc-compose-input" id="fc-compose-ta"
+                placeholder="Comment… use @ to mention someone"
+                rows="2" oninput="fcHandleInput(event,'${fieldKey}')"></textarea>
+              <div class="fc-compose-footer">
+                <button class="fc-btn-cancel" onclick="fcCloseBubble()">Cancel</button>
+                <button class="fc-btn-post" onclick="fcPost('${fieldKey}')">Post</button>
+              </div>
+            </div>`;
+
+          document.body.appendChild(bubble);
+          _fcCurrentBubble = bubble;
+
+          // Position bubble: prefer right of trigger, flip if off-screen
+          const bw = 300, bh = 320;
+          let left = rect.right + 8;
+          let top  = rect.top - 8;
+          if(left + bw > window.innerWidth - 12) left = rect.left - bw - 8;
+          if(top + bh > window.innerHeight - 12) top = window.innerHeight - bh - 12;
+          if(top < 8) top = 8;
+          bubble.style.left = left + 'px';
+          bubble.style.top  = top  + 'px';
+
+          bubble.querySelector('#fc-compose-ta').focus();
+          setTimeout(()=> document.addEventListener('mousedown', _fcOutsideClick), 50);
+        };
+
+        function fcRenderMentions(text){
+          return text.replace(/@([\w.\- ]+)/g, '<span class="fc-mention">@$1</span>');
+        }
+
+        window.fcHandleInput = async function(evt, fieldKey){
+          const ta = evt.target;
+          const val = ta.value;
+          const cursorPos = ta.selectionStart;
+          // Find @-trigger before cursor
+          const textBefore = val.slice(0, cursorPos);
+          const atMatch = textBefore.match(/@([\w.]*)$/);
+          fcClearMentionDrop();
+          if(!atMatch) return;
+          const query = atMatch[1].toLowerCase();
+          await fcLoadUsers();
+          const matches = FC_USERS.filter(u=> !query || u.name.toLowerCase().includes(query));
+          if(!matches.length) return;
+          fcShowMentionDrop(matches, fieldKey, ta, atMatch[0]);
+        };
+
+        let _fcDropEl = null;
+        function fcClearMentionDrop(){ if(_fcDropEl){ _fcDropEl.remove(); _fcDropEl=null; } }
+
+        function fcShowMentionDrop(users, fieldKey, ta, trigger){
+          fcClearMentionDrop();
+          const composeWrap = document.getElementById('fc-compose-wrap');
+          if(!composeWrap) return;
+          const drop = document.createElement('div');
+          drop.className = 'fc-mention-drop';
+          drop.innerHTML = users.slice(0,6).map((u,i)=>`
+            <div class="fc-mention-item" data-idx="${i}"
+                 onmousedown="fcPickMention(event,'${u.name}','${trigger}')"
+                 style="border-left:3px solid ${FC_ROLE_COLOR(u.role)}">
+              <div class="fc-avatar" style="background:${FC_ROLE_COLOR(u.role)};width:20px;height:20px;font-size:10px">${u.name.charAt(0).toUpperCase()}</div>
+              <span class="fc-mention-name">${u.name}</span>
+              <span class="fc-mention-role">${u.role}</span>
+            </div>`).join('');
+          // insert above compose input
+          composeWrap.insertBefore(drop, composeWrap.firstChild);
+          _fcDropEl = drop;
+        }
+
+        window.fcPickMention = function(evt, name, trigger){
+          evt.preventDefault();
+          fcClearMentionDrop();
+          const ta = document.getElementById('fc-compose-ta');
+          if(!ta) return;
+          const val = ta.value;
+          const cursor = ta.selectionStart;
+          const before = val.slice(0, cursor);
+          const after  = val.slice(cursor);
+          const replaced = before.replace(new RegExp(trigger.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'), '@'+name+' ');
+          ta.value = replaced + after;
+          ta.focus();
+          const newPos = replaced.length;
+          ta.setSelectionRange(newPos, newPos);
+        };
+
+        window.fcPost = function(fieldKey){
+          const ta = document.getElementById('fc-compose-ta');
+          if(!ta) return;
+          const text = ta.value.trim();
+          if(!text) return;
+          if(!window.FC_STORE[fieldKey]) window.FC_STORE[fieldKey] = [];
+          window.FC_STORE[fieldKey].push({
+            id: 'fc-'+Date.now(),
+            author: 'You',
+            role: 'coordination',
+            text,
+            ts: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})
+          });
+          fcCloseBubble();
+          // Update dot indicator on the field wrap
+          document.querySelectorAll(`[onclick*="${fieldKey}"]`).forEach(btn=>{
+            const wrap = btn.closest('.fc-field-wrap');
+            if(wrap && !wrap.querySelector('.fc-dot')){
+              const dot = document.createElement('div');
+              dot.className = 'fc-dot';
+              wrap.appendChild(dot);
+            }
+          });
           showToast('Comment posted');
         };
 
