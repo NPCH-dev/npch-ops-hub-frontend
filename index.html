@@ -4298,6 +4298,7 @@ tr:hover td { background: var(--bg3); }
           if(sc.skillAssessFlat   === undefined) sc.skillAssessFlat   = 0;
           if(sc.skillAssessPerPax === undefined) sc.skillAssessPerPax = 0;
           if(sc.followupHours     === undefined) sc.followupHours     = 0;
+          if(sc.followupRate      === undefined) sc.followupRate      = null; // null = auto (trainerRate/hoursPerDay)
           if(sc.certPerPax        === undefined) sc.certPerPax        = 0;
           if(sc.classroomRental   === undefined) sc.classroomRental   = 0;
           if(sc.cateringPerPaxDay === undefined) sc.cateringPerPaxDay = 0;
@@ -4330,7 +4331,8 @@ tr:hover td { background: var(--bg3); }
             const daTotal       = sc.daDesktopRate * pax * days;
             const softTotal     = sc.softFlat + sc.softPerPax * pax;
             const skillTotal    = sc.skillAssessFlat + sc.skillAssessPerPax * pax;
-            const followupTotal = sc.followupHours * sc.trainerRatePerDay / (hoursPerDay||7);
+            const fuRate        = (sc.followupRate !== null && sc.followupRate > 0) ? sc.followupRate : sc.trainerRatePerDay / (hoursPerDay||7);
+            const followupTotal = sc.followupHours * fuRate;
             const certTotal     = sc.certPerPax * pax;
             const classroomTotal= delivery==='classroom' ? sc.classroomRental : 0;
             const cateringTotal = delivery==='classroom' ? sc.cateringPerPaxDay * pax * days : 0;
@@ -4440,8 +4442,9 @@ tr:hover td { background: var(--bg3); }
               title="Prep hours" onchange="updateSC(${oIdx},'prepHours',this.value)" />
             </span>`;
 
-          // Follow-up row (hours × trainer rate / hoursPerDay)
-          const fuHint = `<span class="cb-nights-wrap">${sc.followupHours}h &times; trainer rate / day</span>`;
+          // Follow-up effective rate (auto or manual)
+          const fuRateEff = (sc.followupRate !== null && sc.followupRate > 0) ? sc.followupRate : sc.trainerRatePerDay / (hoursPerDay||7);
+          const fuHint = `<span class="cb-nights-wrap">${sc.followupHours}h &times; ${fmt(fuRateEff)}&nbsp;${cur}/h</span>`;
 
           // Format selector buttons
           const fmtBtn = (val, label) =>
@@ -4576,8 +4579,8 @@ tr:hover td { background: var(--bg3); }
                     <td class="${C.prepTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.prepTotal)}</td>
                   </tr>
 
-                  <!-- DaDesktop (variable ×pax×days) — always shown -->
-                  ${row('DaDesktop', `${cur}/desktop/day × ${participants} pax × ${days} day${days!==1?'s':''}`, 'daDesktopRate', sc.daDesktopRate, C.daTotal, false)}
+                  <!-- Training Environment (variable ×pax×days) — always shown -->
+                  ${row('Training Environment', `${cur}/desktop/day × ${participants} pax × ${days} day${days!==1?'s':''}`, 'daDesktopRate', sc.daDesktopRate, C.daTotal, false)}
 
                   <!-- Software Licenses (flat + per pax) — always shown -->
                   ${row2('Software Licenses', 'flat bundle + per participant', 'softFlat', sc.softFlat, 'softPerPax', sc.softPerPax, C.softTotal)}
@@ -4585,16 +4588,26 @@ tr:hover td { background: var(--bg3); }
                   <!-- Skill Assessment (flat + per pax) — always shown -->
                   ${row2('Skill Assessment', 'flat + per participant', 'skillAssessFlat', sc.skillAssessFlat, 'skillAssessPerPax', sc.skillAssessPerPax, C.skillTotal)}
 
-                  <!-- Follow-up Session — always shown -->
+                  <!-- Follow-up Session — hours + rate/h -->
                   <tr>
                     <td class="cb-td-name">Follow-up Session
                       <span class="cb-td-hint">${fuHint}</span>
                     </td>
-                    <td class="cb-td-unit">
-                      <div class="cb-unit-wrap">
-                        <span class="cb-cur-tag">h</span>
-                        <input class="cb-unit-input" type="number" min="0" step="0.5" value="${sc.followupHours}"
-                          onchange="updateSC(${oIdx},'followupHours',this.value)" placeholder="0" />
+                    <td class="cb-td-unit" style="vertical-align:top">
+                      <div style="display:flex;flex-direction:column;gap:4px">
+                        <div class="cb-unit-wrap">
+                          <span class="cb-cur-tag">h</span>
+                          <input class="cb-unit-input" type="number" min="0" step="0.5" value="${sc.followupHours}"
+                            title="Hours" onchange="updateSC(${oIdx},'followupHours',this.value)" placeholder="0" />
+                        </div>
+                        <div class="cb-unit-wrap">
+                          <span class="cb-cur-tag">${cur}/h</span>
+                          <input class="cb-unit-input" type="number" min="0" step="0.01"
+                            value="${sc.followupRate !== null && sc.followupRate > 0 ? sc.followupRate : ''}"
+                            title="Rate/h (blank = auto from trainer rate)"
+                            placeholder="${fmt(fuRateEff)}"
+                            onchange="updateSC(${oIdx},'followupRate',this.value)" />
+                        </div>
                       </div>
                     </td>
                     <td class="${C.followupTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.followupTotal)}</td>
@@ -4652,6 +4665,152 @@ tr:hover td { background: var(--bg3); }
                 ${grossMarginPct < 45 ? `<div style="font-size:11px;color:${grossMarginPct>=30?'#f59e0b':'#f87171'};margin-top:6px;padding:0 2px">
                   ⚠ ${grossMarginPct>=30?'Below target — review direct costs':'Below minimum — not viable at current rates'}
                 </div>` : ''}
+              </div>
+
+              <!-- Price Breakdown (customer-facing quote components) -->
+              <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Price Breakdown</div>
+                ${(()=>{
+                  // Build rows: show cost, implied margin share, customer price
+                  // Margin is distributed proportionally to variable costs; fixed overhead (sysFee) stays separate
+                  const billable = [
+                    {label:'Training', hint:`${days} day${days!==1?'s':''}`, cost: C.trainerTotal},
+                    ...(delivery==='onsite'||delivery==='classroom' ? [
+                      {label:'Travel & Accommodation', hint:'flat', cost: C.travelTotal + C.accomTotal}
+                    ] : []),
+                    ...(C.prepTotal > 0 ? [{label:'Preparation Time', hint:`${sc.prepHours}h`, cost: C.prepTotal}] : []),
+                    ...(C.daTotal > 0 ? [{label:'Training Environment', hint:`×${participants} pax`, cost: C.daTotal}] : []),
+                    ...(C.softTotal > 0 ? [{label:'Software Licenses', hint:'flat + per pax', cost: C.softTotal}] : []),
+                    ...(C.followupTotal > 0 ? [{label:'Follow-up Session', hint:`${sc.followupHours}h`, cost: C.followupTotal}] : []),
+                    ...(delivery==='classroom' ? [
+                      ...(C.classroomTotal > 0 ? [{label:'Classroom Rental', hint:'flat', cost: C.classroomTotal}] : []),
+                      ...(C.cateringTotal > 0 ? [{label:'Catering', hint:`×${participants} pax`, cost: C.cateringTotal}] : [])
+                    ] : []),
+                  ];
+                  const billableSum = billable.reduce((s,r)=>s+r.cost,0);
+                  // margin distributed proportionally over billable items
+                  const marginPool  = grossMargin - C.sysFeeAmt; // exclude sys fee from distribution
+                  const rows = billable.map(r=>{
+                    const share = billableSum > 0 ? r.cost / billableSum : 0;
+                    const price = r.cost + share * Math.max(0, marginPool);
+                    return `<tr>
+                      <td style="padding:7px 10px;font-size:13px;color:var(--fg)">${r.label}
+                        <span style="font-size:11px;color:var(--fg3);display:block;margin-top:1px">${r.hint}</span>
+                      </td>
+                      <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--fg3);font-family:monospace">${fmtCur(r.cost)}</td>
+                      <td style="padding:7px 10px;text-align:right;font-size:13px;font-weight:600;color:var(--fg);font-family:monospace">${fmtCur(price)}</td>
+                    </tr>`;
+                  }).join('');
+                  return `<table style="width:100%;border-collapse:collapse">
+                    <thead><tr>
+                      <th style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;padding:5px 10px;border-bottom:1px solid var(--border);text-align:left">Component</th>
+                      <th style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;padding:5px 10px;border-bottom:1px solid var(--border);text-align:right">Cost</th>
+                      <th style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;padding:5px 10px;border-bottom:1px solid var(--border);text-align:right">Sell Price</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                      <tr style="border-top:1px solid var(--border)">
+                        <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:700;color:var(--fg3)">Total</td>
+                        <td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:700;color:var(--fg);font-family:monospace">${fmtCur(revenue)}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="padding:4px 10px 8px;font-size:12px;color:var(--fg3)">Price / Participant (${participants} pax)</td>
+                        <td style="padding:4px 10px 8px;text-align:right;font-size:13px;font-weight:600;color:var(--fg);font-family:monospace">${fmtCur(pricePerPax)}</td>
+                      </tr>
+                      ${pricePerAddPax > 0 ? `<tr>
+                        <td colspan="2" style="padding:4px 10px 8px;font-size:12px;color:var(--fg3)">Price / Add. Participant</td>
+                        <td style="padding:4px 10px 8px;text-align:right;font-size:13px;font-weight:600;color:var(--fg);font-family:monospace">${fmtCur(pricePerAddPax)}</td>
+                      </tr>` : ''}
+                    </tfoot>
+                  </table>`;
+                })()}
+              </div>
+
+              <!-- Margin Development Chart -->
+              <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Margin Development</div>
+                ${(()=>{
+                  const chartW = 500, chartH = 160, padL = 42, padR = 16, padT = 10, padB = 32;
+                  const plotW = chartW - padL - padR;
+                  const plotH = chartH - padT - padB;
+                  const maxX   = Math.max(maxPax + 3, participants + 5);
+                  const minX   = 1;
+                  const points = [];
+                  for(let p = minX; p <= maxX; p++){
+                    const cx = calcCosts(p);
+                    const gm = revenue > 0 ? (revenue - cx.direct) / revenue * 100 : 0;
+                    points.push({p, gm});
+                  }
+                  const minGM = Math.min(...points.map(pt=>pt.gm)) - 5;
+                  const maxGM = Math.max(...points.map(pt=>pt.gm)) + 5;
+                  const rangeGM = maxGM - minGM || 1;
+
+                  const xPos = p => padL + (p - minX) / (maxX - minX) * plotW;
+                  const yPos = g => padT + (1 - (g - minGM) / rangeGM) * plotH;
+
+                  // Reference lines
+                  const y45 = yPos(45), y30 = yPos(30);
+                  const refLines = [
+                    {y: y45, label:'45%', col:'rgba(52,211,153,.5)'},
+                    {y: y30, label:'30%', col:'rgba(245,158,11,.5)'}
+                  ].filter(r => r.y > padT && r.y < padT+plotH).map(r=>
+                    `<line x1="${padL}" y1="${r.y}" x2="${padL+plotW}" y2="${r.y}" stroke="${r.col}" stroke-width="1" stroke-dasharray="4,3"/>
+                     <text x="${padL-4}" y="${r.y+4}" font-size="8" fill="${r.col}" text-anchor="end">${r.label}</text>`
+                  ).join('');
+
+                  // Polyline
+                  const polyline = points.map(pt=>`${xPos(pt.p)},${yPos(pt.gm)}`).join(' ');
+                  // Fill area
+                  const fillPath = `M${xPos(minX)},${yPos(minGM)} ` +
+                    points.map(pt=>`L${xPos(pt.p)},${yPos(pt.gm)}`).join(' ') +
+                    ` L${xPos(maxX)},${yPos(minGM)} Z`;
+
+                  // Current + max markers
+                  const marker = (p, label, col) => {
+                    const pt = points.find(pt=>pt.p===p);
+                    if(!pt) return '';
+                    const x=xPos(p), y=yPos(pt.gm);
+                    return `<circle cx="${x}" cy="${y}" r="4" fill="${col}" stroke="var(--bg)" stroke-width="2"/>
+                      <text x="${x}" y="${padT+plotH+22}" font-size="9" fill="${col}" text-anchor="middle">${label}</text>`;
+                  };
+
+                  // X-axis labels — every few steps
+                  const step = Math.max(1, Math.round((maxX-minX)/6));
+                  const xLabels = [];
+                  for(let p=minX; p<=maxX; p+=step){
+                    xLabels.push(`<text x="${xPos(p)}" y="${padT+plotH+14}" font-size="9" fill="var(--fg3)" text-anchor="middle">${p}</text>`);
+                  }
+
+                  // Y-axis labels
+                  const yLabels = [];
+                  for(let g=Math.ceil(minGM/10)*10; g<=maxGM; g+=10){
+                    const y=yPos(g);
+                    if(y>padT && y<padT+plotH)
+                      yLabels.push(`<text x="${padL-6}" y="${y+4}" font-size="8" fill="var(--fg3)" text-anchor="end">${g}%</text>`);
+                  }
+
+                  return `<svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;max-width:${chartW}px;overflow:visible" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="var(--bg2)" rx="4"/>
+                    <!-- Reference lines -->
+                    ${refLines}
+                    <!-- Area fill -->
+                    <path d="${fillPath}" fill="rgba(99,102,241,.08)"/>
+                    <!-- Line -->
+                    <polyline points="${polyline}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+                    <!-- Axes -->
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="var(--border)" stroke-width="1"/>
+                    <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="var(--border)" stroke-width="1"/>
+                    <!-- Y labels -->
+                    ${yLabels.join('')}
+                    <!-- X labels -->
+                    ${xLabels.join('')}
+                    <text x="${padL + plotW/2}" y="${chartH}" font-size="9" fill="var(--fg3)" text-anchor="middle">Participants</text>
+                    <!-- Markers -->
+                    ${marker(participants, `${participants} pax`, '#6366f1')}
+                    ${maxPax !== participants ? marker(maxPax, `${maxPax} max`, '#94a3b8') : ''}
+                  </svg>`;
+                })()}
               </div>
 
               <!-- Management-only P&L section -->
@@ -4718,7 +4877,7 @@ tr:hover td { background: var(--bg3); }
           const sc = MOCK[oIdx].simpleCosts;
           if(key === 'deliveryFormat'){
             sc[key] = val;  // string enum
-          } else if(key === 'revenueOverride'){
+          } else if(key === 'revenueOverride' || key === 'followupRate'){
             const n = parseFloat(val);
             sc[key] = (val === '' || val === null || isNaN(n)) ? null : n;
           } else {
