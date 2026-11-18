@@ -2004,6 +2004,9 @@ tr:hover td { background: var(--bg3); }
         .sp02-section-header { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; user-select:none; background:var(--surface2,rgba(255,255,255,.03)); transition:background .15s; }
         .sp02-section-header:hover { background:rgba(255,255,255,.06); }
         .sp02-section-header.is-active { background:rgba(99,102,241,.12); border-bottom:1px solid var(--border); }
+        .sp02-section-header.is-first { background:rgba(245,158,11,.10); border-bottom:2px solid rgba(245,158,11,.35); }
+        .sp02-section-header.is-first .sp02-section-title { color:#fbbf24; }
+        .sp02-section-header.is-first:hover { background:rgba(245,158,11,.16); }
         .sp02-section-icon { font-size:13px; min-width:18px; }
         .sp02-section-title { font-size:12px; font-weight:600; color:var(--fg); flex:1; }
         .sp02-section-meta { font-size:11px; color:var(--fg3); }
@@ -2011,6 +2014,8 @@ tr:hover td { background: var(--bg3); }
         .sp02-section-chevron.open { transform:rotate(90deg); }
         .sp02-section-body { padding:14px 16px; display:none; }
         .sp02-section-body.open { display:block; }
+        /* Completeness bar shared across SP steps */
+        .sp-completeness-bar { display:flex; align-items:center; gap:10px; padding:8px 16px; background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0; }
         /* Rich task cards inside SP-02 sections */
         .sp02-task-card { margin-bottom:12px; }
         .sp02-task-row { display:flex; align-items:flex-start; gap:10px; }
@@ -3030,11 +3035,28 @@ tr:hover td { background: var(--bg3); }
             return;
           }
 
+          // ── SP-01 completeness bar ────────────────────────────────────────────
+          let sp01CompBar = '';
+          if(sp.id === 'SP-01'){
+            const sp01Req = ['customer','training','location','contact','delivery','amount','region','entity','paymentTerms','participants'];
+            const sp01Filled = sp01Req.filter(k => o[k] && String(o[k]).trim() !== '' && o[k] !== '—');
+            const sp01Pct = Math.round(sp01Filled.length / sp01Req.length * 100);
+            const sp01Col = sp01Pct >= 100 ? '#10b981' : sp01Pct >= 60 ? '#f59e0b' : '#ef4444';
+            sp01CompBar = `<div class="sp-completeness-bar">
+              <span style="font-size:11px;color:var(--fg3);font-weight:600;white-space:nowrap">Master Data</span>
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+                <div style="width:${sp01Pct}%;height:100%;background:${sp01Col};border-radius:3px;transition:width .4s"></div>
+              </div>
+              <span style="font-size:11px;font-weight:700;color:${sp01Col};white-space:nowrap">${sp01Pct}% <span style="color:var(--fg3);font-weight:400">(${sp01Filled.length}/${sp01Req.length})</span></span>
+            </div>`;
+          }
+
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
               <span class="od-step-status">${statusLabel}</span>
             </div>
+            ${sp01CompBar}
             ${scGatewayHtml}
             ${gate2Html}
             ${stageFieldsHtml}
@@ -3090,9 +3112,9 @@ tr:hover td { background: var(--bg3); }
                               ? renderSP02SectionBody(oIdx, sec.key, si, currentSp)
                               : `<div style="color:var(--fg3);font-size:12px">Not started yet.</div>`;
 
-            const isOpen = isActive; // only active section open by default
+            const isOpen = isActive || isDone; // active + done open
             html += `<div class="sp02-section" id="sp02sec_${sec.key}">
-              <div class="sp02-section-header${isActive?' is-active':''}" onclick="toggleSP02Section('${sec.key}')">
+              <div class="sp02-section-header${isActive?' is-first':isDone?' is-active':''}" onclick="toggleSP02Section('${sec.key}')">
                 <span class="sp02-section-icon">${icon}</span>
                 <span class="sp02-section-title">${sec.label}${pathBadge}</span>
                 <span class="sp02-section-meta">${metaText}</span>
@@ -3105,7 +3127,21 @@ tr:hover td { background: var(--bg3); }
           });
 
           const el = document.getElementById('sp02-body');
-          if(el) el.innerHTML = html;
+          if(!el) return;
+
+          // SP-02 completeness bar
+          const sp02Req = ['trainerName','trainerEmail','alignmentCallDate','deliveryConfirmedDate'];
+          const sp02Filled = sp02Req.filter(k => { const sd = getStageData(o.seq,'ALIGNMENT_CALL'); return !!(sd[k] || o[k]); });
+          const sp02Pct = Math.round(sp02Filled.length / sp02Req.length * 100);
+          const sp02Col = sp02Pct >= 100 ? '#10b981' : sp02Pct >= 60 ? '#f59e0b' : '#ef4444';
+          const compBarHtml = `<div class="sp-completeness-bar" style="margin-bottom:4px">
+            <span style="font-size:11px;color:var(--fg3);font-weight:600;white-space:nowrap">Planning Data</span>
+            <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+              <div style="width:${sp02Pct}%;height:100%;background:${sp02Col};border-radius:3px;transition:width .4s"></div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${sp02Col};white-space:nowrap">${sp02Pct}% <span style="color:var(--fg3);font-weight:400">(${sp02Filled.length}/${sp02Req.length})</span></span>
+          </div>`;
+          el.innerHTML = compBarHtml + html;
         }
 
         window.toggleSP02Section = function(key){
@@ -4445,14 +4481,16 @@ tr:hover td { background: var(--bg3); }
 
         const SP03_SECTIONS = [
           { key:'oc_doc',       label:'Order Confirmation Document', icon:'📄' },
-          { key:'oracle_cfg',   label:'Oracle Configuration',        icon:'⚙️' },
+          { key:'oracle_cfg',   label:'Oracle Order Registration',   icon:'⚙️' },
           { key:'billing',      label:'Invoice Address & Billing',   icon:'🧾' },
           { key:'email_log',    label:'Confirmation Email',          icon:'📧' },
           { key:'reconfirm',    label:'Training Details Reconfirm',  icon:'✅' },
           { key:'handover',     label:'Handover Note (Sales → Coord)',icon:'🤝' },
         ];
 
+        // key → true (open) / false (closed); undefined = use default (only first open)
         window._SP03_OPEN = {};
+        function _sp03IsOpen(key){ const v = window._SP03_OPEN[key]; return v !== undefined ? v : key === SP03_SECTIONS[0].key; }
 
         function renderSP03Body(oIdx, si, currentSp){
           const o = MOCK[oIdx];
@@ -4481,16 +4519,17 @@ tr:hover td { background: var(--bg3); }
 
           const pctColor = comp.pct >= 100 ? '#10b981' : comp.pct >= 60 ? '#f59e0b' : '#ef4444';
 
-          const sectionsHtml = SP03_SECTIONS.map(s=>{
-            const open = window._SP03_OPEN[s.key] !== false; // default open
+          const sectionsHtml = SP03_SECTIONS.map((s,idx)=>{
+            const open    = _sp03IsOpen(s.key);
+            const isFirst = idx === 0;
             return `<div class="sp02-section" id="sp03sec-${s.key}">
-              <div class="sp02-section-hdr" onclick="sp03Toggle('${seq}',${oIdx},'${s.key}')">
+              <div class="sp02-section-header${isFirst?' is-first':''}" onclick="sp03Toggle('${seq}',${oIdx},'${s.key}')">
                 <span class="sp02-section-icon">${s.icon}</span>
-                <span class="sp02-section-label">${s.label}</span>
-                <span class="sp02-section-chev" id="sp03chev-${s.key}" style="margin-left:auto;transition:transform .2s;display:inline-block;${open?'':'transform:rotate(-90deg)'}">▾</span>
+                <span class="sp02-section-title">${s.label}</span>
+                <span class="sp02-section-chevron${open?' open':''}" id="sp03chev-${s.key}">›</span>
               </div>
-              <div class="sp02-section-body" id="sp03body-${s.key}" style="${open?'':'display:none'}">
-                ${renderSP03Section(s.key, o, oIdx)}
+              <div class="sp02-section-body${open?' open':''}" id="sp03body-${s.key}">
+                ${open ? renderSP03Section(s.key, o, oIdx) : ''}
               </div>
             </div>`;
           }).join('');
@@ -4522,15 +4561,13 @@ tr:hover td { background: var(--bg3); }
         }
 
         window.sp03Toggle = function(seq, oIdx, key){
-          window._SP03_OPEN[key] = !( window._SP03_OPEN[key] !== false );
+          const wasOpen = _sp03IsOpen(key);
+          window._SP03_OPEN[key] = !wasOpen;
+          const nowOpen = !wasOpen;
           const body = document.getElementById('sp03body-'+key);
           const chev = document.getElementById('sp03chev-'+key);
-          if(body){ body.style.display = window._SP03_OPEN[key] ? '' : 'none'; }
-          if(chev){ chev.style.transform = window._SP03_OPEN[key] ? '' : 'rotate(-90deg)'; }
-          if(window._SP03_OPEN[key]){
-            const o = MOCK[oIdx];
-            body.innerHTML = renderSP03Section(key, o, oIdx);
-          }
+          if(body){ body.classList.toggle('open', nowOpen); if(nowOpen && !body.innerHTML.trim()){ body.innerHTML = renderSP03Section(key, MOCK[oIdx], oIdx); } }
+          if(chev){ chev.classList.toggle('open', nowOpen); }
         };
 
         function renderSP03Section(key, o, oIdx){
@@ -7414,16 +7451,17 @@ tr:hover td { background: var(--bg3); }
           const pctColor = comp.pct >= 100 ? '#10b981' : comp.pct >= 60 ? '#f59e0b' : '#ef4444';
 
           // Render same SP-03 sections but in the Booking sub-tab (Sales group)
-          const sectionsHtml = SP03_SECTIONS.map(s=>{
-            const open = window._SP03_OPEN[s.key] !== false;
+          const sectionsHtml = SP03_SECTIONS.map((s,idx)=>{
+            const open    = _sp03IsOpen(s.key);
+            const isFirst = idx === 0;
             return `<div class="sp02-section" id="bkgsec-${s.key}">
-              <div class="sp02-section-hdr" onclick="sp03Toggle('${seq}',${oIdx},'${s.key}');renderBooking(${oIdx})">
+              <div class="sp02-section-header${isFirst?' is-first':''}" onclick="sp03Toggle('${seq}',${oIdx},'${s.key}');renderBooking(${oIdx})">
                 <span class="sp02-section-icon">${s.icon}</span>
-                <span class="sp02-section-label">${s.label}</span>
-                <span style="margin-left:auto;transition:transform .2s;display:inline-block;${open?'':'transform:rotate(-90deg)'}">▾</span>
+                <span class="sp02-section-title">${s.label}</span>
+                <span class="sp02-section-chevron${open?' open':''}" id="bkgchev-${s.key}">›</span>
               </div>
-              <div class="sp02-section-body" id="bkgbody-${s.key}" style="${open?'':'display:none'}">
-                ${renderSP03Section(s.key, o, oIdx)}
+              <div class="sp02-section-body${open?' open':''}" id="bkgbody-${s.key}">
+                ${open ? renderSP03Section(s.key, o, oIdx) : ''}
               </div>
             </div>`;
           }).join('');
