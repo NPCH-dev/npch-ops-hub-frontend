@@ -1613,9 +1613,9 @@ tr:hover td { background: var(--bg3); }
           <div id="od-stage-tracker-table" style="padding:0"></div>
           <!-- Stammdaten block -->
           <div id="od-stammdaten" class="od-stammdaten"></div>
-          <!-- SLA Process Timeline -->
+          <!-- SLA Process Timeline (replaces ribbon) -->
           <div id="od-sla-timeline"></div>
-          <div class="od-ribbon" id="od-ribbon"></div>
+          <div class="od-ribbon" id="od-ribbon" style="display:none"></div>
           <!-- Status bar -->
           <div class="od-status-bar" id="od-status-bar"></div>
           <!-- Two-level nav: group row + sub-tab row -->
@@ -2832,8 +2832,7 @@ tr:hover td { background: var(--bg3); }
             <div class="sla-tl-fill" style="width:calc(${fillPct}% - 18px)"></div>
             ${nodesHtml}
           </div>
-          <div class="sla-tl-pct">
-            <span class="sla-tl-pct-lbl" style="color:var(--fg3)">Process</span>
+          <div class="sla-tl-pct" title="Total Progress">
             <div class="sla-tl-pct-bar"><div class="sla-tl-pct-fill" style="width:${pct}%;background:${col}"></div></div>
             <span class="sla-tl-pct-lbl" style="color:${col};font-weight:700">${pct}%</span>
           </div>`;
