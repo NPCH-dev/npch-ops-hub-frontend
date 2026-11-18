@@ -3988,7 +3988,7 @@ tr:hover td { background: var(--bg3); }
         }
 
         // ── Dev-mode role & permissions ───────────────────────────────────────
-        let DEV_ROLE = 'coordination';
+        let DEV_ROLE = 'management';
         let selectedIdxs = new Set();
         let _pendingDeleteIdxs = null;
         let _editingOrderIdx = -1;
@@ -4307,9 +4307,16 @@ tr:hover td { background: var(--bg3); }
           if(sc.revenueOverride   === undefined) sc.revenueOverride   = null;
           if(sc.travelToCustomer  === undefined) sc.travelToCustomer  = 0;
           if(sc.pricePerAddPax    === undefined) sc.pricePerAddPax    = 0;
-          if(sc.currency          === undefined) sc.currency          = cur;
-          cur = sc.currency; // override with user-selected currency
-          const fmtCur = v => v.toLocaleString('de-DE',{style:'currency',currency:cur,maximumFractionDigits:2});
+          // Two independent currencies: cost side and revenue/selling side
+          if(sc.costCurrency      === undefined) sc.costCurrency      = cur;
+          if(sc.revCurrency       === undefined) sc.revCurrency       = cur;
+          // Legacy migration: if old sc.currency exists, seed the new fields
+          if(sc.currency !== undefined){ sc.costCurrency = sc.costCurrency || sc.currency; sc.revCurrency = sc.revCurrency || sc.currency; }
+          const costCur = sc.costCurrency;
+          const revCur  = sc.revCurrency;
+          cur = costCur; // keep cur for cost-side helpers (row, row2, etc.)
+          const fmtCur  = v => v.toLocaleString('de-DE',{style:'currency',currency:revCur,maximumFractionDigits:2});
+          const fmtCostCur = v => v.toLocaleString('de-DE',{style:'currency',currency:costCur,maximumFractionDigits:2});
 
           const fmt_ = sc;
           const days         = sc.days;
@@ -4479,7 +4486,10 @@ tr:hover td { background: var(--bg3); }
             </span>`;
 
           document.getElementById('od-costs-body').innerHTML = `
-            <div style="padding:16px 20px;max-width:560px">
+            <div style="padding:16px 20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;align-items:start">
+
+              <!-- ══════════════ LEFT COLUMN ══════════════ -->
+              <div style="padding-right:20px;border-right:1px solid var(--border)">
 
               <!-- Delivery Format selector -->
               <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
@@ -4503,62 +4513,20 @@ tr:hover td { background: var(--bg3); }
                 </div>
               </div>
 
-              <!-- Revenue (overridable) -->
-              <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                  <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em">Revenue</div>
-                  <div style="display:flex;gap:4px">
-                    ${['CHF','EUR','GBP','USD'].map(c=>`<button onclick="updateSC(${oIdx},'currency','${c}')"
-                      style="padding:3px 9px;border-radius:14px;border:1px solid ${cur===c?'var(--accent)':'var(--border)'};
-                        background:${cur===c?'rgba(99,102,241,.15)':'transparent'};
-                        color:${cur===c?'var(--accent)':'var(--fg3)'};
-                        font-size:11px;font-weight:${cur===c?'700':'500'};cursor:pointer;transition:.15s">${c}</button>`).join('')}
-                  </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end">
-                  <div>
-                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Total Course Price</div>
-                    <div class="cb-unit-wrap">
-                      <span class="cb-cur-tag">${cur}</span>
-                      <input class="cb-unit-input" type="number" min="0" step="0.01"
-                        value="${sc.revenueOverride !== null ? sc.revenueOverride : baseRevenue}"
-                        placeholder="${fmt(baseRevenue)}"
-                        onchange="updateSC(${oIdx},'revenueOverride',this.value)" />
-                    </div>
-                    ${sc.revenueOverride !== null ? `<div style="font-size:10px;color:var(--fg3);margin-top:3px">Booking: ${fmtCur(baseRevenue)}</div>` : ''}
-                  </div>
-                  <div>
-                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Travel to Customer</div>
-                    <div class="cb-unit-wrap">
-                      <span class="cb-cur-tag">${cur}</span>
-                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
-                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
-                    </div>
-                  </div>
-                  <div>
-                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Price / Add. Participant</div>
-                    <div class="cb-unit-wrap">
-                      <span class="cb-cur-tag">${cur}</span>
-                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.pricePerAddPax}"
-                        onchange="updateSC(${oIdx},'pricePerAddPax',this.value)" placeholder="0.00" />
-                    </div>
-                  </div>
-                </div>
-                <!-- Per-pax pricing info -->
-                <div style="display:flex;gap:24px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
-                  <div>
-                    <div style="font-size:10px;color:var(--fg3)">Price / Participant</div>
-                    <div style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(pricePerPax)}</div>
-                  </div>
-                  ${pricePerAddPax > 0 ? `<div>
-                    <div style="font-size:10px;color:var(--fg3)">Price / Add. Participant</div>
-                    <div style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(pricePerAddPax)}</div>
-                  </div>` : ''}
+              <!-- Cost Currency -->
+              <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+                <span style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em">Cost Currency</span>
+                <div style="display:flex;gap:4px">
+                  ${['CHF','EUR','GBP','USD'].map(c=>`<button onclick="updateSC(${oIdx},'costCurrency','${c}')"
+                    style="padding:3px 9px;border-radius:14px;border:1px solid ${costCur===c?'var(--accent)':'var(--border)'};
+                      background:${costCur===c?'rgba(99,102,241,.15)':'transparent'};
+                      color:${costCur===c?'var(--accent)':'var(--fg3)'};
+                      font-size:11px;font-weight:${costCur===c?'700':'500'};cursor:pointer;transition:.15s">${c}</button>`).join('')}
                 </div>
               </div>
 
               <!-- Direct Costs table -->
-              <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Direct Costs</div>
+              <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:14px">Direct Costs</div>
               <table class="cb-table">
                 <thead>
                   <tr>
@@ -4657,6 +4625,143 @@ tr:hover td { background: var(--bg3); }
                 </tfoot>
               </table>
 
+              </div><!-- end left column -->
+
+              <!-- ══════════════ RIGHT COLUMN ══════════════ -->
+              <div style="padding-left:20px">
+
+              <!-- Selling Price + Revenue Currency -->
+              <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em">Selling Price</div>
+                  <div style="display:flex;gap:4px">
+                    ${['CHF','EUR','GBP','USD'].map(c=>`<button onclick="updateSC(${oIdx},'revCurrency','${c}')"
+                      style="padding:3px 9px;border-radius:14px;border:1px solid ${revCur===c?'var(--accent)':'var(--border)'};
+                        background:${revCur===c?'rgba(99,102,241,.15)':'transparent'};
+                        color:${revCur===c?'var(--accent)':'var(--fg3)'};
+                        font-size:11px;font-weight:${revCur===c?'700':'500'};cursor:pointer;transition:.15s">${c}</button>`).join('')}
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end">
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Total Course Price (for ${participants} pax)</div>
+                    <div class="cb-unit-wrap">
+                      <span class="cb-cur-tag">${revCur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01"
+                        value="${sc.revenueOverride !== null ? sc.revenueOverride : baseRevenue}"
+                        placeholder="${fmt(baseRevenue)}"
+                        onchange="updateSC(${oIdx},'revenueOverride',this.value)" />
+                    </div>
+                    <div style="font-size:10px;color:var(--fg3);margin-top:3px">Booking: ${fmtCur(baseRevenue)}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Price / Add. Participant</div>
+                    <div class="cb-unit-wrap">
+                      <span class="cb-cur-tag">${revCur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.pricePerAddPax}"
+                        onchange="updateSC(${oIdx},'pricePerAddPax',this.value)" placeholder="0.00" />
+                    </div>
+                  </div>
+                </div>
+                <!-- Derived display -->
+                <div style="display:flex;gap:24px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3)">Price / Participant</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(pricePerPax)}</div>
+                  </div>
+                  ${pricePerAddPax > 0 ? `<div>
+                    <div style="font-size:10px;color:var(--fg3)">Travel to Customer</div>
+                    <div class="cb-unit-wrap" style="margin-top:4px">
+                      <span class="cb-cur-tag">${revCur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
+                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
+                    </div>
+                  </div>` : `<div>
+                    <div style="font-size:10px;color:var(--fg3)">Travel to Customer</div>
+                    <div class="cb-unit-wrap" style="margin-top:4px">
+                      <span class="cb-cur-tag">${revCur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
+                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
+                    </div>
+                  </div>`}
+                </div>
+              </div>
+
+              <!-- Quote Summary (customer-facing) -->
+              <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Quote Summary</div>
+                <table style="width:100%;border-collapse:collapse">
+                  <tbody>
+                    <tr style="border-bottom:1px solid var(--border)">
+                      <td style="padding:7px 0;font-size:13px;font-weight:700;color:var(--fg)">Total Price (${participants} pax)</td>
+                      <td style="padding:7px 0;text-align:right;font-size:14px;font-weight:700;color:var(--fg);font-family:monospace">${fmtCur(revAtPax)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:5px 0 5px 12px;font-size:12px;color:var(--fg2)">Training</td>
+                      <td style="padding:5px 0;text-align:right;font-size:12px;color:var(--fg2);font-family:monospace">${fmtCur(revAtPax - (sc.travelToCustomer||0))}</td>
+                    </tr>
+                    ${(delivery==='onsite'||delivery==='classroom') && (sc.travelToCustomer||0) > 0 ? `<tr>
+                      <td style="padding:5px 0 5px 12px;font-size:12px;color:var(--fg2)">Travel</td>
+                      <td style="padding:5px 0;text-align:right;font-size:12px;color:var(--fg2);font-family:monospace">${fmtCur(sc.travelToCustomer||0)}</td>
+                    </tr>` : ''}
+                    <tr>
+                      <td style="padding:5px 0 5px 12px;font-size:12px;color:var(--fg3)">Price / Participant</td>
+                      <td style="padding:5px 0;text-align:right;font-size:12px;color:var(--fg3);font-family:monospace">${fmtCur(pricePerPax)}</td>
+                    </tr>
+                    ${pricePerAddPax > 0 ? `<tr>
+                      <td style="padding:5px 0 5px 12px;font-size:12px;color:var(--fg3)">Price / Add. Participant</td>
+                      <td style="padding:5px 0;text-align:right;font-size:12px;color:var(--fg3);font-family:monospace">${fmtCur(pricePerAddPax)}</td>
+                    </tr>` : ''}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Compact Pricing Table (Pax → Max Pax) -->
+              <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Pricing Table</div>
+                <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+                  <table style="width:100%;border-collapse:collapse">
+                    <thead>
+                      <tr style="background:var(--bg2);position:sticky;top:0;z-index:1">
+                        <th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;text-align:center;border-bottom:1px solid var(--border)">Pax</th>
+                        <th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;text-align:right;border-bottom:1px solid var(--border)">Total Price</th>
+                        <th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;text-align:right;border-bottom:1px solid var(--border)">Price/Pax</th>
+                        <th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;text-align:right;border-bottom:1px solid var(--border)">Costs</th>
+                        <th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;text-align:right;border-bottom:1px solid var(--border)">Margin €</th>
+                        <th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;text-align:right;border-bottom:1px solid var(--border)">Margin %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${(()=>{
+                        const rows=[];
+                        const startP = Math.max(1, participants);
+                        for(let p=startP; p<=maxPax; p++){
+                          const rev = calcRevenue(p);
+                          const c   = calcCosts(p);
+                          const gm  = rev - c.direct;
+                          const gmP = rev > 0 ? gm/rev*100 : 0;
+                          const isHL = (p===participants || p===maxPax);
+                          const bgRow = isHL ? 'background:rgba(99,102,241,.08)' : '';
+                          const fwRow = isHL ? 'font-weight:700' : '';
+                          const pricePP = p > 0 ? rev/p : 0;
+                          const gmColor = gmP>=45?'#10b981':gmP>=30?'#f59e0b':'#f87171';
+                          rows.push(`<tr style="${bgRow}">
+                            <td style="padding:5px 8px;text-align:center;font-size:12px;color:var(--fg);${fwRow}">${p}${p===participants?' ★':p===maxPax?' ◆':''}</td>
+                            <td style="padding:5px 8px;text-align:right;font-size:12px;font-family:monospace;color:var(--fg);${fwRow}">${fmtCur(rev)}</td>
+                            <td style="padding:5px 8px;text-align:right;font-size:12px;font-family:monospace;color:var(--fg3)">${fmtCur(pricePP)}</td>
+                            <td style="padding:5px 8px;text-align:right;font-size:12px;font-family:monospace;color:var(--fg3)">${fmtCostCur(c.direct)}</td>
+                            <td style="padding:5px 8px;text-align:right;font-size:12px;font-family:monospace;color:${gmColor}">${fmtCur(gm)}</td>
+                            <td style="padding:5px 8px;text-align:right;font-size:12px;font-family:monospace;color:${gmColor}">${gmP.toFixed(1)}%</td>
+                          </tr>`);
+                        }
+                        return rows.join('');
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                <div style="font-size:10px;color:var(--fg3);margin-top:4px">★ = requested pax · ◆ = max pax</div>
+              </div>
+
               <!-- Gross Margin — dual scenario -->
               <div style="margin-top:14px;margin-bottom:4px">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -4747,7 +4852,7 @@ tr:hover td { background: var(--bg3); }
               <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
                 <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Margin Development</div>
                 ${(()=>{
-                  const chartW = 500, chartH = 160, padL = 42, padR = 16, padT = 10, padB = 32;
+                  const chartW = 560, chartH = 160, padL = 42, padR = 16, padT = 10, padB = 32;
                   const plotW = chartW - padL - padR;
                   const plotH = chartH - padT - padB;
                   const maxX   = Math.max(maxPax + 3, participants + 5);
@@ -4807,7 +4912,7 @@ tr:hover td { background: var(--bg3); }
                       yLabels.push(`<text x="${padL-6}" y="${y+4}" font-size="8" fill="var(--fg3)" text-anchor="end">${g}%</text>`);
                   }
 
-                  return `<svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;max-width:${chartW}px;overflow:visible" xmlns="http://www.w3.org/2000/svg">
+                  return `<svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;height:auto;overflow:visible" xmlns="http://www.w3.org/2000/svg">
                     <!-- Background -->
                     <rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="var(--bg2)" rx="4"/>
                     <!-- Reference lines -->
@@ -4887,13 +4992,15 @@ tr:hover td { background: var(--bg3); }
                    </button>`
               }
               </div>
-            </div>`;
+
+              </div><!-- end right column -->
+            </div><!-- end outer grid -->`;
         }
 
         window.updateSC = function(oIdx, key, val){
           if(!MOCK[oIdx].simpleCosts) MOCK[oIdx].simpleCosts={};
           const sc = MOCK[oIdx].simpleCosts;
-          if(key === 'deliveryFormat' || key === 'currency'){
+          if(key === 'deliveryFormat' || key === 'currency' || key === 'costCurrency' || key === 'revCurrency'){
             sc[key] = val;  // string enum
           } else if(key === 'revenueOverride' || key === 'followupRate'){
             const n = parseFloat(val);
