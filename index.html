@@ -4272,9 +4272,9 @@ tr:hover td { background: var(--bg3); }
         // ── Cost Breakdown tab ────────────────────────────────────────────────
         function renderCosts(oIdx){
           const o   = MOCK[oIdx];
-          const cur = o.region==='CH' ? 'CHF' : 'EUR';
+          let cur = o.region==='CH' ? 'CHF' : 'EUR';
           const fmt = v => v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
-          const fmtCur = v => v.toLocaleString('de-DE',{style:'currency',currency:cur,maximumFractionDigits:2});
+          // fmtCur is redefined after sc.currency default is applied (see below)
 
           if(!o.simpleCosts) o.simpleCosts = {};
           const sc = o.simpleCosts;
@@ -4307,6 +4307,9 @@ tr:hover td { background: var(--bg3); }
           if(sc.revenueOverride   === undefined) sc.revenueOverride   = null;
           if(sc.travelToCustomer  === undefined) sc.travelToCustomer  = 0;
           if(sc.pricePerAddPax    === undefined) sc.pricePerAddPax    = 0;
+          if(sc.currency          === undefined) sc.currency          = cur;
+          cur = sc.currency; // override with user-selected currency
+          const fmtCur = v => v.toLocaleString('de-DE',{style:'currency',currency:cur,maximumFractionDigits:2});
 
           const fmt_ = sc;
           const days         = sc.days;
@@ -4322,6 +4325,12 @@ tr:hover td { background: var(--bg3); }
           const isManagement = ['management','admin'].includes(DEV_ROLE);
 
           // ── Cost calculations ───────────────────────────────────────────────
+          // Revenue scales with participants (additional pax add pricePerAddPax each)
+          function calcRevenue(pax){
+            const base = sc.revenueOverride !== null ? sc.revenueOverride : baseRevenue;
+            return base + Math.max(0, pax - participants) * sc.pricePerAddPax;
+          }
+
           // Per-requested-pax totals
           function calcCosts(pax){
             const trainerTotal  = sc.trainerRatePerDay * days;
@@ -4336,7 +4345,7 @@ tr:hover td { background: var(--bg3); }
             const certTotal     = sc.certPerPax * pax;
             const classroomTotal= delivery==='classroom' ? sc.classroomRental : 0;
             const cateringTotal = delivery==='classroom' ? sc.cateringPerPaxDay * pax * days : 0;
-            const sysFeeAmt     = revenue * 0.175;
+            const sysFeeAmt     = calcRevenue(pax) * 0.175;
             const direct = trainerTotal + travelTotal + accomTotal + prepTotal + daTotal +
                            softTotal + skillTotal + followupTotal + certTotal +
                            classroomTotal + cateringTotal + sysFeeAmt;
@@ -4347,12 +4356,14 @@ tr:hover td { background: var(--bg3); }
           const C  = calcCosts(participants);    // requested count
           const Cm = calcCosts(maxPax);           // max count
 
-          const grossMargin    = revenue - C.direct;
-          const grossMarginPct = revenue > 0 ? (grossMargin / revenue * 100) : 0;
+          const revAtPax       = calcRevenue(participants);
+          const revAtMax       = calcRevenue(maxPax);
+          const grossMargin    = revAtPax - C.direct;
+          const grossMarginPct = revAtPax > 0 ? (grossMargin / revAtPax * 100) : 0;
           const gmCls = grossMarginPct >= 45 ? 'od-profit-pos' : grossMarginPct >= 30 ? 'od-profit-warn' : 'od-profit-neg';
 
-          const grossMarginM    = revenue - Cm.direct;
-          const grossMarginMPct = revenue > 0 ? (grossMarginM / revenue * 100) : 0;
+          const grossMarginM    = revAtMax - Cm.direct;
+          const grossMarginMPct = revAtMax > 0 ? (grossMarginM / revAtMax * 100) : 0;
           const gmMCls = grossMarginMPct >= 45 ? 'od-profit-pos' : grossMarginMPct >= 30 ? 'od-profit-warn' : 'od-profit-neg';
 
           // Per-pax pricing display
@@ -4414,14 +4425,14 @@ tr:hover td { background: var(--bg3); }
               <td class="cb-td-unit" style="vertical-align:top">
                 <div style="display:flex;flex-direction:column;gap:4px">
                   <div class="cb-unit-wrap">
-                    <span class="cb-cur-tag">${cur}</span>
+                    <span class="cb-cur-tag" title="Flat amount">${cur} flat</span>
                     <input class="cb-unit-input" type="number" min="0" step="0.01" value="${valFlat}"
-                      title="Flat amount" onchange="updateSC(${oIdx},'${keyFlat}',this.value)" placeholder="flat" />
+                      title="Flat amount" onchange="updateSC(${oIdx},'${keyFlat}',this.value)" placeholder="0.00" />
                   </div>
                   <div class="cb-unit-wrap">
-                    <span class="cb-cur-tag">${cur}/p</span>
+                    <span class="cb-cur-tag" title="Per participant">${cur}/pax</span>
                     <input class="cb-unit-input" type="number" min="0" step="0.01" value="${valPax}"
-                      title="Per participant" onchange="updateSC(${oIdx},'${keyPax}',this.value)" placeholder="per pax" />
+                      title="Per participant" onchange="updateSC(${oIdx},'${keyPax}',this.value)" placeholder="0.00" />
                   </div>
                 </div>
               </td>
@@ -4444,7 +4455,11 @@ tr:hover td { background: var(--bg3); }
 
           // Follow-up effective rate (auto or manual)
           const fuRateEff = (sc.followupRate !== null && sc.followupRate > 0) ? sc.followupRate : sc.trainerRatePerDay / (hoursPerDay||7);
-          const fuHint = `<span class="cb-nights-wrap">${sc.followupHours}h &times; ${fmt(fuRateEff)}&nbsp;${cur}/h</span>`;
+          const fuHint = `<span class="cb-nights-wrap">${sc.followupHours > 0 ? sc.followupHours : '0'}h &times; ${fmt(fuRateEff)}&nbsp;${cur}/h &nbsp;
+            <span class="cb-cur-tag" style="display:inline">${cur}</span>
+            <input class="cb-nights-input" type="number" min="0" step="0.5" value="${sc.followupHours}"
+              title="Follow-up hours" onchange="updateSC(${oIdx},'followupHours',this.value)" />
+            </span>`;
 
           // Format selector buttons
           const fmtBtn = (val, label) =>
@@ -4490,7 +4505,16 @@ tr:hover td { background: var(--bg3); }
 
               <!-- Revenue (overridable) -->
               <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-                <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Revenue</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em">Revenue</div>
+                  <div style="display:flex;gap:4px">
+                    ${['CHF','EUR','GBP','USD'].map(c=>`<button onclick="updateSC(${oIdx},'currency','${c}')"
+                      style="padding:3px 9px;border-radius:14px;border:1px solid ${cur===c?'var(--accent)':'var(--border)'};
+                        background:${cur===c?'rgba(99,102,241,.15)':'transparent'};
+                        color:${cur===c?'var(--accent)':'var(--fg3)'};
+                        font-size:11px;font-weight:${cur===c?'700':'500'};cursor:pointer;transition:.15s">${c}</button>`).join('')}
+                  </div>
+                </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end">
                   <div>
                     <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Total Course Price</div>
@@ -4588,26 +4612,19 @@ tr:hover td { background: var(--bg3); }
                   <!-- Skill Assessment (flat + per pax) — always shown -->
                   ${row2('Skill Assessment', 'flat + per participant', 'skillAssessFlat', sc.skillAssessFlat, 'skillAssessPerPax', sc.skillAssessPerPax, C.skillTotal)}
 
-                  <!-- Follow-up Session — hours + rate/h -->
+                  <!-- Follow-up Session — hours in hint, rate in unit cell (like Prep Time) -->
                   <tr>
                     <td class="cb-td-name">Follow-up Session
                       <span class="cb-td-hint">${fuHint}</span>
                     </td>
-                    <td class="cb-td-unit" style="vertical-align:top">
-                      <div style="display:flex;flex-direction:column;gap:4px">
-                        <div class="cb-unit-wrap">
-                          <span class="cb-cur-tag">h</span>
-                          <input class="cb-unit-input" type="number" min="0" step="0.5" value="${sc.followupHours}"
-                            title="Hours" onchange="updateSC(${oIdx},'followupHours',this.value)" placeholder="0" />
-                        </div>
-                        <div class="cb-unit-wrap">
-                          <span class="cb-cur-tag">${cur}/h</span>
-                          <input class="cb-unit-input" type="number" min="0" step="0.01"
-                            value="${sc.followupRate !== null && sc.followupRate > 0 ? sc.followupRate : ''}"
-                            title="Rate/h (blank = auto from trainer rate)"
-                            placeholder="${fmt(fuRateEff)}"
-                            onchange="updateSC(${oIdx},'followupRate',this.value)" />
-                        </div>
+                    <td class="cb-td-unit">
+                      <div class="cb-unit-wrap">
+                        <span class="cb-cur-tag">${cur}/h</span>
+                        <input class="cb-unit-input" type="number" min="0" step="0.01"
+                          value="${sc.followupRate !== null && sc.followupRate > 0 ? sc.followupRate : ''}"
+                          title="Rate/h (blank = auto from trainer rate / hrs per day)"
+                          placeholder="${fmt(fuRateEff)}"
+                          onchange="updateSC(${oIdx},'followupRate',this.value)" />
                       </div>
                     </td>
                     <td class="${C.followupTotal===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(C.followupTotal)}</td>
@@ -4737,8 +4754,9 @@ tr:hover td { background: var(--bg3); }
                   const minX   = 1;
                   const points = [];
                   for(let p = minX; p <= maxX; p++){
-                    const cx = calcCosts(p);
-                    const gm = revenue > 0 ? (revenue - cx.direct) / revenue * 100 : 0;
+                    const cx  = calcCosts(p);
+                    const rev = calcRevenue(p);
+                    const gm  = rev > 0 ? (rev - cx.direct) / rev * 100 : 0;
                     points.push({p, gm});
                   }
                   const minGM = Math.min(...points.map(pt=>pt.gm)) - 5;
@@ -4875,7 +4893,7 @@ tr:hover td { background: var(--bg3); }
         window.updateSC = function(oIdx, key, val){
           if(!MOCK[oIdx].simpleCosts) MOCK[oIdx].simpleCosts={};
           const sc = MOCK[oIdx].simpleCosts;
-          if(key === 'deliveryFormat'){
+          if(key === 'deliveryFormat' || key === 'currency'){
             sc[key] = val;  // string enum
           } else if(key === 'revenueOverride' || key === 'followupRate'){
             const n = parseFloat(val);
