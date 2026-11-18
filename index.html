@@ -3219,8 +3219,7 @@ tr:hover td { background: var(--bg3); }
                   placeholder="Summary: agreed rate, availability, why selected — or why no trainer found…"
                   onchange="setStageField('${o.seq}','TRAINER_SELECTION','decisionNotes',this.value)">${sd.decisionNotes||''}</textarea>
 
-                ${isCurrentStatus ? `
-                <!-- Push to Next button — smart routing -->
+                <!-- Push to Next button — always visible, smart routing -->
                 <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
                   <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
                     onclick="sp02FinishTrainerSelection(${oIdx},'${o.seq}')">
@@ -3229,7 +3228,7 @@ tr:hover td { background: var(--bg3); }
                   <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
                     Preferred trainer filled → <strong style="color:#a5b4fc">Alignment Call</strong> &nbsp;|&nbsp; Empty → prompt to start <strong style="color:#fbbf24">Recruitment</strong>
                   </div>
-                </div>` : ''}
+                </div>
               </div>`;
           }
 
