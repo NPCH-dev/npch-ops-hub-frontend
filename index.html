@@ -1851,6 +1851,9 @@ tr:hover td { background: var(--bg3); }
         .od-task.skipped { opacity:.45; }
         .od-task.skipped input { cursor:not-allowed; }
         .od-task-skip-note { font-size:11px; color:var(--fg3); font-style:italic; margin-left:4px; }
+        .od-task-meta { font-size:10px; color:var(--fg3); margin-top:2px; opacity:.7; }
+        .od-task-role { font-size:10px; color:var(--fg3); opacity:.5; margin-top:1px; }
+        .od-task-info { display:flex; flex-direction:column; flex:1; min-width:0; }
         /* SP-01 contract/PO toggle switches */
         /* SP-02 gate header chips inside task list */
         .sp02-gate-header { display:flex; align-items:center; gap:7px; margin-top:14px; margin-bottom:4px; padding:5px 8px; border-radius:6px; background:var(--surface2,rgba(255,255,255,.04)); border-left:3px solid var(--border); }
@@ -2399,12 +2402,12 @@ tr:hover td { background: var(--bg3); }
               {key:'training',label:'Requested Training'},
             ],
             tasks:[
-              {id:'t1', label:'Inquiry received & logged'},
-              {id:'t2', label:'Initial response sent (<24h)'},
-              {id:'t3', label:'Training requirements clarified'},
-              {id:'t4', label:'Cost breakdown done & sale confirmed'},
-              {id:'t5', label:'Contract signed', gate2:true},
-              {id:'t6', label:'PO received (if required)', gate2:true, optional:true},
+              {id:'t1', label:'Inquiry received & logged',            role:'sales'},
+              {id:'t2', label:'Initial response sent (<24h)',          role:'sales'},
+              {id:'t3', label:'Training requirements clarified',       role:'sales'},
+              {id:'t4', label:'Cost breakdown done & sale confirmed',  role:'sales'},
+              {id:'t5', label:'Contract signed',                       role:'sales',        gate2:true},
+              {id:'t6', label:'PO received (if required)',             role:'coordination', gate2:true, optional:true},
             ]
           },
           { id:'SP-02', label:'Planning',
@@ -2419,30 +2422,25 @@ tr:hover td { background: var(--bg3); }
             // Tasks are keyed per sub-status (status property matches STATUS_SEQUENCE key)
             tasks:[
               // TRAINER_SELECTION — Path A: find in HR Portal
-              {id:'ts1', status:'TRAINER_SELECTION', label:'Agenda prepared (DE + EN, no prices)'},
-              {id:'ts2', status:'TRAINER_SELECTION', label:'HR portal (hr.nobleprog.com) searched'},
-              {id:'ts3', status:'TRAINER_SELECTION', label:'Enquiry emails sent to 5–6 candidates'},
-              {id:'ts4', status:'TRAINER_SELECTION', label:'Follow-up calls done (~2–3 days later)'},
-              // TRAINER_RECRUITMENT — Path B: external search
-              {id:'tr1', status:'TRAINER_RECRUITMENT', label:'External recruitment posted (Freelancer etc.)'},
-              {id:'tr2', status:'TRAINER_RECRUITMENT', label:'Min. 3 external candidates shortlisted'},
-              // CANDIDATES_IDENTIFIED — present & decide
-              {id:'ci1', status:'CANDIDATES_IDENTIFIED', label:'All candidate offers collected & compared'},
-              {id:'ci2', status:'CANDIDATES_IDENTIFIED', label:'Team selection decision made (reasoning + participants logged)'},
-              {id:'ci3', status:'CANDIDATES_IDENTIFIED', label:'Rate agreed with selected trainer'},
-              {id:'ci4', status:'CANDIDATES_IDENTIFIED', label:'Trainer onboarding initiated (if new trainer)', optional:true},
-              // RECRUITMENT_DONE — handover back to coordination
-              {id:'rd1', status:'RECRUITMENT_DONE', label:'Trainer onboarding complete (if new)', optional:true},
-              {id:'rd2', status:'RECRUITMENT_DONE', label:'Selected trainer confirmed to coordination'},
-              // ALIGNMENT_CALL — both paths merge here
-              {id:'ac1', status:'ALIGNMENT_CALL', label:'Agenda shared with trainer before call'},
-              {id:'ac2', status:'ALIGNMENT_CALL', label:'Scoping call held (trainer + customer)'},
-              {id:'ac3', status:'ALIGNMENT_CALL', label:'Agenda finalised & topics prioritised'},
-              {id:'ac4', status:'ALIGNMENT_CALL', label:'Prep-time option discussed with customer'},
-              // DELIVERY_CONFIRMED
-              {id:'dc1', status:'DELIVERY_CONFIRMED', label:'Date, location & technical setup confirmed'},
-              {id:'dc2', status:'DELIVERY_CONFIRMED', label:'Customer informed of trainer & logistics'},
-              {id:'dc3', status:'DELIVERY_CONFIRMED', label:'Training materials / access sent to trainer'},
+              {id:'ts1', status:'TRAINER_SELECTION',   label:'Agenda prepared (DE + EN, no prices)',                        role:'coordination'},
+              {id:'ts2', status:'TRAINER_SELECTION',   label:'HR portal (hr.nobleprog.com) searched',                        role:'recruitment'},
+              {id:'ts3', status:'TRAINER_SELECTION',   label:'Enquiry emails sent to 5–6 candidates',                        role:'recruitment'},
+              {id:'ts4', status:'TRAINER_SELECTION',   label:'Follow-up calls done (~2–3 days later)',                       role:'recruitment'},
+              {id:'tr1', status:'TRAINER_RECRUITMENT', label:'External recruitment posted (Freelancer etc.)',                 role:'recruitment'},
+              {id:'tr2', status:'TRAINER_RECRUITMENT', label:'Min. 3 external candidates shortlisted',                       role:'recruitment'},
+              {id:'ci1', status:'CANDIDATES_IDENTIFIED',label:'All candidate offers collected & compared',                   role:'recruitment'},
+              {id:'ci2', status:'CANDIDATES_IDENTIFIED',label:'Team selection decision made (reasoning + participants logged)',role:'coordination'},
+              {id:'ci3', status:'CANDIDATES_IDENTIFIED',label:'Rate agreed with selected trainer',                           role:'coordination'},
+              {id:'ci4', status:'CANDIDATES_IDENTIFIED',label:'Trainer onboarding initiated (if new trainer)',               role:'coordination', optional:true},
+              {id:'rd1', status:'RECRUITMENT_DONE',    label:'Trainer onboarding complete (if new)',                         role:'coordination', optional:true},
+              {id:'rd2', status:'RECRUITMENT_DONE',    label:'Selected trainer confirmed to coordination',                   role:'recruitment'},
+              {id:'ac1', status:'ALIGNMENT_CALL',      label:'Agenda shared with trainer before call',                       role:'coordination'},
+              {id:'ac2', status:'ALIGNMENT_CALL',      label:'Scoping call held (trainer + customer)',                       role:'coordination'},
+              {id:'ac3', status:'ALIGNMENT_CALL',      label:'Agenda finalised & topics prioritised',                        role:'coordination'},
+              {id:'ac4', status:'ALIGNMENT_CALL',      label:'Prep-time option discussed with customer',                     role:'coordination'},
+              {id:'dc1', status:'DELIVERY_CONFIRMED',  label:'Date, location & technical setup confirmed',                   role:'coordination'},
+              {id:'dc2', status:'DELIVERY_CONFIRMED',  label:'Customer informed of trainer & logistics',                     role:'coordination'},
+              {id:'dc3', status:'DELIVERY_CONFIRMED',  label:'Training materials / access sent to trainer',                  role:'coordination'},
             ]
           },
           { id:'SP-03', label:'Confirm',
@@ -2452,10 +2450,10 @@ tr:hover td { background: var(--bg3); }
               {key:'seq',    label:'Order Nr.'},
             ],
             tasks:[
-              {id:'t1', label:'Booking confirmed by customer'},
-              {id:'t2', label:'Booking reference issued'},
-              {id:'t3', label:'Invoice address received'},
-              {id:'t4', label:'Booking confirmation email sent'},
+              {id:'t1', label:'Booking confirmed by customer',   role:'sales'},
+              {id:'t2', label:'Booking reference issued',         role:'coordination'},
+              {id:'t3', label:'Invoice address received',         role:'coordination'},
+              {id:'t4', label:'Booking confirmation email sent',  role:'coordination'},
             ]
           },
           { id:'SP-04', label:'Order',
@@ -2466,10 +2464,10 @@ tr:hover td { background: var(--bg3); }
               {key:'po',           label:'PO Received', isBool:true},
             ],
             tasks:[
-              {id:'t1', label:'Order created in system'},
-              {id:'t2', label:'Order confirmation sent to customer'},
-              {id:'t3', label:'Pre-payment invoice sent (if req.)'},
-              {id:'t4', label:'Pre-payment received (if req.)'},
+              {id:'t1', label:'Order created in system',                role:'coordination'},
+              {id:'t2', label:'Order confirmation sent to customer',    role:'coordination'},
+              {id:'t3', label:'Pre-payment invoice sent (if req.)',     role:'finance'},
+              {id:'t4', label:'Pre-payment received (if req.)',         role:'finance'},
             ]
           },
           { id:'SP-05', label:'Delivery',
@@ -2480,12 +2478,12 @@ tr:hover td { background: var(--bg3); }
               {key:'days',         label:'Duration (days)'},
             ],
             tasks:[
-              {id:'t1', label:'Trainer identified'},
-              {id:'t2', label:'Trainer confirmed & briefed'},
-              {id:'t3', label:'Travel / hotel arranged'},
-              {id:'t4', label:'Training materials sent to customer'},
-              {id:'t5', label:'Desktop & software setup done'},
-              {id:'t6', label:'Participant machines prepared'},
+              {id:'t1', label:'Trainer identified',                    role:'coordination'},
+              {id:'t2', label:'Trainer confirmed & briefed',           role:'coordination'},
+              {id:'t3', label:'Travel / hotel arranged',               role:'coordination'},
+              {id:'t4', label:'Training materials sent to customer',   role:'coordination'},
+              {id:'t5', label:'Desktop & software setup done',         role:'coordination'},
+              {id:'t6', label:'Participant machines prepared',         role:'coordination'},
             ]
           },
           { id:'SP-06', label:'Invoice',
@@ -2496,11 +2494,11 @@ tr:hover td { background: var(--bg3); }
               {key:'days',         label:'Duration'},
             ],
             tasks:[
-              {id:'t1', label:'Training delivered'},
-              {id:'t2', label:'Attendance list collected & signed'},
-              {id:'t3', label:'Participant feedback survey sent'},
-              {id:'t4', label:'Delivery report completed'},
-              {id:'t5', label:'Full invoice issued'},
+              {id:'t1', label:'Training delivered',                    role:'coordination'},
+              {id:'t2', label:'Attendance list collected & signed',    role:'coordination'},
+              {id:'t3', label:'Participant feedback survey sent',      role:'coordination'},
+              {id:'t4', label:'Delivery report completed',            role:'coordination'},
+              {id:'t5', label:'Full invoice issued',                   role:'finance'},
             ]
           },
           { id:'SP-07', label:'Closeout',
@@ -2510,10 +2508,10 @@ tr:hover td { background: var(--bg3); }
               {key:'entity',       label:'Invoicing Entity'},
             ],
             tasks:[
-              {id:'t1', label:'Invoice created in system'},
-              {id:'t2', label:'Invoice sent to customer'},
-              {id:'t3', label:'Invoice accepted (no disputes)'},
-              {id:'t4', label:'Payment reminder sent (if overdue)'},
+              {id:'t1', label:'Invoice created in system',             role:'finance'},
+              {id:'t2', label:'Invoice sent to customer',              role:'finance'},
+              {id:'t3', label:'Invoice accepted (no disputes)',        role:'finance'},
+              {id:'t4', label:'Payment reminder sent (if overdue)',   role:'finance'},
             ]
           },
           { id:'SP-08', label:'Complete',
@@ -2523,9 +2521,9 @@ tr:hover td { background: var(--bg3); }
               {key:'entity', label:'Entity'},
             ],
             tasks:[
-              {id:'t1', label:'Payment received & matched'},
-              {id:'t2', label:'Payment reconciled in accounting'},
-              {id:'t3', label:'Order marked as completed'},
+              {id:'t1', label:'Payment received & matched',            role:'finance'},
+              {id:'t2', label:'Payment reconciled in accounting',      role:'finance'},
+              {id:'t3', label:'Order marked as completed',             role:'management'},
             ]
           },
         ];
@@ -2781,9 +2779,40 @@ tr:hover td { background: var(--bg3); }
         }
 
         // ── Task persistence ──────────────────────────────────────────────────
+        // ── Role → Display-Name mapping ───────────────────────────────────────
+        const ROLE_USER = {
+          sales:        'Stephanie',
+          coordination: 'Sarah',
+          recruitment:  'Merve',
+          finance:      'Daniel',
+          management:   'Constantin',
+          system:       'System',
+        };
+        function roleLabel(role){ return ROLE_USER[role] || role || '—'; }
+        function fmtTs(ts){
+          if(!ts) return '';
+          const d = new Date(ts);
+          const pad = n => String(n).padStart(2,'0');
+          return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
         function taskKey(oIdx, spId, tId){ return `npch_t_${MOCK[oIdx].seq}_${oIdx}_${spId}_${tId}`; }
-        function getTask(oIdx, spId, tId){ try{ return localStorage.getItem(taskKey(oIdx,spId,tId))==='1'; }catch(e){ return false; } }
-        function setTask(oIdx, spId, tId, v){ try{ v ? localStorage.setItem(taskKey(oIdx,spId,tId),'1') : localStorage.removeItem(taskKey(oIdx,spId,tId)); }catch(e){} }
+        function getTask(oIdx, spId, tId){
+          try{
+            const raw = localStorage.getItem(taskKey(oIdx,spId,tId));
+            if(!raw) return null;
+            // legacy: plain '1'
+            if(raw==='1') return {done:true, user:'?', ts:null};
+            return JSON.parse(raw);
+          }catch(e){ return null; }
+        }
+        function setTask(oIdx, spId, tId, v, role){
+          try{
+            if(!v){ localStorage.removeItem(taskKey(oIdx,spId,tId)); return; }
+            const user = roleLabel(role);
+            localStorage.setItem(taskKey(oIdx,spId,tId), JSON.stringify({done:true, user, ts:Date.now()}));
+          }catch(e){}
+        }
 
         // ── SLA definitions per step ─────────────────────────────────────────
         const SP_SLA = [
@@ -2806,7 +2835,7 @@ tr:hover td { background: var(--bg3); }
           const totalSteps = PROCESS_STEPS.length;
           const doneFull   = currentSp; // steps fully before current
           const curDone    = PROCESS_STEPS[currentSp]
-            ? PROCESS_STEPS[currentSp].tasks.filter(t=>getTask(oIdx,PROCESS_STEPS[currentSp].id,t.id)).length
+            ? PROCESS_STEPS[currentSp].tasks.filter(t=>!!(getTask(oIdx,PROCESS_STEPS[currentSp].id,t.id)?.done)).length
             : 0;
           const curTotal   = PROCESS_STEPS[currentSp]?.tasks.length || 1;
           const pct        = Math.round((doneFull + curDone/curTotal) / totalSteps * 100);
@@ -2842,7 +2871,7 @@ tr:hover td { background: var(--bg3); }
         function renderRibbon(oIdx){
           const currentSp = STATUS_SP_IDX[MOCK[oIdx].status] ?? 3;
           document.getElementById('od-ribbon').innerHTML = PROCESS_STEPS.map((sp,i)=>{
-            const done = sp.tasks.filter(t=>getTask(oIdx,sp.id,t.id)).length;
+            const done = sp.tasks.filter(t=>!!(getTask(oIdx,sp.id,t.id)?.done)).length;
             let cls = 'od-ribbon-step';
             if(i < currentSp)      cls += ' rib-done';
             else if(i===currentSp) cls += ' rib-active';
@@ -2924,19 +2953,25 @@ tr:hover td { background: var(--bg3); }
             tasksHtml = '';
           } else {
             tasksHtml = sp.tasks.map(t=>{
-              const ck = getTask(oIdx,sp.id,t.id);
+              const meta = getTask(oIdx,sp.id,t.id);
+              const ck = !!(meta?.done);
               // For SP-01: skip/gray t5 (contract) or t6 (PO) if flags say not required
               let skipped = false;
               let skipReason = '';
               if(sp.id === 'SP-01'){
-                const contractReq = o.contractRequired !== false; // default true
-                const poReq       = o.poRequired === true;         // default false
+                const contractReq = o.contractRequired !== false;
+                const poReq       = o.poRequired === true;
                 if(t.id === 't5' && !contractReq){ skipped = true; skipReason = 'Not required (framework agreement)'; }
                 if(t.id === 't6' && !poReq)      { skipped = true; skipReason = 'Not required'; }
               }
+              const metaStr = ck && meta?.user ? `by ${meta.user}${meta.ts ? ' · '+fmtTs(meta.ts) : ''}` : '';
+              const roleStr = !ck && t.role ? roleLabel(t.role) : '';
               return `<div class="od-task${ck?' checked':''}${skipped?' skipped':''}" id="odt_${sp.id}_${t.id}">
                 <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} ${skipped?'disabled':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
-                <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${skipped?` <span class="od-task-skip-note">${skipReason}</span>`:''}</label>
+                <div class="od-task-info">
+                  <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${skipped?` <span class="od-task-skip-note">${skipReason}</span>`:''}</label>
+                  ${metaStr ? `<span class="od-task-meta">${metaStr}</span>` : roleStr ? `<span class="od-task-role">→ ${roleStr}</span>` : ''}
+                </div>
               </div>`;
             }).join('');
           }
@@ -2947,9 +2982,9 @@ tr:hover td { background: var(--bg3); }
           if(sp.id === 'SP-01'){
             const contractReq = o.contractRequired !== false; // default true
             const poReq       = o.poRequired === true;         // default false
-            const contractDone  = getTask(oIdx, 'SP-01', 't5');
-            const poDone        = getTask(oIdx, 'SP-01', 't6');
-            const costBreakdown = getTask(oIdx, 'SP-01', 't4');
+            const contractDone  = !!(getTask(oIdx, 'SP-01', 't5')?.done);
+            const poDone        = !!(getTask(oIdx, 'SP-01', 't6')?.done);
+            const costBreakdown = !!(getTask(oIdx, 'SP-01', 't4')?.done);
             const isConfirmed   = o.salesConfirmedAction === 'approved' || o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
 
             // New Gate 2 formula:
@@ -3172,7 +3207,7 @@ tr:hover td { background: var(--bg3); }
             const secIdx = seq.indexOf(sec.key);
             // For Path B sections: skip if order took Path A (went directly to ALIGNMENT_CALL)
             if(sec.path === 'B'){
-              const tookPathA = isPast && !sp02keys.slice(0,4).some(k => getTask(oIdx,'SP-02',sp.tasks.find(t=>t.status===k)?.id||''));
+              const tookPathA = isPast && !sp02keys.slice(0,4).some(k => !!(getTask(oIdx,'SP-02',sp.tasks.find(t=>t.status===k)?.id||'')?.done));
               // Simple heuristic: if order is past SP-02 and never went through TRAINER_RECRUITMENT, hide Path B
               // We'll show them anyway but collapsed — the user can inspect
             }
@@ -3517,13 +3552,17 @@ tr:hover td { background: var(--bg3); }
         };
 
         function taskCard(oIdx, spId, t, extraHtml=''){
-          const ck  = getTask(oIdx, spId, t.id);
-          const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
+          const meta = getTask(oIdx, spId, t.id);
+          const ck   = !!(meta?.done);
+          const opt  = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
+          const metaStr = ck && meta?.user ? `by ${meta.user}${meta.ts ? ' · '+fmtTs(meta.ts) : ''}` : '';
+          const roleStr = !ck && t.role ? roleLabel(t.role) : '';
           return `<div class="sp02-task-card">
             <div class="sp02-task-row">
               <input type="checkbox" id="cb_${spId}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${spId}','${t.id}',this.checked); document.getElementById('lbl_${spId}_${t.id}').classList.toggle('checked',this.checked)">
               <div class="sp02-task-info">
                 <span class="sp02-task-label${ck?' checked':''}" id="lbl_${spId}_${t.id}">${t.label}${opt}</span>
+                ${metaStr ? `<span class="od-task-meta">${metaStr}</span>` : roleStr ? `<span class="od-task-role">→ ${roleStr}</span>` : ''}
                 ${extraHtml ? `<div class="sp02-task-extra">${extraHtml}</div>` : ''}
               </div>
             </div>
@@ -4273,9 +4312,20 @@ tr:hover td { background: var(--bg3); }
         }
 
         window.toggleTask = function(oIdx, spId, tId, checked){
-          setTask(oIdx, spId, tId, checked);
+          // find role from PROCESS_STEPS
+          const sp = PROCESS_STEPS.find(s=>s.id===spId);
+          const t  = sp?.tasks.find(t=>t.id===tId);
+          setTask(oIdx, spId, tId, checked, t?.role);
           const el = document.getElementById(`odt_${spId}_${tId}`);
-          if(el) el.classList.toggle('checked', checked);
+          if(el){
+            el.classList.toggle('checked', checked);
+            const meta = el.querySelector('.od-task-meta');
+            if(meta){
+              if(checked){ const m=getTask(oIdx,spId,tId); meta.textContent = m ? `by ${m.user} · ${fmtTs(m.ts)}` : ''; }
+              else meta.textContent = '';
+            }
+          }
+          renderSlaTimeline(oIdx);
           renderRibbon(oIdx);
         };
 
@@ -4625,7 +4675,8 @@ tr:hover td { background: var(--bg3); }
             <!-- Tasks quick-view -->
             <div style="padding:10px 16px 0;display:flex;flex-wrap:wrap;gap:6px">
               ${PROCESS_STEPS[si].tasks.map(t=>{
-                const ck = getTask(oIdx,'SP-03',t.id);
+                const meta = getTask(oIdx,'SP-03',t.id);
+                const ck = !!(meta?.done);
                 return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:${ck?'var(--fg2)':'var(--fg3)'};cursor:pointer">
                   <input type="checkbox" ${ck?'checked':''} onchange="toggleTask(${oIdx},'SP-03','${t.id}',this.checked);renderSP03Body(${oIdx},${si},${currentSp})" style="accent-color:var(--accent)">
                   ${t.label}
