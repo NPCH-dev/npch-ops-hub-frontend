@@ -1903,7 +1903,13 @@ tr:hover td { background: var(--bg3); }
         .tracker-footer { padding:8px 14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; background:var(--bg); }
         .tracker-advance-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
         .tracker-advance-btn.disabled, .tracker-advance-btn:disabled { background:var(--fg3); cursor:not-allowed; opacity:.6; }
-        .od-advance-wrap { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; }
+        .od-advance-wrap { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .od-advance-wrap--split { flex-direction:column; align-items:flex-start; gap:10px; }
+        .od-advance-split-label { font-size:11px; font-weight:600; color:var(--fg3); text-transform:uppercase; letter-spacing:.5px; }
+        .tracker-advance-btn--secondary { background:transparent; border:1px solid var(--border); color:var(--fg2); }
+        .tracker-advance-btn--secondary:hover:not(:disabled) { background:var(--surface2,rgba(255,255,255,.06)); color:var(--fg); }
+        .sp02-substatus-badge { display:inline-block; margin:6px 0 10px; padding:3px 10px; border-radius:20px; background:rgba(99,102,241,.18); color:#a5b4fc; font-size:11px; font-weight:600; letter-spacing:.4px; }
+        .sp02-path-note { margin-bottom:10px; font-size:12px; color:#f59e0b; }
         .tracker-skip-btn { padding:5px 12px; background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); border-radius:5px; font-size:11px; cursor:pointer; }
         /* Compact milestone bar (replaces full accordion tracker in table view) */
         .od-ms-bar { display:flex; gap:0; background:var(--bg); border-bottom:1px solid var(--border); }
@@ -2187,40 +2193,40 @@ tr:hover td { background: var(--bg3); }
           },
           { id:'SP-02', label:'Planning',
             fields:[
-              {key:'trainerName',     label:'Trainer'},
-              {key:'delivery',        label:'Delivery Date'},
-              {key:'location',        label:'Location / Format'},
-              {key:'trainerRate',     label:'Trainer Rate'},
-              {key:'days',            label:'Duration (days)'},
-              {key:'participants',    label:'Est. Participants'},
+              {key:'trainerName',  label:'Trainer'},
+              {key:'delivery',     label:'Delivery Date'},
+              {key:'location',     label:'Location / Format'},
+              {key:'trainerRate',  label:'Trainer Rate'},
+              {key:'days',         label:'Duration (days)'},
+              {key:'participants', label:'Est. Participants'},
             ],
-            // Gate structure:
-            //  Gate 1 — HR Portal search (internal DB, 1 week incl. 2 contact attempts)
-            //  Gate 2 — Trainer Recruitment (optional — only if internal DB yields nothing)
-            //  Gate 3 — Trainer Selection (team decision, all candidates, with reasoning)
-            //  Gate 4 — Commercial Agreement (rate confirmed before customer contact)
-            //  Gate 5 — Scoping Call (trainer + customer alignment → Delivery Confirmed)
+            // Tasks are keyed per sub-status (status property matches STATUS_SEQUENCE key)
             tasks:[
-              // Gate 1: HR Portal
-              {id:'t1', label:'Agenda created from offer (DE + EN, no prices)', gate:1},
-              {id:'t2', label:'HR portal searched — trainer candidates identified', gate:1},
-              {id:'t3', label:'Enquiry emails sent (5–6 candidates)', gate:1},
-              {id:'t4', label:'Follow-up calls done (~2–3 days later)', gate:1},
-              // Gate 2: Recruitment (optional)
-              {id:'t5', label:'External recruitment started (Freelancer etc.)', gate:2, optional:true},
-              {id:'t6', label:'Min. 3 external candidates shortlisted', gate:2, optional:true},
-              {id:'t7', label:'Trainer onboarding initiated (new trainers)', gate:2, optional:true},
-              // Gate 3: Trainer Selection
-              {id:'t8', label:'All candidate offers collected & compared', gate:3},
-              {id:'t9', label:'Team selection decision made (with reasoning & participants logged)', gate:3},
-              // Gate 4: Commercial Agreement
-              {id:'t10', label:'Rate agreed with selected trainer', gate:4},
-              {id:'t11', label:'Trainer onboarding complete (if new)', gate:4, optional:true},
-              // Gate 5: Scoping Call
-              {id:'t12', label:'Agenda shared with trainer', gate:5},
-              {id:'t13', label:'Scoping call held (trainer + customer)', gate:5},
-              {id:'t14', label:'Agenda finalised & topics prioritised', gate:5},
-              {id:'t15', label:'Date, location & technical setup confirmed', gate:5},
+              // TRAINER_SELECTION — Path A: find in HR Portal
+              {id:'ts1', status:'TRAINER_SELECTION', label:'Agenda prepared (DE + EN, no prices)'},
+              {id:'ts2', status:'TRAINER_SELECTION', label:'HR portal (hr.nobleprog.com) searched'},
+              {id:'ts3', status:'TRAINER_SELECTION', label:'Enquiry emails sent to 5–6 candidates'},
+              {id:'ts4', status:'TRAINER_SELECTION', label:'Follow-up calls done (~2–3 days later)'},
+              // TRAINER_RECRUITMENT — Path B: external search
+              {id:'tr1', status:'TRAINER_RECRUITMENT', label:'External recruitment posted (Freelancer etc.)'},
+              {id:'tr2', status:'TRAINER_RECRUITMENT', label:'Min. 3 external candidates shortlisted'},
+              // CANDIDATES_IDENTIFIED — present & decide
+              {id:'ci1', status:'CANDIDATES_IDENTIFIED', label:'All candidate offers collected & compared'},
+              {id:'ci2', status:'CANDIDATES_IDENTIFIED', label:'Team selection decision made (reasoning + participants logged)'},
+              {id:'ci3', status:'CANDIDATES_IDENTIFIED', label:'Rate agreed with selected trainer'},
+              {id:'ci4', status:'CANDIDATES_IDENTIFIED', label:'Trainer onboarding initiated (if new trainer)', optional:true},
+              // RECRUITMENT_DONE — handover back to coordination
+              {id:'rd1', status:'RECRUITMENT_DONE', label:'Trainer onboarding complete (if new)', optional:true},
+              {id:'rd2', status:'RECRUITMENT_DONE', label:'Selected trainer confirmed to coordination'},
+              // ALIGNMENT_CALL — both paths merge here
+              {id:'ac1', status:'ALIGNMENT_CALL', label:'Agenda shared with trainer before call'},
+              {id:'ac2', status:'ALIGNMENT_CALL', label:'Scoping call held (trainer + customer)'},
+              {id:'ac3', status:'ALIGNMENT_CALL', label:'Agenda finalised & topics prioritised'},
+              {id:'ac4', status:'ALIGNMENT_CALL', label:'Prep-time option discussed with customer'},
+              // DELIVERY_CONFIRMED
+              {id:'dc1', status:'DELIVERY_CONFIRMED', label:'Date, location & technical setup confirmed'},
+              {id:'dc2', status:'DELIVERY_CONFIRMED', label:'Customer informed of trainer & logistics'},
+              {id:'dc3', status:'DELIVERY_CONFIRMED', label:'Training materials / access sent to trainer'},
             ]
           },
           { id:'SP-03', label:'Confirm',
@@ -2631,42 +2637,23 @@ tr:hover td { background: var(--bg3); }
             return `<div><div class="od-field-label">${f.label}</div>${valHtml}</div>`;
           }).join('');
 
-          // SP-02 gate names map
-          const SP02_GATE_NAMES = {
-            1: 'Gate 1 — HR Portal Search',
-            2: 'Gate 2 — External Recruitment (optional)',
-            3: 'Gate 3 — Trainer Selection',
-            4: 'Gate 4 — Commercial Agreement',
-            5: 'Gate 5 — Scoping Call',
-          };
           let tasksHtml = '';
           if(sp.id === 'SP-02'){
-            // Group tasks by gate, inject gate header before each new gate group
-            let lastGate = null;
-            const gt = (id) => getTask(oIdx, 'SP-02', id);
-            sp.tasks.forEach(t => {
-              if(t.gate !== lastGate){
-                // Gate header with status
-                const gateTasks = sp.tasks.filter(x=>x.gate===t.gate);
-                const reqIds    = gateTasks.filter(x=>!x.optional).map(x=>x.id);
-                const allDone   = reqIds.every(id=>gt(id));
-                const anyDone   = reqIds.some(id=>gt(id));
-                const st        = allDone ? 'done' : anyDone ? 'pending' : 'locked';
-                const icon      = st==='done' ? '✅' : st==='pending' ? '⏳' : '🔒';
-                const optional  = gateTasks.every(x=>x.optional);
-                tasksHtml += `<div class="sp02-gate-header sp02-gate-${st}">
-                  <span class="sp02-gate-icon">${icon}</span>
-                  <span class="sp02-gate-name">${SP02_GATE_NAMES[t.gate]||('Gate '+t.gate)}${optional?' <em>(optional)</em>':''}</span>
+            // Show only tasks that belong to the current sub-status
+            const curSubStatus = o.status; // e.g. TRAINER_SELECTION, ALIGNMENT_CALL, etc.
+            const subTasks = sp.tasks.filter(t => t.status === curSubStatus);
+            if(subTasks.length === 0){
+              tasksHtml = `<div style="color:var(--fg3);font-size:13px;padding:8px 0">No tasks defined for this status.</div>`;
+            } else {
+              subTasks.forEach(t => {
+                const ck  = getTask(oIdx, sp.id, t.id);
+                const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
+                tasksHtml += `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}">
+                  <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
+                  <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${opt}</label>
                 </div>`;
-                lastGate = t.gate;
-              }
-              const ck = gt(t.id);
-              const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
-              tasksHtml += `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}" style="margin-left:12px">
-                <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
-                <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${opt}</label>
-              </div>`;
-            });
+              });
+            }
           } else {
             tasksHtml = sp.tasks.map(t=>{
               const ck = getTask(oIdx,sp.id,t.id);
@@ -2803,33 +2790,57 @@ tr:hover td { background: var(--bg3); }
           // ── Advance button (only when viewing the currently active SP) ──────
           let advanceBtnHtml = '';
           if(si === currentSp){
-            const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(o.status) + 1];
-            const hasMand    = hasMandatoryBlockers(o.seq);
-            const canSkip    = canBypassMandatory();
-            if(nextStatus){
-              advanceBtnHtml = `<div class="od-advance-wrap">
-                <button class="tracker-advance-btn${hasMand && !canSkip ? ' disabled' : ''}"
-                  onclick="advanceOrderStatus(${oIdx},'${nextStatus}')"
-                  ${hasMand && !canSkip ? `disabled title="Open mandatory tasks must be completed first"` : ''}>
-                  Advance to ${STATUS_META[nextStatus]?.label || nextStatus} →
-                </button>
-                ${hasMand && canSkip ? `<button class="tracker-skip-btn" onclick="advanceOrderStatus(${oIdx},'${nextStatus}',true)">Skip &amp; Advance</button>` : ''}
+            const hasMand = hasMandatoryBlockers(o.seq);
+            const canSkip = canBypassMandatory();
+            const mkBtn   = (target, label, secondary=false) => {
+              const blocked = hasMand && !canSkip;
+              return `<button class="tracker-advance-btn${secondary?' tracker-advance-btn--secondary':''}${blocked?' disabled':''}"
+                onclick="advanceOrderStatus(${oIdx},'${target}')"
+                ${blocked ? `disabled title="Complete open mandatory tasks first"` : ''}>
+                ${label}
+              </button>
+              ${hasMand && canSkip && !secondary ? `<button class="tracker-skip-btn" onclick="advanceOrderStatus(${oIdx},'${target}',true)">Skip &amp; Advance</button>` : ''}`;
+            };
+
+            if(sp.id === 'SP-02' && o.status === 'TRAINER_SELECTION'){
+              // Split: Path A → ALIGNMENT_CALL, Path B → TRAINER_RECRUITMENT
+              advanceBtnHtml = `<div class="od-advance-wrap od-advance-wrap--split">
+                <div class="od-advance-split-label">Trainer found?</div>
+                ${mkBtn('ALIGNMENT_CALL', '✅ Trainer confirmed → Alignment Call')}
+                ${mkBtn('TRAINER_RECRUITMENT', '🔍 No trainer found → Start Recruitment', true)}
               </div>`;
+            } else {
+              const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(o.status) + 1];
+              if(nextStatus){
+                advanceBtnHtml = `<div class="od-advance-wrap">
+                  ${mkBtn(nextStatus, `Advance to ${STATUS_META[nextStatus]?.label || nextStatus} →`)}
+                </div>`;
+              }
             }
           }
+
+          // SP-02: show current sub-status name as context note
+          const sp02SubLabel = (sp.id==='SP-02' && si===currentSp)
+            ? `<div class="sp02-substatus-badge">${STATUS_META[o.status]?.label||o.status}</div>` : '';
+
+          // SP-02 path indicator (Path A vs Path B)
+          const sp02PathNote = (sp.id==='SP-02' && ['TRAINER_RECRUITMENT','CANDIDATES_IDENTIFIED','RECRUITMENT_DONE'].includes(o.status))
+            ? `<div class="sp02-path-note">🔍 Path B — External Recruitment</div>` : '';
 
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
               <span class="od-step-status">${statusLabel}</span>
             </div>
+            ${sp02SubLabel}
+            ${sp02PathNote}
             ${scGatewayHtml}
             ${gate2Html}
             ${stageFieldsHtml}
             <div class="od-section-label">Fields</div>
             <div class="od-fields">${fieldsHtml}</div>
             <div class="od-tasks-wrap">
-              <div class="od-section-label">Tasks</div>
+              <div class="od-section-label">Tasks — ${sp.id==='SP-02' ? (STATUS_META[o.status]?.label||o.status) : sp.label}</div>
               ${tasksHtml}
               ${sp01TogglesHtml}
             </div>
