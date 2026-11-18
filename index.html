@@ -1613,6 +1613,8 @@ tr:hover td { background: var(--bg3); }
           <div id="od-stage-tracker-table" style="padding:0"></div>
           <!-- Stammdaten block -->
           <div id="od-stammdaten" class="od-stammdaten"></div>
+          <!-- SLA Process Timeline -->
+          <div id="od-sla-timeline"></div>
           <div class="od-ribbon" id="od-ribbon"></div>
           <!-- Status bar -->
           <div class="od-status-bar" id="od-status-bar"></div>
@@ -1739,6 +1741,26 @@ tr:hover td { background: var(--bg3); }
         .od-close:hover { background:rgba(239,68,68,.15); border-color:rgba(239,68,68,.4); color:#ef4444; }
 
         /* Process Ribbon */
+        /* ── SLA Process Timeline ───────────────────────────────────────────── */
+        #od-sla-timeline { background:var(--bg2); border-bottom:1px solid var(--border); padding:10px 16px 8px; flex-shrink:0; }
+        .sla-tl-track { position:relative; display:flex; align-items:flex-start; justify-content:space-between; }
+        .sla-tl-line { position:absolute; top:9px; left:9px; right:9px; height:2px; background:var(--border); z-index:0; }
+        .sla-tl-fill { position:absolute; top:9px; left:9px; height:2px; background:linear-gradient(90deg,#34d399,#f59e0b); z-index:1; transition:width .4s; }
+        .sla-tl-node { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
+        .sla-tl-dot  { width:18px; height:18px; border-radius:50%; border:2px solid var(--border); background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:800; transition:all .2s; flex-shrink:0; }
+        .sla-tl-node.tl-done   .sla-tl-dot { background:#34d399; border-color:#34d399; color:#0a1628; }
+        .sla-tl-node.tl-active .sla-tl-dot { background:#f59e0b; border-color:#f59e0b; color:#0a1628; box-shadow:0 0 0 3px rgba(245,158,11,.25); }
+        .sla-tl-node.tl-future .sla-tl-dot { background:rgba(248,113,113,.15); border-color:#f87171; color:#f87171; }
+        .sla-tl-node.tl-viewing .sla-tl-dot { outline:2px solid #fff; outline-offset:2px; }
+        .sla-tl-label { font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--fg3); white-space:nowrap; }
+        .sla-tl-node.tl-done   .sla-tl-label { color:#34d399; }
+        .sla-tl-node.tl-active .sla-tl-label { color:#fbbf24; }
+        .sla-tl-node.tl-future .sla-tl-label { color:#f87171; }
+        .sla-tl-sla  { font-size:7px; color:var(--fg3); white-space:nowrap; opacity:.7; }
+        .sla-tl-pct  { display:flex; align-items:center; gap:6px; margin-top:6px; }
+        .sla-tl-pct-bar { flex:1; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+        .sla-tl-pct-fill { height:100%; border-radius:2px; transition:width .4s; }
+        .sla-tl-pct-lbl { font-size:9px; color:var(--fg3); white-space:nowrap; }
         .od-ribbon { display:flex; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; }
         .od-ribbon::-webkit-scrollbar { display:none; }
         .od-ribbon-step { flex:0 0 auto; padding:8px 12px 6px; font-size:10px; font-weight:700; cursor:pointer; color:var(--fg3); border-bottom:2px solid transparent; white-space:nowrap; transition:all .15s; text-transform:uppercase; letter-spacing:.05em; display:flex; flex-direction:column; align-items:center; gap:1px; }
@@ -2763,6 +2785,60 @@ tr:hover td { background: var(--bg3); }
         function getTask(oIdx, spId, tId){ try{ return localStorage.getItem(taskKey(oIdx,spId,tId))==='1'; }catch(e){ return false; } }
         function setTask(oIdx, spId, tId, v){ try{ v ? localStorage.setItem(taskKey(oIdx,spId,tId),'1') : localStorage.removeItem(taskKey(oIdx,spId,tId)); }catch(e){} }
 
+        // ── SLA definitions per step ─────────────────────────────────────────
+        const SP_SLA = [
+          { id:'SP-01', sla:'1 day'    },
+          { id:'SP-02', sla:'1–2 wks'  },
+          { id:'SP-03', sla:'1 wk'     },
+          { id:'SP-04', sla:'1 wk'     },
+          { id:'SP-05', sla:'on date'  },
+          { id:'SP-06', sla:'1 day'    },
+          { id:'SP-07', sla:'2–4 wks'  },
+          { id:'SP-08', sla:'1 wk'     },
+        ];
+
+        function renderSlaTimeline(oIdx){
+          const el = document.getElementById('od-sla-timeline');
+          if(!el) return;
+          const o = MOCK[oIdx];
+          const currentSp = STATUS_SP_IDX[o.status] ?? 0;
+          // Overall % = steps done / total * 100 + partial for current step tasks
+          const totalSteps = PROCESS_STEPS.length;
+          const doneFull   = currentSp; // steps fully before current
+          const curDone    = PROCESS_STEPS[currentSp]
+            ? PROCESS_STEPS[currentSp].tasks.filter(t=>getTask(oIdx,PROCESS_STEPS[currentSp].id,t.id)).length
+            : 0;
+          const curTotal   = PROCESS_STEPS[currentSp]?.tasks.length || 1;
+          const pct        = Math.round((doneFull + curDone/curTotal) / totalSteps * 100);
+          const fillPct    = (doneFull / (totalSteps-1)) * 100; // line fill between first and last node
+          const col        = pct>=100?'#34d399':pct>=60?'#f59e0b':'#f87171';
+
+          const nodesHtml = PROCESS_STEPS.map((sp,i)=>{
+            let cls='sla-tl-node';
+            if(i<currentSp)       cls+=' tl-done';
+            else if(i===currentSp) cls+=' tl-active';
+            else                   cls+=' tl-future';
+            if(i===viewingStepIdx) cls+=' tl-viewing';
+            const spNum = sp.id.replace('SP-','');
+            return `<div class="${cls}" onclick="viewStep(${i})" title="${sp.id} · ${sp.label} — SLA: ${SP_SLA[i].sla}">
+              <div class="sla-tl-dot">${spNum}</div>
+              <div class="sla-tl-label">${sp.label}</div>
+              <div class="sla-tl-sla">${SP_SLA[i].sla}</div>
+            </div>`;
+          }).join('');
+
+          el.innerHTML = `<div class="sla-tl-track">
+            <div class="sla-tl-line"></div>
+            <div class="sla-tl-fill" style="width:calc(${fillPct}% - 18px)"></div>
+            ${nodesHtml}
+          </div>
+          <div class="sla-tl-pct">
+            <span class="sla-tl-pct-lbl" style="color:var(--fg3)">Process</span>
+            <div class="sla-tl-pct-bar"><div class="sla-tl-pct-fill" style="width:${pct}%;background:${col}"></div></div>
+            <span class="sla-tl-pct-lbl" style="color:${col};font-weight:700">${pct}%</span>
+          </div>`;
+        }
+
         // ── Ribbon ────────────────────────────────────────────────────────────
         function renderRibbon(oIdx){
           const currentSp = STATUS_SP_IDX[MOCK[oIdx].status] ?? 3;
@@ -2784,6 +2860,7 @@ tr:hover td { background: var(--bg3); }
         window.viewStep = function(si){
           if(currentOrderIdx<0) return;
           viewingStepIdx = si;
+          renderSlaTimeline(currentOrderIdx);
           renderRibbon(currentOrderIdx);
           renderStepBody(currentOrderIdx, si);
         };
@@ -4219,6 +4296,7 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-det-stage').innerHTML   = `<span class="ob-stage ${meta.css}">${meta.phase} · ${meta.label}</span>`;
 
           renderOrderStageTracker(idx, 'table');
+          renderSlaTimeline(idx);
           renderRibbon(idx);
           renderStammdaten(idx);
           renderStepBody(idx, viewingStepIdx);
@@ -5698,6 +5776,7 @@ tr:hover td { background: var(--bg3); }
             renderBoard();
           } else {
             if(currentOrderIdx >= 0) {
+              renderSlaTimeline(currentOrderIdx);
               renderRibbon(currentOrderIdx);
               renderActivities(currentOrderIdx);
             }
