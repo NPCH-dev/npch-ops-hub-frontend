@@ -1910,6 +1910,48 @@ tr:hover td { background: var(--bg3); }
         .tracker-advance-btn--secondary:hover:not(:disabled) { background:var(--surface2,rgba(255,255,255,.06)); color:var(--fg); }
         .sp02-substatus-badge { display:inline-block; margin:6px 0 10px; padding:3px 10px; border-radius:20px; background:rgba(99,102,241,.18); color:#a5b4fc; font-size:11px; font-weight:600; letter-spacing:.4px; }
         .sp02-path-note { margin-bottom:10px; font-size:12px; color:#f59e0b; }
+        /* SP-02 collapsible sub-status sections */
+        .sp02-section { border:1px solid var(--border); border-radius:8px; margin-bottom:8px; overflow:hidden; }
+        .sp02-section-header { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; user-select:none; background:var(--surface2,rgba(255,255,255,.03)); transition:background .15s; }
+        .sp02-section-header:hover { background:rgba(255,255,255,.06); }
+        .sp02-section-header.is-active { background:rgba(99,102,241,.12); border-bottom:1px solid var(--border); }
+        .sp02-section-icon { font-size:13px; min-width:18px; }
+        .sp02-section-title { font-size:12px; font-weight:600; color:var(--fg); flex:1; }
+        .sp02-section-meta { font-size:11px; color:var(--fg3); }
+        .sp02-section-chevron { font-size:11px; color:var(--fg3); transition:transform .2s; }
+        .sp02-section-chevron.open { transform:rotate(90deg); }
+        .sp02-section-body { padding:14px 16px; display:none; }
+        .sp02-section-body.open { display:block; }
+        /* Rich task cards inside SP-02 sections */
+        .sp02-task-card { margin-bottom:12px; }
+        .sp02-task-row { display:flex; align-items:flex-start; gap:10px; }
+        .sp02-task-row input[type=checkbox] { margin-top:2px; flex-shrink:0; }
+        .sp02-task-info { flex:1; min-width:0; }
+        .sp02-task-label { font-size:13px; color:var(--fg); font-weight:500; }
+        .sp02-task-label.checked { text-decoration:line-through; color:var(--fg3); }
+        .sp02-task-extra { margin-top:8px; padding-left:2px; }
+        .sp02-comment { width:100%; box-sizing:border-box; background:var(--input-bg,rgba(255,255,255,.06)); border:1px solid var(--border); border-radius:5px; color:var(--fg); font-size:12px; padding:7px 10px; resize:vertical; min-height:52px; font-family:inherit; }
+        .sp02-comment:focus { outline:none; border-color:var(--accent); }
+        .sp02-inline-input { background:var(--input-bg,rgba(255,255,255,.06)); border:1px solid var(--border); border-radius:5px; color:var(--fg); font-size:12px; padding:5px 8px; width:100%; box-sizing:border-box; }
+        .sp02-inline-input:focus { outline:none; border-color:var(--accent); }
+        .sp02-email-list { margin-top:6px; display:flex; flex-direction:column; gap:5px; }
+        .sp02-email-item { display:flex; align-items:center; gap:8px; padding:6px 10px; background:rgba(255,255,255,.04); border-radius:5px; font-size:12px; color:var(--fg2); }
+        .sp02-email-item .sp02-email-name { font-weight:500; color:var(--fg); min-width:140px; }
+        .sp02-email-item .sp02-email-status { margin-left:auto; font-size:11px; }
+        .sp02-email-item .sp02-email-status.replied { color:#22c55e; }
+        .sp02-email-item .sp02-email-status.sent { color:var(--fg3); }
+        .sp02-agent-btn { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:5px; border:1px solid var(--accent); background:rgba(99,102,241,.15); color:#a5b4fc; font-size:11px; font-weight:600; cursor:pointer; transition:background .15s; }
+        .sp02-agent-btn:hover { background:rgba(99,102,241,.28); }
+        .sp02-file-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:4px; background:rgba(255,255,255,.07); border:1px solid var(--border); font-size:11px; color:var(--fg2); margin-top:6px; }
+        .sp02-decision { margin-top:4px; padding:14px 16px; background:rgba(99,102,241,.07); border-radius:8px; border:1px solid rgba(99,102,241,.25); }
+        .sp02-decision-label { font-size:11px; font-weight:700; color:#a5b4fc; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+        .sp02-decision textarea { width:100%; box-sizing:border-box; background:rgba(255,255,255,.06); border:1px solid rgba(99,102,241,.3); border-radius:5px; color:var(--fg); font-size:12px; padding:8px 10px; resize:vertical; min-height:70px; font-family:inherit; }
+        .sp02-decision textarea:focus { outline:none; border-color:var(--accent); }
+        .sp02-decision-btns { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+        .sp02-advance-primary { padding:9px 16px; border-radius:6px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; border:none; cursor:pointer; text-align:left; }
+        .sp02-advance-primary:hover { filter:brightness(1.1); }
+        .sp02-advance-secondary { padding:9px 16px; border-radius:6px; background:transparent; color:var(--fg2); font-size:13px; font-weight:500; border:1px solid var(--border); cursor:pointer; text-align:left; }
+        .sp02-advance-secondary:hover { background:rgba(255,255,255,.06); color:var(--fg); }
         .tracker-skip-btn { padding:5px 12px; background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); border-radius:5px; font-size:11px; cursor:pointer; }
         /* Compact milestone bar (replaces full accordion tracker in table view) */
         .od-ms-bar { display:flex; gap:0; background:var(--bg); border-bottom:1px solid var(--border); }
@@ -2639,44 +2681,8 @@ tr:hover td { background: var(--bg3); }
 
           let tasksHtml = '';
           if(sp.id === 'SP-02'){
-            const sp02Statuses = ['TRAINER_SELECTION','TRAINER_RECRUITMENT','CANDIDATES_IDENTIFIED','RECRUITMENT_DONE','ALIGNMENT_CALL','DELIVERY_CONFIRMED'];
-            const isActiveSp02 = si === currentSp && sp02Statuses.includes(o.status);
-            const isPastSp02   = si < currentSp;
-
-            if(isActiveSp02){
-              // Active: show only tasks for the current sub-status
-              const subTasks = sp.tasks.filter(t => t.status === o.status);
-              subTasks.forEach(t => {
-                const ck  = getTask(oIdx, sp.id, t.id);
-                const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
-                tasksHtml += `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}">
-                  <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
-                  <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${opt}</label>
-                </div>`;
-              });
-              if(!subTasks.length) tasksHtml = `<div style="color:var(--fg3);font-size:13px;padding:8px 0">No tasks for this status yet.</div>`;
-            } else if(isPastSp02){
-              // Completed: show all tasks grouped by sub-status as history
-              let lastSt = null;
-              sp.tasks.forEach(t => {
-                if(t.status !== lastSt){
-                  tasksHtml += `<div class="sp02-gate-header sp02-gate-done" style="margin-top:${lastSt?'10px':'0'}">
-                    <span class="sp02-gate-icon">✅</span>
-                    <span class="sp02-gate-name">${STATUS_META[t.status]?.label||t.status}</span>
-                  </div>`;
-                  lastSt = t.status;
-                }
-                const ck  = getTask(oIdx, sp.id, t.id);
-                const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
-                tasksHtml += `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}" style="margin-left:12px">
-                  <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
-                  <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${opt}</label>
-                </div>`;
-              });
-            } else {
-              // Upcoming
-              tasksHtml = `<div style="color:var(--fg3);font-size:13px;padding:8px 0">SP-02 not started yet.</div>`;
-            }
+            // Rendered separately via renderSP02Body — placeholder here
+            tasksHtml = '';
           } else {
             tasksHtml = sp.tasks.map(t=>{
               const ck = getTask(oIdx,sp.id,t.id);
@@ -2842,33 +2848,201 @@ tr:hover td { background: var(--bg3); }
             }
           }
 
-          // SP-02: sub-status badge — only when actively in SP-02
-          const sp02Statuses = ['TRAINER_SELECTION','TRAINER_RECRUITMENT','CANDIDATES_IDENTIFIED','RECRUITMENT_DONE','ALIGNMENT_CALL','DELIVERY_CONFIRMED'];
-          const sp02SubLabel = (sp.id==='SP-02' && si===currentSp && sp02Statuses.includes(o.status))
-            ? `<div class="sp02-substatus-badge">${STATUS_META[o.status]?.label||o.status}</div>` : '';
-
-          // SP-02 path indicator (Path B only)
-          const sp02PathNote = (sp.id==='SP-02' && si===currentSp && ['TRAINER_RECRUITMENT','CANDIDATES_IDENTIFIED','RECRUITMENT_DONE'].includes(o.status))
-            ? `<div class="sp02-path-note">🔍 Path B — External Recruitment</div>` : '';
+          if(sp.id === 'SP-02'){
+            document.getElementById('od-step-body').innerHTML = `
+              <div class="od-step-heading">
+                <div class="od-step-heading-name">SP-02 · Planning</div>
+                <span class="od-step-status">${statusLabel}</span>
+              </div>
+              ${stageFieldsHtml}
+              <div class="od-section-label">Fields</div>
+              <div class="od-fields">${fieldsHtml}</div>
+              <div class="od-section-label" style="margin-top:16px">Process</div>
+              <div id="sp02-body"></div>`;
+            renderSP02Body(oIdx, si, currentSp);
+            return;
+          }
 
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
               <span class="od-step-status">${statusLabel}</span>
             </div>
-            ${sp02SubLabel}
-            ${sp02PathNote}
             ${scGatewayHtml}
             ${gate2Html}
             ${stageFieldsHtml}
             <div class="od-section-label">Fields</div>
             <div class="od-fields">${fieldsHtml}</div>
             <div class="od-tasks-wrap">
-              <div class="od-section-label">Tasks${sp.id==='SP-02' && si===currentSp ? ` — ${STATUS_META[o.status]?.label||o.status}` : ''}</div>
+              <div class="od-section-label">Tasks</div>
               ${tasksHtml}
               ${sp01TogglesHtml}
             </div>
             ${advanceBtnHtml}`;
+        }
+
+        // ── SP-02 collapsible process body ───────────────────────────────────────
+        const SP02_SECTIONS = [
+          { key:'TRAINER_SELECTION',   label:'Trainer Selection',   icon:'🔍', path:'' },
+          { key:'TRAINER_RECRUITMENT', label:'Trainer Recruitment', icon:'📢', path:'B' },
+          { key:'CANDIDATES_IDENTIFIED',label:'Candidates Identified',icon:'👥', path:'B' },
+          { key:'RECRUITMENT_DONE',    label:'Recruitment Done',    icon:'✔️', path:'B' },
+          { key:'ALIGNMENT_CALL',      label:'Alignment Call',      icon:'📞', path:'' },
+          { key:'DELIVERY_CONFIRMED',  label:'Delivery Confirmed',  icon:'🎯', path:'' },
+        ];
+
+        function renderSP02Body(oIdx, si, currentSp){
+          const o   = MOCK[oIdx];
+          const sp  = PROCESS_STEPS[1]; // SP-02
+          const seq = STATUS_SEQUENCE;
+          const curIdx = seq.indexOf(o.status);
+          const sp02keys = SP02_SECTIONS.map(s=>s.key);
+          const isPast   = si < currentSp;
+          const isFuture = si > currentSp;
+
+          let html = '';
+          SP02_SECTIONS.forEach(sec => {
+            const secIdx = seq.indexOf(sec.key);
+            // For Path B sections: skip if order took Path A (went directly to ALIGNMENT_CALL)
+            if(sec.path === 'B'){
+              const tookPathA = isPast && !sp02keys.slice(0,4).some(k => getTask(oIdx,'SP-02',sp.tasks.find(t=>t.status===k)?.id||''));
+              // Simple heuristic: if order is past SP-02 and never went through TRAINER_RECRUITMENT, hide Path B
+              // We'll show them anyway but collapsed — the user can inspect
+            }
+
+            const isActive   = !isFuture && o.status === sec.key;
+            const isDone     = !isFuture && (isPast || (secIdx < curIdx && sp02keys.includes(o.status)));
+            const isUpcoming = isFuture || secIdx > curIdx;
+
+            const icon = isDone ? '✅' : isActive ? '▶' : '○';
+            const metaText = isDone ? 'Completed' : isActive ? 'Active' : 'Not started';
+            const pathBadge = sec.path==='B' ? `<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(245,158,11,.18);color:#fbbf24;margin-left:6px">Path B</span>` : '';
+
+            const bodyContent = isActive ? renderSP02SectionBody(oIdx, sec.key, si, currentSp)
+                              : isDone   ? renderSP02SectionBodyReadonly(oIdx, sec.key)
+                              : `<div style="color:var(--fg3);font-size:12px">Not started yet.</div>`;
+
+            const isOpen = isActive; // only active section open by default
+            html += `<div class="sp02-section" id="sp02sec_${sec.key}">
+              <div class="sp02-section-header${isActive?' is-active':''}" onclick="toggleSP02Section('${sec.key}')">
+                <span class="sp02-section-icon">${icon}</span>
+                <span class="sp02-section-title">${sec.label}${pathBadge}</span>
+                <span class="sp02-section-meta">${metaText}</span>
+                <span class="sp02-section-chevron${isOpen?' open':''}" id="sp02chev_${sec.key}">›</span>
+              </div>
+              <div class="sp02-section-body${isOpen?' open':''}" id="sp02body_${sec.key}">
+                ${bodyContent}
+              </div>
+            </div>`;
+          });
+
+          const el = document.getElementById('sp02-body');
+          if(el) el.innerHTML = html;
+        }
+
+        window.toggleSP02Section = function(key){
+          const body  = document.getElementById('sp02body_'+key);
+          const chev  = document.getElementById('sp02chev_'+key);
+          if(!body) return;
+          const open = body.classList.toggle('open');
+          if(chev) chev.classList.toggle('open', open);
+        };
+
+        function taskCard(oIdx, spId, t, extraHtml=''){
+          const ck  = getTask(oIdx, spId, t.id);
+          const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
+          return `<div class="sp02-task-card">
+            <div class="sp02-task-row">
+              <input type="checkbox" id="cb_${spId}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${spId}','${t.id}',this.checked); document.getElementById('lbl_${spId}_${t.id}').classList.toggle('checked',this.checked)">
+              <div class="sp02-task-info">
+                <span class="sp02-task-label${ck?' checked':''}" id="lbl_${spId}_${t.id}">${t.label}${opt}</span>
+                ${extraHtml ? `<div class="sp02-task-extra">${extraHtml}</div>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }
+
+        function renderSP02SectionBody(oIdx, statusKey, si, currentSp){
+          const o   = MOCK[oIdx];
+          const sp  = PROCESS_STEPS[1];
+          const tasks = sp.tasks.filter(t => t.status === statusKey);
+          const sd  = getStageData(o.seq, statusKey);
+
+          if(statusKey === 'TRAINER_SELECTION'){
+            const t = (id) => tasks.find(t=>t.id===id) || {id,label:'',status:statusKey};
+            const mockEmails = [
+              {name:'John Smith',email:'j.smith@trainer.com',status:'replied'},
+              {name:'Anna Müller',email:'a.mueller@example.de',status:'sent'},
+              {name:'Tom Weber',email:'t.weber@freelance.de',status:'sent'},
+            ];
+            const emailListHtml = mockEmails.map(e=>`
+              <div class="sp02-email-item">
+                <span class="sp02-email-name">${e.name}</span>
+                <span style="color:var(--fg3)">${e.email}</span>
+                <span class="sp02-email-status ${e.status}">${e.status==='replied'?'✅ Replied':'📤 Sent'}</span>
+              </div>`).join('');
+
+            const tasksHtml =
+              taskCard(oIdx,'SP-02',tasks[0]||{id:'ts1',label:'Agenda prepared (DE + EN, no prices)',status:'TRAINER_SELECTION'},`
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <button class="sp02-agent-btn" onclick="alert('Agent: Agenda generation coming soon — BE-013')">⚡ Generate from Offer</button>
+                  ${sd.agendaFile ? `<span class="sp02-file-pill">📄 ${sd.agendaFile}</span>` : ''}
+                </div>
+              `) +
+              taskCard(oIdx,'SP-02',tasks[1]||{id:'ts2',label:'HR portal (hr.nobleprog.com) searched',status:'TRAINER_SELECTION'},`
+                <input class="sp02-inline-input" placeholder="Search keywords used (e.g. Python, Berlin, 2 days)"
+                  value="${sd.hrKeywords||''}"
+                  onchange="setStageField('${o.seq}','TRAINER_SELECTION','hrKeywords',this.value)">
+              `) +
+              taskCard(oIdx,'SP-02',tasks[2]||{id:'ts3',label:'Enquiry emails sent to 5–6 candidates',status:'TRAINER_SELECTION'},`
+                <div class="sp02-email-list">${emailListHtml}</div>
+                <div style="margin-top:6px;font-size:11px;color:var(--fg3)">📬 Loaded from Gmail — enquiry template emails</div>
+              `) +
+              taskCard(oIdx,'SP-02',tasks[3]||{id:'ts4',label:'Follow-up calls done (~2–3 days later)',status:'TRAINER_SELECTION'},`
+                <textarea class="sp02-comment" placeholder="Follow-up notes (who answered, when, outcome…)"
+                  onchange="setStageField('${o.seq}','TRAINER_SELECTION','followupNotes',this.value)">${sd.followupNotes||''}</textarea>
+              `);
+
+            return `${tasksHtml}
+              <div class="sp02-decision">
+                <div class="sp02-decision-label">Decision</div>
+                <textarea placeholder="Summary: trainer search result, who was selected / why no one found…"
+                  onchange="setStageField('${o.seq}','TRAINER_SELECTION','decisionNotes',this.value)">${sd.decisionNotes||''}</textarea>
+                <div class="sp02-decision-btns">
+                  <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'ALIGNMENT_CALL')">✅ Trainer confirmed → Alignment Call</button>
+                  <button class="sp02-advance-secondary" onclick="advanceOrderStatus(${oIdx},'TRAINER_RECRUITMENT')">🔍 No trainer found → Start Recruitment (Path B)</button>
+                </div>
+              </div>`;
+          }
+
+          // Generic: simple task checkboxes + comment field for other statuses
+          let html = tasks.map(t => taskCard(oIdx,'SP-02',t)).join('');
+          html += `<div style="margin-top:12px">
+            <textarea class="sp02-comment" placeholder="Notes for this stage…"
+              onchange="setStageField('${o.seq}','${statusKey}','notes',this.value)">${sd.notes||''}</textarea>
+          </div>`;
+          // Advance button for non-TRAINER_SELECTION active statuses
+          const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(o.status)+1];
+          if(nextStatus && o.status === statusKey){
+            html += `<div style="margin-top:12px">
+              <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'${nextStatus}')">
+                Advance to ${STATUS_META[nextStatus]?.label||nextStatus} →
+              </button>
+            </div>`;
+          }
+          return html;
+        }
+
+        function renderSP02SectionBodyReadonly(oIdx, statusKey){
+          const o   = MOCK[oIdx];
+          const sp  = PROCESS_STEPS[1];
+          const tasks = sp.tasks.filter(t => t.status === statusKey);
+          const sd  = getStageData(o.seq, statusKey);
+          let html = tasks.map(t => taskCard(oIdx,'SP-02',t)).join('');
+          if(sd.notes) html += `<div style="margin-top:8px;font-size:12px;color:var(--fg2);padding:7px 10px;background:rgba(255,255,255,.04);border-radius:5px">${sd.notes}</div>`;
+          if(sd.hrKeywords) html += `<div style="margin-top:4px;font-size:11px;color:var(--fg3)">Keywords: ${sd.hrKeywords}</div>`;
+          if(sd.decisionNotes) html += `<div style="margin-top:8px;font-size:12px;color:var(--fg2);padding:7px 10px;background:rgba(255,255,255,.04);border-radius:5px">${sd.decisionNotes}</div>`;
+          return html || `<div style="color:var(--fg3);font-size:12px">Completed.</div>`;
         }
 
         window.toggleTask = function(oIdx, spId, tId, checked){
