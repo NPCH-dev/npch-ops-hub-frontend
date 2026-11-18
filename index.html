@@ -1736,6 +1736,18 @@ tr:hover td { background: var(--bg3); }
         .od-task input[type=checkbox] { width:15px; height:15px; cursor:pointer; accent-color:var(--accent); flex-shrink:0; margin-top:1px; }
         .od-task-label { font-size:13px; color:var(--fg); line-height:1.4; cursor:pointer; flex:1; }
         .od-task.checked .od-task-label { text-decoration:line-through; color:var(--fg3); }
+        .od-task.skipped { opacity:.45; }
+        .od-task.skipped input { cursor:not-allowed; }
+        .od-task-skip-note { font-size:11px; color:var(--fg3); font-style:italic; margin-left:4px; }
+        /* SP-01 contract/PO toggle switches */
+        .sp01-flags { display:flex; gap:20px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap; }
+        .sp01-flag-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+        .sp01-flag-toggle input[type=checkbox] { display:none; }
+        .sp01-flag-track { width:32px; height:18px; background:var(--border); border-radius:9px; position:relative; transition:background .2s; flex-shrink:0; }
+        .sp01-flag-track::after { content:''; position:absolute; top:3px; left:3px; width:12px; height:12px; border-radius:50%; background:#fff; transition:transform .2s; }
+        .sp01-flag-toggle input:checked + .sp01-flag-track { background:var(--accent); }
+        .sp01-flag-toggle input:checked + .sp01-flag-track::after { transform:translateX(14px); }
+        .sp01-flag-label { font-size:12px; color:var(--fg2); }
 
         /* Stammdaten */
         .od-stammdaten { padding:12px 16px 10px; border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0; }
@@ -1745,6 +1757,8 @@ tr:hover td { background: var(--bg3); }
         .od-sm-value { font-size:12px; color:var(--fg); line-height:1.4; word-break:break-word; }
         .od-sm-link { color:var(--accent); text-decoration:none; }
         .od-sm-link:hover { text-decoration:underline; }
+        .od-sm-date-inp { background:transparent; border:1px solid var(--border); border-radius:4px; color:var(--fg); font-size:12px; padding:1px 4px; width:100%; cursor:pointer; }
+        .od-sm-date-inp:focus { outline:1px solid var(--accent); border-color:var(--accent); }
         /* ── Activities Tab ── */
         .od-act-wrap { display:flex; flex-direction:column; height:100%; min-height:0; }
         .od-act-subnav { display:flex; gap:0; border-bottom:1px solid var(--border); padding:0 12px; flex-shrink:0; background:var(--bg2); overflow-x:auto; }
@@ -1881,6 +1895,7 @@ tr:hover td { background: var(--bg3); }
         .tracker-footer { padding:8px 14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; background:var(--bg); }
         .tracker-advance-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
         .tracker-advance-btn.disabled, .tracker-advance-btn:disabled { background:var(--fg3); cursor:not-allowed; opacity:.6; }
+        .od-advance-wrap { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; }
         .tracker-skip-btn { padding:5px 12px; background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); border-radius:5px; font-size:11px; cursor:pointer; }
         /* Compact milestone bar (replaces full accordion tracker in table view) */
         .od-ms-bar { display:flex; gap:0; background:var(--bg); border-bottom:1px solid var(--border); }
@@ -2586,35 +2601,75 @@ tr:hover td { background: var(--bg3); }
 
           const tasksHtml = sp.tasks.map(t=>{
             const ck = getTask(oIdx,sp.id,t.id);
-            return `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}">
-              <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
-              <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}</label>
+            // For SP-01: skip/gray t5 (contract) or t6 (PO) if flags say not required
+            let skipped = false;
+            let skipReason = '';
+            if(sp.id === 'SP-01'){
+              const contractReq = o.contractRequired !== false; // default true
+              const poReq       = o.poRequired === true;         // default false
+              if(t.id === 't5' && !contractReq){ skipped = true; skipReason = 'Not required (framework agreement)'; }
+              if(t.id === 't6' && !poReq)      { skipped = true; skipReason = 'Not required'; }
+            }
+            return `<div class="od-task${ck?' checked':''}${skipped?' skipped':''}" id="odt_${sp.id}_${t.id}">
+              <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} ${skipped?'disabled':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
+              <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${skipped?` <span class="od-task-skip-note">${skipReason}</span>`:''}</label>
             </div>`;
           }).join('');
 
-          // ── Gate 2: Contract / PO → prerequisite for SP-03 ──────────────────
+          // ── SP-01: Contract / PO toggle switches + Gate 2 ───────────────────
           let gate2Html = '';
+          let sp01TogglesHtml = '';
           if(sp.id === 'SP-01'){
-            const gate2Tasks = sp.tasks.filter(t => t.gate2);
-            const mandatoryGate2 = gate2Tasks.filter(t => !t.optional);
-            const contractDone = getTask(oIdx, 'SP-01', 't5');
-            const isConfirmed  = o.salesConfirmedAction === 'approved' || o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
-            const gate2Ready   = contractDone; // PO is optional
-            const gate2Cls     = !isConfirmed  ? 'gate2-locked'
-                               : gate2Ready    ? 'gate2-done'
-                               :                  'gate2-pending';
-            const gate2Icon    = !isConfirmed  ? '🔒'
-                               : gate2Ready    ? '✅'
-                               :                  '⏳';
-            const gate2Msg     = !isConfirmed  ? 'Complete Cost Breakdown → Confirm Sale first'
-                               : gate2Ready    ? `Gate 2 cleared — Coordination can start SP-03`
-                               :                  'Contract must be signed before SP-03 can start';
+            const contractReq = o.contractRequired !== false; // default true
+            const poReq       = o.poRequired === true;         // default false
+            const contractDone  = getTask(oIdx, 'SP-01', 't5');
+            const poDone        = getTask(oIdx, 'SP-01', 't6');
+            const costBreakdown = getTask(oIdx, 'SP-01', 't4');
+            const isConfirmed   = o.salesConfirmedAction === 'approved' || o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
+
+            // New Gate 2 formula:
+            // (contractRequired===false || contractSigned===true) &&
+            // (poRequired===false || poReceived===true) &&
+            // costBreakdownConfirmed===true
+            const contractOk  = !contractReq || contractDone;
+            const poOk        = !poReq       || poDone;
+            const gate2Ready  = isConfirmed && contractOk && poOk && costBreakdown;
+
+            // Enumerate what's still missing
+            const missing = [];
+            if(!isConfirmed)   missing.push('Sale must be confirmed (t4)');
+            if(!costBreakdown) missing.push('Cost breakdown not confirmed');
+            if(contractReq && !contractDone) missing.push('Contract not signed');
+            if(poReq       && !poDone)       missing.push('PO not received');
+
+            const gate2Cls  = !isConfirmed ? 'gate2-locked'
+                            : gate2Ready   ? 'gate2-done'
+                            :                 'gate2-pending';
+            const gate2Icon = !isConfirmed ? '🔒' : gate2Ready ? '✅' : '⏳';
+            const gate2Msg  = gate2Ready
+              ? 'Gate 2 cleared — Coordination can start SP-03'
+              : missing.join(' · ');
+
             gate2Html = `<div class="gate2-block gate2-block--${gate2Cls}" style="margin-bottom:14px">
               <div class="gate2-header">
                 <span>${gate2Icon}</span>
                 <span class="gate2-title">Gate 2 — Prerequisite for SP-03 (Booking Confirmation)</span>
               </div>
               <div class="gate2-msg">${gate2Msg}</div>
+            </div>`;
+
+            // Toggle switches for Contract / PO required flags
+            sp01TogglesHtml = `<div class="sp01-flags">
+              <label class="sp01-flag-toggle">
+                <input type="checkbox" ${contractReq?'checked':''} onchange="setSP01Flag(${oIdx},'contractRequired',this.checked)">
+                <span class="sp01-flag-track"></span>
+                <span class="sp01-flag-label">Contract required</span>
+              </label>
+              <label class="sp01-flag-toggle">
+                <input type="checkbox" ${poReq?'checked':''} onchange="setSP01Flag(${oIdx},'poRequired',this.checked)">
+                <span class="sp01-flag-track"></span>
+                <span class="sp01-flag-label">PO required</span>
+              </label>
             </div>`;
           }
 
@@ -2675,6 +2730,24 @@ tr:hover td { background: var(--bg3); }
             }
           }
 
+          // ── Advance button (only when viewing the currently active SP) ──────
+          let advanceBtnHtml = '';
+          if(si === currentSp){
+            const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(o.status) + 1];
+            const hasMand    = hasMandatoryBlockers(o.seq);
+            const canSkip    = canBypassMandatory();
+            if(nextStatus){
+              advanceBtnHtml = `<div class="od-advance-wrap">
+                <button class="tracker-advance-btn${hasMand && !canSkip ? ' disabled' : ''}"
+                  onclick="advanceOrderStatus(${oIdx},'${nextStatus}')"
+                  ${hasMand && !canSkip ? `disabled title="Open mandatory tasks must be completed first"` : ''}>
+                  Advance to ${STATUS_META[nextStatus]?.label || nextStatus} →
+                </button>
+                ${hasMand && canSkip ? `<button class="tracker-skip-btn" onclick="advanceOrderStatus(${oIdx},'${nextStatus}',true)">Skip &amp; Advance</button>` : ''}
+              </div>`;
+            }
+          }
+
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
@@ -2688,7 +2761,9 @@ tr:hover td { background: var(--bg3); }
             <div class="od-tasks-wrap">
               <div class="od-section-label">Tasks</div>
               ${tasksHtml}
-            </div>`;
+              ${sp01TogglesHtml}
+            </div>
+            ${advanceBtnHtml}`;
         }
 
         window.toggleTask = function(oIdx, spId, tId, checked){
@@ -3732,24 +3807,8 @@ tr:hover td { background: var(--bg3); }
 
           // For table context: render compact milestone bar instead of full accordion
           if(context === 'table'){
-            el.innerHTML = `<div class="od-ms-bar">
-              ${SP_GROUPS.map((grp, gi) => {
-                const isCompletedGrp = grp.statuses.every(s => {
-                  const sIdx = STATUS_SEQUENCE.indexOf(s.key);
-                  const curIdx = STATUS_SEQUENCE.indexOf(curStatus);
-                  return sIdx < curIdx;
-                });
-                const isCurGrp = grp.statuses.some(s => s.key === curStatus);
-                const icon = isCompletedGrp ? '✓' : isCurGrp ? '▶' : '·';
-                const cls = isCompletedGrp ? 'ms-done' : isCurGrp ? 'ms-active' : 'ms-fut';
-                return `<div class="od-ms-step ${cls}">
-                  <span class="od-ms-id">${grp.id}</span>
-                  <span class="od-ms-label">${grp.label}</span>
-                  <span class="od-ms-icon">${icon}</span>
-                </div>`;
-              }).join('')}
-            </div>
-            <div class="tracker-footer">${advBtn}</div>`;
+            // Lifecycle bar removed — tab ribbon (od-ribbon) is the only process overview
+            el.innerHTML = '';
           } else {
             el.innerHTML = `<div class="od-stage-tracker">
               <div class="tracker-groups">${groupsHtml}</div>
@@ -3772,6 +3831,18 @@ tr:hover td { background: var(--bg3); }
 
         window.stageFieldChange = function(seq, status, key, val){
           setStageField(seq, status, key, val);
+        };
+
+        // Stammdaten direct field change (e.g. requestedDelivery date picker)
+        window.smFieldChange = function(oIdx, key, val){
+          MOCK[oIdx][key] = val;
+        };
+
+        // SP-01 contract/PO required flag toggles
+        window.setSP01Flag = function(oIdx, key, val){
+          MOCK[oIdx][key] = val;
+          // Re-render step body to update task states and Gate 2
+          renderStepBody(oIdx, viewingStepIdx);
         };
 
         window.advanceOrderStatus = function(oIdx, targetStatus, skipMandatory){
@@ -3902,20 +3973,34 @@ tr:hover td { background: var(--bg3); }
               : (value||'—');
             return `<div class="od-sm-field"><div class="od-sm-label">${label}</div><div class="od-sm-value">${val}</div></div>`;
           };
+          // Editable requested date field
+          const reqDateField = `<div class="od-sm-field">
+            <div class="od-sm-label">Requested Delivery</div>
+            <div class="od-sm-value">
+              <input type="date" class="od-sm-date-inp" value="${o.requestedDelivery||''}"
+                onchange="smFieldChange(${oIdx},'requestedDelivery',this.value)" title="Requested delivery date">
+            </div>
+          </div>`;
           el.innerHTML = `<div class="od-sm-grid">
             ${f('Customer', o.customer)}
             ${f('Entity', o.entity)}
             ${f('Region', o.region)}
             ${f('Key Contact', o.keyContact||o.contact)}
+            ${f('Trainer', o.trainer||'—')}
+            ${f('Sales Owner', o.sales)}
+            ${f('Coordinator', o.coordinator)}
             ${f('Order Date', o.orderDate)}
-            ${f('Delivery', o.delivery)}
+            ${reqDateField}
             ${f('Confirmed Del.', o.confirmedDelivery||'—')}
             ${f('Value', o.amountNum ? currency+' '+fmtAmt(o.amountNum) : '—')}
             ${f('Payment Terms', o.paymentTerms)}
+            ${f('Payment Status', o.paymentStatus||'—')}
             ${f('Prepayment', o.prepayment ? '✅ Yes' : 'No')}
-            ${f('Sales Owner', o.sales)}
-            ${f('Coordinator', o.coordinator)}
-            ${o.link ? f('NP Backend', '🔗 Open', o.link) : f('NP Backend', '—')}
+            ${o.xeroLink    ? f('Xero Customer',  '🔗 Open', o.xeroLink)    : f('Xero Customer',  '—')}
+            ${o.offerLink   ? f('Offer / Quote',   '🔗 Open', o.offerLink)   : f('Offer / Quote',  '—')}
+            ${o.bookingLink ? f('HubSpot Booking', '🔗 Open', o.bookingLink) : f('HubSpot Booking','—')}
+            ${o.enquiryLink ? f('Enquiry',         '🔗 Open', o.enquiryLink) : f('Enquiry',        '—')}
+            ${o.link        ? f('NP Backend',      '🔗 Open', o.link)        : f('NP Backend',     '—')}
           </div>`;
         }
 
