@@ -413,6 +413,7 @@ body.sidebar-collapsed .hdr-brand {
 /* ── Component: Page shell ─────────────────────────────────────────────────── */
 .page { display: none; }
 .page.active { display: block; }
+#page-wiki.active { display: flex; }
 
 .page-header { margin-bottom: 24px; }
 .page-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
@@ -5708,7 +5709,7 @@ tr:hover td { background: var(--bg3); }
       <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Prompt-Bibliothek wird geladen…</p></div>
     </div>
 
-    <div class="page" id="page-wiki" style="padding:24px;background:var(--bg);overflow:auto;display:flex;justify-content:center;align-items:flex-start">
+    <div class="page" id="page-wiki" style="padding:24px;background:var(--bg);overflow:auto;justify-content:center;align-items:flex-start">
       <div style="width:100%;max-width:1360px;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.25);border:1px solid var(--border)">
         <iframe id="wiki-frame"
           style="width:100%;height:calc(100vh - var(--header-h) - 48px);border:none;display:block"
