@@ -58,22 +58,22 @@ API-URL kann in Einstellungen (`#settings`) überschrieben werden (gespeichert i
 **Layout:** HubSpot-Style Master-Detail — linke Tabelle (52 Aufträge live), rechtes Panel mit:
 - **Overview Tab:** SP-Stepper (SP-01..SP-08), Stage-Fields, Task-Checkboxen
 - **AI Insights Tab:** Skeleton-Loader → Mock-Daten (Summary, Action Items, Emails)
-  - Wartet auf Backend `GET /orders/{seq}/insights` (Ticket BE-012)
-  - Mock ersetzen: `api('/orders/'+o.seq+'/insights')` statt `setTimeout`
+  - Backend live: `GET /orders/{order_id}/insights` (BE-012 ✅ deployed)
+  - Mock ersetzen: `api('/orders/'+o.id+'/insights')` statt `setTimeout` — route nimmt UUID, nicht seq
 
 **Datenquellen:**
 - Tabelle: `GET /api/v1/orders` → live
 - Detail: `GET /api/v1/orders/{seq}` → live
-- Insights: Mock → Backend-Ticket BE-012 nötig
+- Insights: Mock → Backend live ✅ (`GET /api/v1/orders/{order_id}/insights`)
 
 ## Nächste Schritte
 
 | # | Was | Abhängigkeit |
 |---|-----|-------------|
-| 1 | Ticket BE-012 anlegen (`GET /orders/{seq}/insights`) | n8n Workflow `Btn0JZ205bKDIQQp` ausführen |
-| 2 | Developer Agent triggern (Workflow `VlWgEiwV6LItYaVX`) | BE-012 im Backlog |
-| 3 | Mock in AI Insights durch echten API-Call ersetzen | Backend-Endpoint live |
-| 4 | Gmail-Integration in Settings verdrahten | BE-012 |
+| 1 | ~~Ticket BE-012 anlegen~~ | ✅ done |
+| 2 | ~~Developer Agent triggern~~ | ✅ BE-012 committed + hotfixed |
+| 3 | Mock in AI Insights durch echten API-Call ersetzen | `api('/orders/'+o.id+'/insights')` — o.id = UUID |
+| 4 | Gmail-Integration in Settings verdrahten | GMAIL_REFRESH_TOKEN/CLIENT_ID/SECRET in .env |
 
 **Bekanntes Problem:** POST `/api/v1/tickets` gibt 500 → Backend-Container `npch-b7` hat alten Code (pre-Nov 13 Fix). Container-Neustart in aaPanel nötig, dann läuft `Btn0JZ205bKDIQQp` durch.
 
