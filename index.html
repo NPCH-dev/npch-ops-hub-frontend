@@ -3124,6 +3124,45 @@ tr:hover td { background: var(--bg3); }
           }
         };
 
+        // ── Alignment Call helpers ────────────────────────────────────────────
+        window.sp02ToggleComm = function(seq, idx, checked){
+          const sd = getStageData(seq,'ALIGNMENT_CALL');
+          const comms = sd.comms || [];
+          if(comms[idx]) comms[idx].done = checked;
+          setStageField(seq,'ALIGNMENT_CALL','comms', comms);
+        };
+        window.sp02AddComm = function(seq){
+          const inp  = document.getElementById('ac_comm_'+seq);
+          const type = document.getElementById('ac_commtype_'+seq);
+          if(!inp || !inp.value.trim()) return;
+          const sd   = getStageData(seq,'ALIGNMENT_CALL');
+          const comms = sd.comms || [];
+          comms.push({type:type.value, label:inp.value.trim(), done:false, date:''});
+          setStageField(seq,'ALIGNMENT_CALL','comms', comms);
+          inp.value = '';
+        };
+
+        // ── Alignment Call: push forward ──────────────────────────────────────
+        window.sp02FinishAlignmentCall = function(oIdx, seq){
+          const sd = getStageData(seq,'ALIGNMENT_CALL');
+          const missing = [];
+          if(!sd.agendaFinalised)  missing.push('final agenda shared with trainer');
+          if(!sd.customerApproved) missing.push('customer approval');
+          if(!sd.deliveryStart)    missing.push('delivery start date');
+          if(missing.length === 0){
+            advanceOrderStatus(oIdx,'DELIVERY_CONFIRMED');
+          } else {
+            sp02Modal(
+              '⚠️ Checklist Incomplete',
+              `Still open: <strong>${missing.join(', ')}</strong>.<br>Push forward anyway, or complete these first?`,
+              [
+                { label:'✅ Push Forward Anyway', primary:true,  action:()=> advanceOrderStatus(oIdx,'DELIVERY_CONFIRMED') },
+                { label:'↩ Complete Checklist',   primary:false, action: null },
+              ]
+            );
+          }
+        };
+
         // ── Generic: push to immediate next status ────────────────────────────
         window.sp02FinishGeneric = function(oIdx, statusKey){
           const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(statusKey)+1];
@@ -3470,6 +3509,146 @@ tr:hover td { background: var(--bg3); }
                 </div>
               </div>`;
 
+          }
+
+          // ── ALIGNMENT_CALL ────────────────────────────────────────────────────
+          if(statusKey === 'ALIGNMENT_CALL'){
+            // Pull agenda docs from TRAINER_SELECTION stage
+            const tsSd = getStageData(o.seq,'TRAINER_SELECTION');
+            const agendaDocs = tsSd.agendaDocs || [
+              {name:'Agenda_Python_DE.pdf', date:'2026-11-17'},
+              {name:'Agenda_Python_EN.pdf', date:'2026-11-17'},
+            ];
+            const agendaDocsHtml = agendaDocs.map(d=>`
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(255,255,255,.04);border-radius:5px;border:1px solid var(--border)">
+                <span style="font-size:14px">📄</span>
+                <span style="font-size:12px;color:var(--fg);flex:1">${d.name}</span>
+                <span style="font-size:11px;color:var(--fg3)">${d.date}</span>
+              </div>`).join('');
+
+            // Communication thread (emails / Slack)
+            const comms = sd.comms || [
+              {type:'email', label:'Initial alignment email sent to trainer', done: true,  date:'2026-11-16'},
+              {type:'slack', label:'Slack group "NP-Training-Q4" created',    done: false, date:''},
+            ];
+            const commsHtml = comms.map((c,i)=>`
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid var(--border);margin-bottom:6px">
+                <input type="checkbox" ${c.done?'checked':''} onchange="sp02ToggleComm('${o.seq}',${i},this.checked)">
+                <span style="font-size:14px">${c.type==='email'?'📧':'💬'}</span>
+                <span style="font-size:12px;color:var(--fg);flex:1">${c.label}</span>
+                ${c.date?`<span style="font-size:11px;color:var(--fg3)">${c.date}</span>`:''}
+              </div>`).join('');
+
+            // Training format
+            const formats = ['On-site','Online','Classroom','Blended'];
+            const selFormat = sd.trainingFormat || '';
+
+            return `
+              <!-- 1. Agenda -->
+              <div style="margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Agenda (from Trainer Selection)</div>
+                <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">${agendaDocsHtml}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="sp02-agent-btn" onclick="alert('Agent: generate updated agenda for alignment call — coming soon')">⚡ Regenerate from Offer</button>
+                  <button class="sp02-agent-btn" onclick="alert('Open agenda document — coming soon')">👁 Preview</button>
+                </div>
+              </div>
+
+              <!-- 2. Customer background -->
+              <div style="margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🏢 Customer Background</div>
+                <textarea class="sp02-comment" style="min-height:70px"
+                  placeholder="Who is the customer? Team size, tech stack, known preferences, previous trainings…"
+                  onchange="setStageField('${o.seq}','ALIGNMENT_CALL','customerBackground',this.value)">${sd.customerBackground||''}</textarea>
+              </div>
+
+              <!-- 3. Communication & contact -->
+              <div style="margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📡 Communication Setup</div>
+                ${commsHtml}
+                <div style="display:flex;gap:8px;margin-top:6px">
+                  <input id="ac_comm_${o.seq}" class="sp02-inline-input" placeholder="Add communication item…" style="flex:1">
+                  <select id="ac_commtype_${o.seq}" style="background:var(--surface2,rgba(255,255,255,.06));border:1px solid var(--border);border-radius:5px;color:var(--fg);font-size:12px;padding:5px 8px">
+                    <option value="email">📧 Email</option>
+                    <option value="slack">💬 Slack</option>
+                  </select>
+                  <button class="sp02-agent-btn" onclick="sp02AddComm('${o.seq}')">+ Add</button>
+                </div>
+              </div>
+
+              <!-- 4. Final agenda + customer approval -->
+              <div style="margin-bottom:16px;padding:14px 16px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.25);border-radius:8px">
+                <div style="font-size:11px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">✅ Final Agenda Sign-off</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <input type="checkbox" id="ac_agendafinal_${o.seq}" ${sd.agendaFinalised?'checked':''}
+                    onchange="setStageField('${o.seq}','ALIGNMENT_CALL','agendaFinalised',this.checked)">
+                  <label for="ac_agendafinal_${o.seq}" style="font-size:12px;color:var(--fg);cursor:pointer">Final agenda version shared with trainer</label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <input type="checkbox" id="ac_custapproval_${o.seq}" ${sd.customerApproved?'checked':''}
+                    onchange="setStageField('${o.seq}','ALIGNMENT_CALL','customerApproved',this.checked)">
+                  <label for="ac_custapproval_${o.seq}" style="font-size:12px;color:var(--fg);cursor:pointer">Customer has approved the final agenda</label>
+                </div>
+                <input class="sp02-inline-input" placeholder="Approval email reference or link…"
+                  value="${sd.approvalEmailRef||''}"
+                  onchange="setStageField('${o.seq}','ALIGNMENT_CALL','approvalEmailRef',this.value)">
+              </div>
+
+              <!-- 5. Delivery planning -->
+              <div style="margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🗓 Delivery Planning</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                  <div>
+                    <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">Training Start Date</label>
+                    <input class="sp02-inline-input" type="date" value="${sd.deliveryStart||''}"
+                      onchange="setStageField('${o.seq}','ALIGNMENT_CALL','deliveryStart',this.value)">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">Training End Date</label>
+                    <input class="sp02-inline-input" type="date" value="${sd.deliveryEnd||''}"
+                      onchange="setStageField('${o.seq}','ALIGNMENT_CALL','deliveryEnd',this.value)">
+                  </div>
+                </div>
+                <div style="margin-bottom:10px">
+                  <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:6px">Training Format</label>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    ${formats.map(f=>`
+                      <span class="sp02-platform-badge${selFormat===f?' active':''}"
+                        onclick="setStageField('${o.seq}','ALIGNMENT_CALL','trainingFormat','${f}');this.closest('.sp02-section-body').querySelectorAll('.sp02-platform-badge').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${f}</span>`
+                    ).join('')}
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--fg3);display:block;margin-bottom:4px">Training Location / Link</label>
+                  <input class="sp02-inline-input" placeholder="Address or meeting link…"
+                    value="${sd.deliveryLocation||''}"
+                    onchange="setStageField('${o.seq}','ALIGNMENT_CALL','deliveryLocation',this.value)">
+                </div>
+              </div>
+
+              <!-- 6. Materials -->
+              <div style="margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📦 Training Materials</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                  <input type="checkbox" id="ac_matcheck_${o.seq}" ${sd.materialsChecked?'checked':''}
+                    onchange="setStageField('${o.seq}','ALIGNMENT_CALL','materialsChecked',this.checked)">
+                  <label for="ac_matcheck_${o.seq}" style="font-size:12px;color:var(--fg);cursor:pointer">Materials checked &amp; customised for this customer</label>
+                </div>
+                <textarea class="sp02-comment" style="min-height:60px"
+                  placeholder="What needs to be adapted? Custom exercises, branded slides, language, examples…"
+                  onchange="setStageField('${o.seq}','ALIGNMENT_CALL','materialsNotes',this.value)">${sd.materialsNotes||''}</textarea>
+              </div>
+
+              <!-- Push to next -->
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+                <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
+                  onclick="sp02FinishAlignmentCall(${oIdx},'${o.seq}')">
+                  Push to Next Stage →
+                </button>
+                <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
+                  Agenda approved + delivery dates set → <strong style="color:#a5b4fc">Delivery Confirmed</strong>
+                </div>
+              </div>`;
           }
 
           // Generic: simple task checkboxes + comment field + universal push button
