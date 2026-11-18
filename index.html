@@ -1674,6 +1674,8 @@ tr:hover td { background: var(--bg3); }
         #orders-table tbody tr.selected { background:rgba(99,102,241,.1) !important; }
         #orders-table tbody tr.selected td:first-child { border-left:3px solid var(--accent); padding-left:9px; }
         #orders-table tbody tr:last-child td { border-bottom:none; }
+        .od-layout.costs-open .od-list { flex:0 0 0 !important; min-width:0 !important; max-width:0 !important; overflow:hidden; padding:0; border:none; opacity:0; transition:flex-basis .22s, opacity .15s; }
+        .od-layout.costs-open #od-resize-handle { display:none !important; }
         .od-layout.detail-open .od-col-training { display:none; }
         .od-layout.detail-open .od-col-delivery { display:none; }
         .od-layout.detail-open #orders-table tbody td:nth-child(5) { display:none; }
@@ -2963,6 +2965,7 @@ tr:hover td { background: var(--bg3); }
         // ── Tab switching ─────────────────────────────────────────────────────
         window.switchDetailTab = function(tab){
           document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+          document.getElementById('od-layout').classList.toggle('costs-open', tab==='costs');
           document.getElementById('od-step-body').style.display      = tab==='overview'    ? '' : 'none';
           document.getElementById('od-insights-body').style.display  = tab==='insights'    ? '' : 'none';
           document.getElementById('od-costs-body').style.display     = tab==='costs'       ? '' : 'none';
@@ -4317,6 +4320,18 @@ tr:hover td { background: var(--bg3); }
           cur = costCur; // keep cur for cost-side helpers (row, row2, etc.)
           const fmtCur  = v => v.toLocaleString('de-DE',{style:'currency',currency:revCur,maximumFractionDigits:2});
           const fmtCostCur = v => v.toLocaleString('de-DE',{style:'currency',currency:costCur,maximumFractionDigits:2});
+          // Per-row currency overrides (default to global costCurrency)
+          const ROW_CUR_KEYS = ['trainerRatePerDay','travelFlat','accomRatePerNight','prepRate','daDesktopRate',
+            'softFlat','skillAssessFlat','followupRate','classroomRental','cateringPerPaxDay','certPerPax'];
+          ROW_CUR_KEYS.forEach(k=>{ if(sc['cur_'+k]===undefined) sc['cur_'+k]=costCur; });
+          // Helper: tiny inline currency picker for a row
+          function rowCurPicker(key){
+            const v = sc['cur_'+key]||costCur;
+            return ['CHF','EUR','GBP','USD'].map(c=>`<button onclick="updateSC(${oIdx},'cur_${key}','${c}')"
+              style="padding:1px 5px;border-radius:10px;border:1px solid ${v===c?'var(--accent)':'var(--border2)'};
+              background:${v===c?'rgba(99,102,241,.18)':'transparent'};
+              color:${v===c?'var(--accent)':'var(--fg3)'};font-size:9px;font-weight:${v===c?'700':'400'};cursor:pointer;line-height:1.6">${c}</button>`).join('');
+          }
 
           const fmt_ = sc;
           const days         = sc.days;
@@ -4408,13 +4423,15 @@ tr:hover td { background: var(--bg3); }
           function row(name, hint, key, val, total, required){
             const cls = required ? 'cb-unit-input cb-required-field' : 'cb-unit-input';
             const totalCls = total === 0 ? 'cb-td-total cb-zero' : 'cb-td-total';
+            const rc = sc['cur_'+key]||costCur;
             return `<tr>
               <td class="cb-td-name">${name}${required?'<span style="color:var(--accent);margin-left:3px">*</span>':''}
                 ${hint?`<span class="cb-td-hint">${hint}</span>`:''}
+                <span class="cb-row-cur-pick" style="display:flex;gap:2px;margin-top:3px">${rowCurPicker(key)}</span>
               </td>
               <td class="cb-td-unit">
                 <div class="cb-unit-wrap">
-                  <span class="cb-cur-tag">${cur}</span>
+                  <span class="cb-cur-tag">${rc}</span>
                   <input class="${cls}" type="number" min="0" step="0.01" value="${val}"
                     onchange="updateSC(${oIdx},'${key}',this.value)" placeholder="0.00" />
                 </div>
@@ -4426,18 +4443,20 @@ tr:hover td { background: var(--bg3); }
           // Two-input row (flat + per-pax)
           function row2(name, hint, keyFlat, valFlat, keyPax, valPax, total){
             const totalCls = total === 0 ? 'cb-td-total cb-zero' : 'cb-td-total';
+            const rc = sc['cur_'+keyFlat]||costCur;
             return `<tr>
               <td class="cb-td-name">${name}${hint?`<span class="cb-td-hint">${hint}</span>`:''}
+                <span class="cb-row-cur-pick" style="display:flex;gap:2px;margin-top:3px">${rowCurPicker(keyFlat)}</span>
               </td>
               <td class="cb-td-unit" style="vertical-align:top">
                 <div style="display:flex;flex-direction:column;gap:4px">
                   <div class="cb-unit-wrap">
-                    <span class="cb-cur-tag" title="Flat amount">${cur} flat</span>
+                    <span class="cb-cur-tag" title="Flat amount">${rc} flat</span>
                     <input class="cb-unit-input" type="number" min="0" step="0.01" value="${valFlat}"
                       title="Flat amount" onchange="updateSC(${oIdx},'${keyFlat}',this.value)" placeholder="0.00" />
                   </div>
                   <div class="cb-unit-wrap">
-                    <span class="cb-cur-tag" title="Per participant">${cur}/pax</span>
+                    <span class="cb-cur-tag" title="Per participant">${rc}/pax</span>
                     <input class="cb-unit-input" type="number" min="0" step="0.01" value="${valPax}"
                       title="Per participant" onchange="updateSC(${oIdx},'${keyPax}',this.value)" placeholder="0.00" />
                   </div>
@@ -4642,9 +4661,9 @@ tr:hover td { background: var(--bg3); }
                         font-size:11px;font-weight:${revCur===c?'700':'500'};cursor:pointer;transition:.15s">${c}</button>`).join('')}
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:start">
                   <div>
-                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Total Course Price (for ${participants} pax)</div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Total Price (${participants} pax)</div>
                     <div class="cb-unit-wrap">
                       <span class="cb-cur-tag">${revCur}</span>
                       <input class="cb-unit-input" type="number" min="0" step="0.01"
@@ -4655,35 +4674,25 @@ tr:hover td { background: var(--bg3); }
                     <div style="font-size:10px;color:var(--fg3);margin-top:3px">Booking: ${fmtCur(baseRevenue)}</div>
                   </div>
                   <div>
-                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Price / Add. Participant</div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Price / Add. Pax</div>
                     <div class="cb-unit-wrap">
                       <span class="cb-cur-tag">${revCur}</span>
                       <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.pricePerAddPax}"
                         onchange="updateSC(${oIdx},'pricePerAddPax',this.value)" placeholder="0.00" />
                     </div>
                   </div>
-                </div>
-                <!-- Derived display -->
-                <div style="display:flex;gap:24px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
                   <div>
-                    <div style="font-size:10px;color:var(--fg3)">Price / Participant</div>
-                    <div style="font-size:14px;font-weight:700;color:var(--fg)">${fmtCur(pricePerPax)}</div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Travel to Customer</div>
+                    <div class="cb-unit-wrap">
+                      <span class="cb-cur-tag">${revCur}</span>
+                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
+                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
+                    </div>
                   </div>
-                  ${pricePerAddPax > 0 ? `<div>
-                    <div style="font-size:10px;color:var(--fg3)">Travel to Customer</div>
-                    <div class="cb-unit-wrap" style="margin-top:4px">
-                      <span class="cb-cur-tag">${revCur}</span>
-                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
-                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
-                    </div>
-                  </div>` : `<div>
-                    <div style="font-size:10px;color:var(--fg3)">Travel to Customer</div>
-                    <div class="cb-unit-wrap" style="margin-top:4px">
-                      <span class="cb-cur-tag">${revCur}</span>
-                      <input class="cb-unit-input" type="number" min="0" step="0.01" value="${sc.travelToCustomer}"
-                        onchange="updateSC(${oIdx},'travelToCustomer',this.value)" placeholder="0.00" />
-                    </div>
-                  </div>`}
+                  <div>
+                    <div style="font-size:10px;color:var(--fg3);margin-bottom:4px">Price / Participant</div>
+                    <div style="font-size:15px;font-weight:700;color:var(--fg);padding:6px 0">${fmtCur(pricePerPax)}</div>
+                  </div>
                 </div>
               </div>
 
@@ -5000,8 +5009,8 @@ tr:hover td { background: var(--bg3); }
         window.updateSC = function(oIdx, key, val){
           if(!MOCK[oIdx].simpleCosts) MOCK[oIdx].simpleCosts={};
           const sc = MOCK[oIdx].simpleCosts;
-          if(key === 'deliveryFormat' || key === 'currency' || key === 'costCurrency' || key === 'revCurrency'){
-            sc[key] = val;  // string enum
+          if(key === 'deliveryFormat' || key === 'currency' || key === 'costCurrency' || key === 'revCurrency' || key.startsWith('cur_')){
+            sc[key] = val;  // string enum / per-row currency
           } else if(key === 'revenueOverride' || key === 'followupRate'){
             const n = parseFloat(val);
             sc[key] = (val === '' || val === null || isNaN(n)) ? null : n;
