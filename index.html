@@ -2063,6 +2063,14 @@ tr:hover td { background: var(--bg3); }
         .cmt-send-btn:hover { opacity:.88; }
 
         /* ── Sales Confirmed Gateway ───────────────────────────────────────── */
+        /* Gate 2 block */
+        .gate2-block { border-radius:8px; padding:11px 14px; border:1px solid var(--border); }
+        .gate2-block--gate2-locked  { background:rgba(107,114,128,.08); border-color:rgba(107,114,128,.3); }
+        .gate2-block--gate2-pending { background:rgba(245,158,11,.07);  border-color:rgba(245,158,11,.35); }
+        .gate2-block--gate2-done    { background:rgba(16,185,129,.07);  border-color:rgba(16,185,129,.35); }
+        .gate2-header { display:flex; align-items:center; gap:7px; margin-bottom:4px; }
+        .gate2-title  { font-size:11px; font-weight:700; color:var(--fg); }
+        .gate2-msg    { font-size:11px; color:var(--fg2); }
         .sc-gate { border-radius:8px; padding:14px 16px; margin-bottom:14px; border:1px solid var(--border); }
         .sc-gate-pending  { background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.35); }
         .sc-gate-approved { background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.35); }
@@ -2145,7 +2153,9 @@ tr:hover td { background: var(--bg3); }
               {id:'t1', label:'Inquiry received & logged'},
               {id:'t2', label:'Initial response sent (<24h)'},
               {id:'t3', label:'Training requirements clarified'},
-              {id:'t4', label:'Budget & timeline confirmed'},
+              {id:'t4', label:'Cost breakdown done & sale confirmed'},
+              {id:'t5', label:'Contract signed', gate2:true},
+              {id:'t6', label:'PO received (if required)', gate2:true, optional:true},
             ]
           },
           { id:'SP-02', label:'Planning',
@@ -2578,6 +2588,32 @@ tr:hover td { background: var(--bg3); }
             </div>`;
           }).join('');
 
+          // ── Gate 2: Contract / PO → prerequisite for SP-03 ──────────────────
+          let gate2Html = '';
+          if(sp.id === 'SP-01'){
+            const gate2Tasks = sp.tasks.filter(t => t.gate2);
+            const mandatoryGate2 = gate2Tasks.filter(t => !t.optional);
+            const contractDone = getTask(oIdx, 'SP-01', 't5');
+            const isConfirmed  = o.salesConfirmedAction === 'approved' || o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
+            const gate2Ready   = contractDone; // PO is optional
+            const gate2Cls     = !isConfirmed  ? 'gate2-locked'
+                               : gate2Ready    ? 'gate2-done'
+                               :                  'gate2-pending';
+            const gate2Icon    = !isConfirmed  ? '🔒'
+                               : gate2Ready    ? '✅'
+                               :                  '⏳';
+            const gate2Msg     = !isConfirmed  ? 'Complete Cost Breakdown → Confirm Sale first'
+                               : gate2Ready    ? `Gate 2 cleared — Coordination can start SP-03`
+                               :                  'Contract must be signed before SP-03 can start';
+            gate2Html = `<div class="gate2-block gate2-block--${gate2Cls}" style="margin-bottom:14px">
+              <div class="gate2-header">
+                <span>${gate2Icon}</span>
+                <span class="gate2-title">Gate 2 — Prerequisite for SP-03 (Booking Confirmation)</span>
+              </div>
+              <div class="gate2-msg">${gate2Msg}</div>
+            </div>`;
+          }
+
           // ── Sales Confirmed gateway ───────────────────────────────────────────
           let scGatewayHtml = '';
           if(spGrp && spGrp.statuses.some(s=>s.key==='SALES_CONFIRMED')){
@@ -2641,6 +2677,7 @@ tr:hover td { background: var(--bg3); }
               <span class="od-step-status">${statusLabel}</span>
             </div>
             ${scGatewayHtml}
+            ${gate2Html}
             ${stageFieldsHtml}
             <div class="od-section-label">Fields</div>
             <div class="od-fields">${fieldsHtml}</div>
@@ -3556,8 +3593,11 @@ tr:hover td { background: var(--bg3); }
                                      { key:'trainingTitle', label:'Training Title',       type:'text',   mandatory:true  },
                                      { key:'deliveryDate',  label:'Delivery Date',        type:'date',   mandatory:true  },
                                      { key:'bookingRef',    label:'Booking Reference',    type:'text',   mandatory:false }],
-          SALES_CONFIRMED:          [{ key:'salesOwner',    label:'Sales Owner',          type:'text',   mandatory:true  },
-                                     { key:'confirmedAmt',  label:'Confirmed Amount (€)', type:'number', mandatory:true  }],
+          SALES_CONFIRMED:          [{ key:'offerNumber',   label:'Offer Number',         type:'text',   mandatory:true  },
+                                     { key:'salesOwner',    label:'Sales Owner',          type:'text',   mandatory:true  },
+                                     { key:'paymentTerms',  label:'Payment Terms',        type:'text',   mandatory:true  },
+                                     { key:'confirmedAmt',  label:'Confirmed Amount',     type:'number', mandatory:true  },
+                                     { key:'trainerName',   label:'Trainer (if known)',   type:'text',   mandatory:false }],
           HANDOVER_TO_COORDINATION: [{ key:'coordinator',   label:'Coordinator',          type:'text',   mandatory:true  },
                                      { key:'handoverDate',  label:'Handover Date',        type:'date',   mandatory:true  }],
           CONTRACT_SIGNED:          [{ key:'contractDate',  label:'Contract Date',        type:'date',   mandatory:false },
