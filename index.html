@@ -1777,6 +1777,26 @@ tr:hover td { background: var(--bg3); }
         .od-step-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
         .od-step-heading-name { font-size:14px; font-weight:600; color:var(--fg); }
         .od-step-status { font-size:11px; color:var(--fg3); }
+        .step-owner-chip { display:inline-flex; align-items:center; gap:5px; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.22); border-radius:20px; padding:2px 10px 2px 4px; font-size:11px; }
+        .step-owner-avatar { width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .step-owner-name { color:var(--fg2); font-weight:600; }
+        .step-owner-due { font-size:10px; }
+        .sp02-owner-chip { display:inline-flex; align-items:center; gap:4px; font-size:11px; }
+        .sp02-owner-avatar { width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        /* tasks page */
+        .tasks-section-header { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); padding:12px 0 8px; border-bottom:1px solid var(--border); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+        .tasks-section-avatar { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+        .task-row { display:grid; grid-template-columns:90px 1fr 60px 70px 70px; gap:0 12px; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:12px; }
+        .task-row:hover { background:rgba(255,255,255,.025); border-radius:6px; }
+        .task-row .tr-order { color:var(--accent); font-weight:600; cursor:pointer; }
+        .task-row .tr-order:hover { text-decoration:underline; }
+        .task-row .tr-sp { font-size:10px; background:rgba(99,102,241,.14); color:#818cf8; border-radius:10px; padding:2px 7px; white-space:nowrap; width:fit-content; }
+        .task-row .tr-task { color:var(--fg2); }
+        .task-row .tr-due { font-size:11px; }
+        .task-row .tr-due.overdue { color:#f87171; font-weight:600; }
+        .task-row .tr-due.today { color:#fbbf24; font-weight:600; }
+        .task-row .tr-due.ok { color:var(--fg3); }
+        .task-row .tr-status { font-size:10px; }
         .od-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--fg3); margin-bottom:10px; }
         .od-fields { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px 18px; margin-bottom:20px; }
         /* Stage data entry fields (process data inputs in step body) */
@@ -2796,6 +2816,69 @@ tr:hover td { background: var(--bg3); }
           return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
+        // ── Deadline helpers ─────────────────────────────────────────────────────
+        function parseDE(str){
+          if(!str) return null;
+          const m = String(str).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+          return m ? new Date(+m[3], +m[2]-1, +m[1]) : null;
+        }
+        function calcDeadline(o, spIdx){
+          const sp = SP_SLA[spIdx];
+          if(!sp) return null;
+          let base = sp.deliveryBased ? parseDE(o.delivery) : null;
+          if(!base) base = parseDE(o.date);
+          if(!base) return null;
+          const d = new Date(base);
+          d.setDate(d.getDate() + sp.offsetDays);
+          return d;
+        }
+        function calcDeadlineCustom(o, offsetDays){
+          const base = parseDE(o.date);
+          if(!base) return null;
+          const d = new Date(base);
+          d.setDate(d.getDate() + offsetDays);
+          return d;
+        }
+        function fmtDue(d){
+          if(!d) return '';
+          const pad = n => String(n).padStart(2,'0');
+          return `${pad(d.getDate())}.${pad(d.getMonth()+1)}`;
+        }
+        function dueCls(d){
+          if(!d) return 'ok';
+          const now = new Date(); now.setHours(0,0,0,0);
+          const dd = new Date(d); dd.setHours(0,0,0,0);
+          if(dd < now) return 'overdue';
+          if(dd.getTime() === now.getTime()) return 'today';
+          return 'ok';
+        }
+        function stepOwnerChip(spIdx, o){
+          const sp = SP_SLA[spIdx];
+          if(!sp) return '';
+          const name = roleLabel(sp.owner);
+          const due  = calcDeadline(o, spIdx);
+          const dueStr = due ? fmtDue(due) : '';
+          const cls  = due ? dueCls(due) : 'ok';
+          const dueColor = cls==='overdue' ? '#f87171' : cls==='today' ? '#fbbf24' : 'var(--fg3)';
+          return `<span class="step-owner-chip">
+            <span class="step-owner-avatar">${name[0]}</span>
+            <span class="step-owner-name">${name}</span>
+            ${dueStr ? `<span class="step-owner-due" style="color:${dueColor}">· Due ${dueStr}</span>` : ''}
+          </span>`;
+        }
+        function sp02SectionOwnerChip(sec, o){
+          const name = roleLabel(sec.owner);
+          const due  = calcDeadlineCustom(o, sec.offsetDays);
+          const dueStr = due ? fmtDue(due) : '';
+          const cls  = due ? dueCls(due) : 'ok';
+          const dueColor = cls==='overdue' ? '#f87171' : cls==='today' ? '#fbbf24' : 'var(--fg3)';
+          return `<span class="sp02-owner-chip">
+            <span class="sp02-owner-avatar">${name[0]}</span>
+            <span style="color:var(--fg3);font-weight:600">${name}</span>
+            ${dueStr ? `<span style="color:${dueColor};font-size:10px">· Due ${dueStr}</span>` : ''}
+          </span>`;
+        }
+
         function taskKey(oIdx, spId, tId){ return `npch_t_${MOCK[oIdx].seq}_${oIdx}_${spId}_${tId}`; }
         function getTask(oIdx, spId, tId){
           try{
@@ -2816,14 +2899,14 @@ tr:hover td { background: var(--bg3); }
 
         // ── SLA definitions per step ─────────────────────────────────────────
         const SP_SLA = [
-          { id:'SP-01', sla:'1 day'    },
-          { id:'SP-02', sla:'1–2 wks'  },
-          { id:'SP-03', sla:'1 wk'     },
-          { id:'SP-04', sla:'1 wk'     },
-          { id:'SP-05', sla:'on date'  },
-          { id:'SP-06', sla:'1 day'    },
-          { id:'SP-07', sla:'2–4 wks'  },
-          { id:'SP-08', sla:'1 wk'     },
+          { id:'SP-01', sla:'1 day',   owner:'sales',        offsetDays:2  },
+          { id:'SP-02', sla:'1–2 wks', owner:'coordination', offsetDays:14 },
+          { id:'SP-03', sla:'1 wk',    owner:'coordination', offsetDays:21 },
+          { id:'SP-04', sla:'1 wk',    owner:'finance',      offsetDays:28 },
+          { id:'SP-05', sla:'on date', owner:'coordination', offsetDays:0,  deliveryBased:true },
+          { id:'SP-06', sla:'1 day',   owner:'finance',      offsetDays:2,  deliveryBased:true },
+          { id:'SP-07', sla:'2–4 wks', owner:'finance',      offsetDays:21, deliveryBased:true },
+          { id:'SP-08', sla:'1 wk',    owner:'management',   offsetDays:28, deliveryBased:true },
         ];
 
         function renderSlaTimeline(oIdx){
@@ -3126,7 +3209,7 @@ tr:hover td { background: var(--bg3); }
             document.getElementById('od-step-body').innerHTML = `
               <div class="od-step-heading">
                 <div class="od-step-heading-name">SP-02 · Planning</div>
-                <span class="od-step-status">${statusLabel}</span>
+                <div style="display:flex;align-items:center;gap:8px">${stepOwnerChip(si,o)}<span class="od-step-status">${statusLabel}</span></div>
               </div>
               ${stageFieldsHtml}
               <div class="od-section-label">Fields</div>
@@ -3141,7 +3224,7 @@ tr:hover td { background: var(--bg3); }
             document.getElementById('od-step-body').innerHTML = `
               <div class="od-step-heading">
                 <div class="od-step-heading-name">SP-03 · Order Confirmation</div>
-                <span class="od-step-status">${statusLabel}</span>
+                <div style="display:flex;align-items:center;gap:8px">${stepOwnerChip(si,o)}<span class="od-step-status">${statusLabel}</span></div>
               </div>
               <div id="sp03-body"></div>`;
             renderSP03Body(oIdx, si, currentSp);
@@ -3167,7 +3250,7 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
-              <span class="od-step-status">${statusLabel}</span>
+              <div style="display:flex;align-items:center;gap:8px">${stepOwnerChip(si,o)}<span class="od-step-status">${statusLabel}</span></div>
             </div>
             ${sp01CompBar}
             ${scGatewayHtml}
@@ -3185,12 +3268,12 @@ tr:hover td { background: var(--bg3); }
 
         // ── SP-02 collapsible process body ───────────────────────────────────────
         const SP02_SECTIONS = [
-          { key:'TRAINER_SELECTION',   label:'Trainer Selection',   icon:'🔍', path:'' },
-          { key:'TRAINER_RECRUITMENT', label:'Trainer Recruitment', icon:'📢', path:'B' },
-          { key:'CANDIDATES_IDENTIFIED',label:'Candidates Identified',icon:'👥', path:'B' },
-          { key:'RECRUITMENT_DONE',    label:'Recruitment Done',    icon:'✔️', path:'B' },
-          { key:'ALIGNMENT_CALL',      label:'Alignment Call',      icon:'📞', path:'' },
-          { key:'DELIVERY_CONFIRMED',  label:'Delivery Confirmed',  icon:'🎯', path:'' },
+          { key:'TRAINER_SELECTION',    label:'Trainer Selection',    icon:'🔍', path:'',  owner:'coordination', offsetDays:7  },
+          { key:'TRAINER_RECRUITMENT',  label:'Trainer Recruitment',  icon:'📢', path:'B', owner:'recruitment',  offsetDays:12 },
+          { key:'CANDIDATES_IDENTIFIED',label:'Candidates Identified',icon:'👥', path:'B', owner:'recruitment',  offsetDays:17 },
+          { key:'RECRUITMENT_DONE',     label:'Recruitment Done',     icon:'✔️', path:'B', owner:'recruitment',  offsetDays:19 },
+          { key:'ALIGNMENT_CALL',       label:'Alignment Call',       icon:'📞', path:'',  owner:'coordination', offsetDays:21 },
+          { key:'DELIVERY_CONFIRMED',   label:'Delivery Confirmed',   icon:'🎯', path:'',  owner:'coordination', offsetDays:28 },
         ];
 
         function renderSP02Body(oIdx, si, currentSp){
@@ -3230,7 +3313,7 @@ tr:hover td { background: var(--bg3); }
               <div class="sp02-section-header${isActive?' is-first':isDone?' is-active':''}" onclick="toggleSP02Section('${sec.key}')">
                 <span class="sp02-section-icon">${icon}</span>
                 <span class="sp02-section-title">${sec.label}${pathBadge}</span>
-                <span class="sp02-section-meta">${metaText}</span>
+                <span class="sp02-section-meta" style="display:flex;align-items:center;gap:8px">${sp02SectionOwnerChip(sec,o)}<span>${metaText}</span></span>
                 <span class="sp02-section-chevron${isOpen?' open':''}" id="sp02chev_${sec.key}">›</span>
               </div>
               <div class="sp02-section-body${isOpen?' open':''}" id="sp02body_${sec.key}">
@@ -8735,8 +8818,35 @@ tr:hover td { background: var(--bg3); }
     <!-- ── Page: Admin / Tech Management Board ──────────────────────────── -->
     <!-- Personal Pages -->
     <div class="page" id="page-tasks">
-      <div class="page-header"><h1>Meine Aufgaben</h1><p>Persönliche Aufgaben & To-Dos</p></div>
-      <div class="card"><p style="color:var(--fg3);text-align:center;padding:40px 0">Aufgaben werden geladen…</p></div>
+      <div class="page-header">
+        <div>
+          <h1>Task Board</h1>
+          <p>Open tasks across all orders — grouped by responsible person</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="tasks-filter-sp" onchange="initTasksPage()" style="background:var(--surface2);border:1px solid var(--border);color:var(--fg2);padding:6px 10px;border-radius:6px;font-size:12px">
+            <option value="">All Steps</option>
+            <option value="SP-01">SP-01 Booking</option>
+            <option value="SP-02">SP-02 Planning</option>
+            <option value="SP-03">SP-03 Confirm</option>
+            <option value="SP-04">SP-04 Order</option>
+            <option value="SP-05">SP-05 Delivery</option>
+            <option value="SP-06">SP-06 Invoice</option>
+            <option value="SP-07">SP-07 Closeout</option>
+            <option value="SP-08">SP-08 Complete</option>
+          </select>
+          <select id="tasks-filter-owner" onchange="initTasksPage()" style="background:var(--surface2);border:1px solid var(--border);color:var(--fg2);padding:6px 10px;border-radius:6px;font-size:12px">
+            <option value="">All Owners</option>
+            <option value="Stephanie">Stephanie</option>
+            <option value="Sarah">Sarah</option>
+            <option value="Merve">Merve</option>
+            <option value="Daniel">Daniel</option>
+            <option value="Constantin">Constantin</option>
+          </select>
+        </div>
+      </div>
+      <div id="tasks-kpi-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+      <div id="tasks-body"></div>
     </div>
     <div class="page" id="page-todos">
       <div class="page-header"><h1>Todos</h1><p>Checklisten & offene Punkte</p></div>
@@ -9036,7 +9146,7 @@ const PAGES = {
   users:        { title: 'Benutzer',            load: loadUsers },
   settings:     { title: 'Einstellungen',       load: null },
   admin:        { title: 'Cloud Cockpit', load: loadAdminBoard },
-  tasks:        { title: 'Meine Aufgaben',  load: null },
+  tasks:        { title: 'Task Board',      load: () => initTasksPage() },
   todos:        { title: 'Todos',           load: null },
   notes:        { title: 'Notizen',         load: null },
   prompts:      { title: 'Prompts / KI',    load: null },
@@ -9226,6 +9336,108 @@ function toggleTheme() {
 })();
 function closeSidebar()   { /* noop */ }
 function openSidebar()    { /* noop */ }
+
+// ── Task Board ────────────────────────────────────────────────────────────────
+function initTasksPage(){
+  const filterSp    = document.getElementById('tasks-filter-sp')?.value    || '';
+  const filterOwner = document.getElementById('tasks-filter-owner')?.value || '';
+
+  // Collect all open tasks from every order's current active step
+  const allTasks = [];
+  MOCK.forEach((o, oIdx) => {
+    const curSp = STATUS_SP_IDX[o.status] ?? 0;
+    // Gather tasks from the current SP step
+    const sp  = PROCESS_STEPS[curSp];
+    if(!sp) return;
+    if(filterSp && sp.id !== filterSp) return;
+    sp.tasks.forEach(t => {
+      const meta = getTask(oIdx, sp.id, t.id);
+      if(meta?.done) return;
+      const assignee = roleLabel(t.role);
+      if(filterOwner && assignee !== filterOwner) return;
+      const due = calcDeadline(o, curSp);
+      allTasks.push({
+        oIdx, orderSeq:o.seq, customer:o.customer,
+        spId:sp.id, spLabel:sp.label,
+        taskId:t.id, taskLabel:t.label,
+        role:t.role, assignee,
+        due, optional:!!t.optional
+      });
+    });
+  });
+
+  // Sort: overdue first, then by due date asc, nulls last
+  allTasks.sort((a,b) => {
+    if(!a.due && !b.due) return 0;
+    if(!a.due) return 1;
+    if(!b.due) return -1;
+    return a.due - b.due;
+  });
+
+  // KPI row
+  const now = new Date(); now.setHours(0,0,0,0);
+  const overdue = allTasks.filter(t => t.due && t.due < now).length;
+  const dueToday = allTasks.filter(t => { if(!t.due) return false; const d=new Date(t.due); d.setHours(0,0,0,0); return d.getTime()===now.getTime(); }).length;
+  const upcoming = allTasks.filter(t => !t.due || t.due >= now).length;
+  const kpiEl = document.getElementById('tasks-kpi-row');
+  if(kpiEl) kpiEl.innerHTML = [
+    { label:'Total Open',  val:allTasks.length, col:'var(--accent)' },
+    { label:'Overdue',     val:overdue,          col:'#f87171' },
+    { label:'Due Today',   val:dueToday,         col:'#fbbf24' },
+    { label:'On Track',    val:upcoming-dueToday,col:'#10b981' },
+  ].map(k => `<div class="card" style="padding:16px 20px;text-align:center">
+    <div style="font-size:28px;font-weight:700;color:${k.col}">${k.val}</div>
+    <div style="font-size:11px;color:var(--fg3);margin-top:4px">${k.label}</div>
+  </div>`).join('');
+
+  // Group by assignee
+  const groups = {};
+  allTasks.forEach(t => {
+    if(!groups[t.assignee]) groups[t.assignee] = [];
+    groups[t.assignee].push(t);
+  });
+
+  const bodyEl = document.getElementById('tasks-body');
+  if(!bodyEl) return;
+  if(!allTasks.length){
+    bodyEl.innerHTML = `<div class="card" style="text-align:center;padding:40px 0;color:var(--fg3)">
+      <div style="font-size:32px;margin-bottom:12px">✅</div>
+      <div style="font-weight:600">All tasks complete!</div>
+      <div style="font-size:12px;margin-top:4px">No open tasks matching the current filter.</div>
+    </div>`;
+    return;
+  }
+
+  let html = '';
+  Object.entries(groups).forEach(([owner, tasks]) => {
+    const ov = tasks.filter(t => t.due && t.due < now).length;
+    html += `<div class="card" style="margin-bottom:16px;padding:16px 20px">
+      <div class="tasks-section-header">
+        <div class="tasks-section-avatar">${owner[0]}</div>
+        <span style="color:var(--fg)">${owner}</span>
+        <span style="margin-left:auto;font-size:11px;color:${ov?'#f87171':'var(--fg3)'}">
+          ${tasks.length} open${ov ? ` · ${ov} overdue` : ''}
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 1fr 60px 70px 70px;gap:0 12px;padding:6px 0 2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3)">
+        <span>Order</span><span>Task</span><span>Step</span><span>Due</span><span>Type</span>
+      </div>`;
+    tasks.forEach(t => {
+      const dueStr = t.due ? fmtDue(t.due) : '—';
+      const cls    = t.due ? dueCls(t.due) : 'ok';
+      const typeLabel = t.optional ? `<span style="color:var(--fg3)">Optional</span>` : `<span style="color:#818cf8">Required</span>`;
+      html += `<div class="task-row">
+        <span class="tr-order" onclick="navigate('orders');setTimeout(()=>openOrder(${t.oIdx}),80)">${t.orderSeq}</span>
+        <span class="tr-task">${t.taskLabel}</span>
+        <span><span class="tr-sp">${t.spId}</span></span>
+        <span class="tr-due ${cls}">${dueStr}</span>
+        <span class="tr-status">${typeLabel}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  bodyEl.innerHTML = html;
+}
 
 // ── Page loaders ──────────────────────────────────────────────────────────────
 async function loadUser() {
