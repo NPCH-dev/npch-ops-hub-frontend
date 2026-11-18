@@ -3019,6 +3019,17 @@ tr:hover td { background: var(--bg3); }
             return;
           }
 
+          if(sp.id === 'SP-03'){
+            document.getElementById('od-step-body').innerHTML = `
+              <div class="od-step-heading">
+                <div class="od-step-heading-name">SP-03 · Order Confirmation</div>
+                <span class="od-step-status">${statusLabel}</span>
+              </div>
+              <div id="sp03-body"></div>`;
+            renderSP03Body(oIdx, si, currentSp);
+            return;
+          }
+
           document.getElementById('od-step-body').innerHTML = `
             <div class="od-step-heading">
               <div class="od-step-heading-name">${sp.id} · ${sp.label}</div>
@@ -4413,6 +4424,267 @@ tr:hover td { background: var(--bg3); }
             return;
           }
           filter();
+        };
+
+        // ── SP-03 body ─────────────────────────────────────────────────────────
+        // Shared stage-data store helpers (same as SP-02)
+        function sp03StageData(seq){ return window._STAGE_DATA && window._STAGE_DATA[seq] ? window._STAGE_DATA[seq] : {}; }
+        function sp03Field(seq, key){ return sp03StageData(seq)[key] || ''; }
+        function sp03Set(seq, key, val){
+          if(!window._STAGE_DATA) window._STAGE_DATA = {};
+          if(!window._STAGE_DATA[seq]) window._STAGE_DATA[seq] = {};
+          window._STAGE_DATA[seq][key] = val;
+        }
+
+        // Stammdaten completeness: required fields for SP-03
+        const SP03_REQUIRED = ['invoiceOrg','invoiceAddr','invoiceContact','invoiceEmail','entity','seq','paymentTerms'];
+        function sp03Completeness(o){
+          const filled = SP03_REQUIRED.filter(k => !!(o[k] || sp03Field(o.seq, k)));
+          return { filled: filled.length, total: SP03_REQUIRED.length, pct: Math.round(filled.length / SP03_REQUIRED.length * 100) };
+        }
+
+        const SP03_SECTIONS = [
+          { key:'oc_doc',       label:'Order Confirmation Document', icon:'📄' },
+          { key:'oracle_cfg',   label:'Oracle Configuration',        icon:'⚙️' },
+          { key:'billing',      label:'Invoice Address & Billing',   icon:'🧾' },
+          { key:'email_log',    label:'Confirmation Email',          icon:'📧' },
+          { key:'reconfirm',    label:'Training Details Reconfirm',  icon:'✅' },
+          { key:'handover',     label:'Handover Note (Sales → Coord)',icon:'🤝' },
+        ];
+
+        window._SP03_OPEN = {};
+
+        function renderSP03Body(oIdx, si, currentSp){
+          const o = MOCK[oIdx];
+          const seq = o.seq;
+          const isCurrent = si === currentSp;
+          const comp = sp03Completeness(o);
+
+          // Advance button
+          let advHtml = '';
+          if(isCurrent){
+            const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(o.status) + 1];
+            if(nextStatus){
+              const hasMand = hasMandatoryBlockers(seq);
+              const canSkip = canBypassMandatory();
+              const blocked = hasMand && !canSkip;
+              advHtml = `<div class="od-advance-wrap">
+                <button class="tracker-advance-btn${blocked?' disabled':''}"
+                  onclick="advanceOrderStatus(${oIdx},'${nextStatus}')"
+                  ${blocked?'disabled title="Complete mandatory tasks first"':''}>
+                  Advance to ${STATUS_META[nextStatus]?.label||nextStatus} →
+                </button>
+                ${hasMand && canSkip ? `<button class="tracker-skip-btn" onclick="advanceOrderStatus(${oIdx},'${nextStatus}',true)">Skip &amp; Advance</button>` : ''}
+              </div>`;
+            }
+          }
+
+          const pctColor = comp.pct >= 100 ? '#10b981' : comp.pct >= 60 ? '#f59e0b' : '#ef4444';
+
+          const sectionsHtml = SP03_SECTIONS.map(s=>{
+            const open = window._SP03_OPEN[s.key] !== false; // default open
+            return `<div class="sp02-section" id="sp03sec-${s.key}">
+              <div class="sp02-section-hdr" onclick="sp03Toggle('${seq}',${oIdx},'${s.key}')">
+                <span class="sp02-section-icon">${s.icon}</span>
+                <span class="sp02-section-label">${s.label}</span>
+                <span class="sp02-section-chev" id="sp03chev-${s.key}" style="margin-left:auto;transition:transform .2s;display:inline-block;${open?'':'transform:rotate(-90deg)'}">▾</span>
+              </div>
+              <div class="sp02-section-body" id="sp03body-${s.key}" style="${open?'':'display:none'}">
+                ${renderSP03Section(s.key, o, oIdx)}
+              </div>
+            </div>`;
+          }).join('');
+
+          document.getElementById('sp03-body').innerHTML = `
+            <!-- Stammdaten completeness bar -->
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0">
+              <span style="font-size:11px;color:var(--fg3);font-weight:600;white-space:nowrap">Master Data</span>
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+                <div style="width:${comp.pct}%;height:100%;background:${pctColor};border-radius:3px;transition:width .4s"></div>
+              </div>
+              <span style="font-size:11px;font-weight:700;color:${pctColor};white-space:nowrap">${comp.pct}% <span style="color:var(--fg3);font-weight:400">(${comp.filled}/${comp.total})</span></span>
+            </div>
+            <!-- Tasks quick-view -->
+            <div style="padding:10px 16px 0;display:flex;flex-wrap:wrap;gap:6px">
+              ${PROCESS_STEPS[si].tasks.map(t=>{
+                const ck = getTask(oIdx,'SP-03',t.id);
+                return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:${ck?'var(--fg2)':'var(--fg3)'};cursor:pointer">
+                  <input type="checkbox" ${ck?'checked':''} onchange="toggleTask(${oIdx},'SP-03','${t.id}',this.checked);renderSP03Body(${oIdx},${si},${currentSp})" style="accent-color:var(--accent)">
+                  ${t.label}
+                </label>`;
+              }).join('')}
+            </div>
+            <!-- Sections -->
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1">
+              ${sectionsHtml}
+            </div>
+            ${advHtml}`;
+        }
+
+        window.sp03Toggle = function(seq, oIdx, key){
+          window._SP03_OPEN[key] = !( window._SP03_OPEN[key] !== false );
+          const body = document.getElementById('sp03body-'+key);
+          const chev = document.getElementById('sp03chev-'+key);
+          if(body){ body.style.display = window._SP03_OPEN[key] ? '' : 'none'; }
+          if(chev){ chev.style.transform = window._SP03_OPEN[key] ? '' : 'rotate(-90deg)'; }
+          if(window._SP03_OPEN[key]){
+            const o = MOCK[oIdx];
+            body.innerHTML = renderSP03Section(key, o, oIdx);
+          }
+        };
+
+        function renderSP03Section(key, o, oIdx){
+          const seq = o.seq;
+          const inp = (id,label,val,type,ph,extra)=>`
+            <div class="fc-field-wrap">
+              <div class="od-field-label">${label}</div>
+              <input type="${type||'text'}" value="${val||''}" placeholder="${ph||label}" class="od-stage-inp"
+                oninput="sp03Set('${seq}','${id}',this.value)${extra||''}">
+            </div>`;
+          const ro = (label,val)=>`<div class="fc-field-wrap"><div class="od-field-label">${label}</div><div class="od-field-value">${val||'—'}</div></div>`;
+          const driveLink = (id,label,stored)=> stored
+            ? `<div class="fc-field-wrap">
+                <div class="od-field-label">${label}</div>
+                <a href="${stored}" target="_blank" rel="noopener" class="od-field-value is-link" style="font-size:11px">📁 Open in Drive</a>
+               </div>`
+            : `<div class="fc-field-wrap">
+                <div class="od-field-label">${label}</div>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input type="url" value="" placeholder="Paste Drive link or create below" class="od-stage-inp" style="flex:1"
+                    oninput="sp03Set('${seq}','${id}',this.value)">
+                  <button class="tracker-advance-btn" style="font-size:10px;padding:4px 9px;white-space:nowrap" onclick="sp03CreateDoc('${seq}','${id}','${label}',${oIdx})">📄 Create</button>
+                </div>
+               </div>`;
+
+          if(key==='oc_doc') return `
+            <div class="od-stage-grid">
+              ${driveLink('ocDocLink','OC Document', sp03Field(seq,'ocDocLink') || o.ocDocLink)}
+              ${inp('ocDocStatus','Status',sp03Field(seq,'ocDocStatus')||'','select','','')}
+              <div class="fc-field-wrap"><div class="od-field-label">Status</div>
+                <select class="od-stage-inp" onchange="sp03Set('${seq}','ocDocStatus',this.value)">
+                  ${['Draft','Ready to Send','Sent','Acknowledged'].map(s=>`<option ${(sp03Field(seq,'ocDocStatus')||'Draft')===s?'selected':''}>${s}</option>`).join('')}
+                </select>
+              </div>
+              ${inp('ocSentTo','Sent To',sp03Field(seq,'ocSentTo')||o.enqEmail,'email')}
+              ${inp('ocSentDate','Sent Date',sp03Field(seq,'ocSentDate'),'date')}
+            </div>`;
+
+          if(key==='oracle_cfg') return `
+            <div class="od-stage-grid">
+              ${driveLink('oracleCfgLink','Oracle Config Doc', sp03Field(seq,'oracleCfgLink'))}
+              <div class="fc-field-wrap"><div class="od-field-label">Entity</div>
+                <select class="od-stage-inp" onchange="sp03Set('${seq}','entity',this.value)">
+                  ${['NobleProg DACH GmbH','NobleProg AT GmbH','NobleProg CH GmbH'].map(e=>
+                    `<option ${(sp03Field(seq,'entity')||o.entity||'NobleProg DACH GmbH')===e?'selected':''}>${e}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              ${ro('Order Nr.',o.seq)}
+            </div>`;
+
+          if(key==='billing') return `
+            <div class="od-stage-grid">
+              ${inp('invoiceOrg','Invoice Org / Company',sp03Field(seq,'invoiceOrg')||o.enqOrganisation)}
+              ${inp('invoiceContact','Billing Contact',sp03Field(seq,'invoiceContact'))}
+              ${inp('invoiceEmail','Billing Email',sp03Field(seq,'invoiceEmail'),'email')}
+              ${inp('invoicePhone','Billing Phone',sp03Field(seq,'invoicePhone'),'tel')}
+              <div class="fc-field-wrap od-enq-field full"><div class="od-field-label">Invoice Address</div>
+                <input type="text" value="${sp03Field(seq,'invoiceAddr')||''}" placeholder="Street, ZIP City, Country" class="od-stage-inp"
+                  oninput="sp03Set('${seq}','invoiceAddr',this.value)">
+              </div>
+              ${inp('vatId','VAT ID',sp03Field(seq,'vatId'))}
+              ${inp('poNumber','PO Number',sp03Field(seq,'poNumber'))}
+              ${inp('costCenter','Cost Center',sp03Field(seq,'costCenter'))}
+              <div class="fc-field-wrap"><div class="od-field-label">Payment Terms</div>
+                <select class="od-stage-inp" onchange="sp03Set('${seq}','paymentTerms',this.value)">
+                  ${['Net 30','Net 14','Net 7','Prepayment','On Invoice'].map(pt=>
+                    `<option ${(sp03Field(seq,'paymentTerms')||o.paymentTerms||'Net 30')===pt?'selected':''}>${pt}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="fc-field-wrap"><div class="od-field-label">Source</div>
+                <select class="od-stage-inp" onchange="sp03Set('${seq}','billingSource',this.value)">
+                  <option ${!sp03Field(seq,'billingSource')||sp03Field(seq,'billingSource')==='Sales'?'selected':''}>Set by Sales</option>
+                  <option ${sp03Field(seq,'billingSource')==='Customer Reply'?'selected':''}>Customer Reply</option>
+                  <option ${sp03Field(seq,'billingSource')==='CRM'?'selected':''}>From CRM</option>
+                </select>
+              </div>
+            </div>`;
+
+          if(key==='email_log') return `
+            <div style="margin-bottom:8px">
+              <button class="tracker-advance-btn" style="font-size:11px;padding:5px 12px" onclick="sp03DraftEmail(${oIdx})">
+                📧 Draft Confirmation Email
+              </button>
+              <span style="font-size:10px;color:var(--fg3);margin-left:8px">Includes: OC Document + Relation Sheet · Introduces Coordination + Finance</span>
+            </div>
+            <div class="od-stage-grid">
+              ${inp('emailSentTo','Sent To',sp03Field(seq,'emailSentTo')||o.enqEmail,'email')}
+              ${inp('emailSentDate','Sent Date',sp03Field(seq,'emailSentDate'),'date')}
+              ${inp('emailCcCoord','CC Coordination',sp03Field(seq,'emailCcCoord')||o.coordinator)}
+              ${inp('emailCcFinance','CC Finance',sp03Field(seq,'emailCcFinance'))}
+              <div class="fc-field-wrap"><div class="od-field-label">Attachments Sent</div>
+                <div style="display:flex;flex-direction:column;gap:4px;padding-top:4px">
+                  ${['OC Document','Relation Sheet','Oracle Config','Invoice Template'].map(att=>{
+                    const k = 'att_'+att.replace(/\s/g,'_');
+                    const ck = sp03Field(seq,k)==='1';
+                    return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+                      <input type="checkbox" ${ck?'checked':''} style="accent-color:var(--accent)" onchange="sp03Set('${seq}','${k}',this.checked?'1':'')"> ${att}
+                    </label>`;
+                  }).join('')}
+                </div>
+              </div>
+            </div>`;
+
+          if(key==='reconfirm') return `
+            <div class="od-stage-grid">
+              ${ro('Course',o.training)}
+              ${ro('Start Date',o.startDate)}
+              ${ro('Location',o.location)}
+              ${ro('Participants',o.participants||'—')}
+              ${ro('Delivery Type',o.deliveryType||'—')}
+              ${ro('Language',o.enqLanguage||'—')}
+            </div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+              ${['Date confirmed by customer','Location confirmed','Participant count confirmed','Access/logistics confirmed','Special requirements noted'].map((item,i)=>{
+                const k = 'reconf_'+i;
+                const ck = sp03Field(seq,k)==='1';
+                return `<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;color:${ck?'var(--fg2)':'var(--fg3)'}">
+                  <input type="checkbox" ${ck?'checked':''} style="accent-color:var(--accent)" onchange="sp03Set('${seq}','${k}',this.checked?'1':'')"> ${item}
+                </label>`;
+              }).join('')}
+            </div>`;
+
+          if(key==='handover') return `
+            <div style="margin-bottom:8px">
+              <div style="font-size:11px;color:var(--fg3);margin-bottom:6px">Internal note from Sales to Coordination — customer specifics, special requests, known issues.</div>
+              <textarea class="od-stage-inp" rows="5" style="width:100%;resize:vertical;font-size:12px;line-height:1.5"
+                placeholder="e.g. Customer needs parking, prefers morning sessions, German-speaking trainer required, VP is attending day 2…"
+                oninput="sp03Set('${seq}','handoverNote',this.value)">${sp03Field(seq,'handoverNote')||''}</textarea>
+            </div>
+            ${inp('handoverBy','Written by',sp03Field(seq,'handoverBy')||o.sales)}
+            ${inp('handoverDate','Date',sp03Field(seq,'handoverDate'),'date')}`;
+
+          return '<div style="color:var(--fg3);font-size:11px;padding:8px">Coming soon.</div>';
+        }
+
+        window.sp03CreateDoc = function(seq, field, label, oIdx){
+          showToast(`Creating ${label} from template…`, 'info');
+          setTimeout(()=>{
+            const mockUrl = `https://drive.google.com/drive/folders/MOCK_${seq}_${field}`;
+            sp03Set(seq, field, mockUrl);
+            showToast(`${label} created in Drive`, 'success');
+            const o = MOCK[oIdx];
+            const si = STATUS_SP_IDX[o.status] ?? 3;
+            const currentSp = STATUS_SP_IDX[o.status] ?? 3;
+            const body = document.getElementById('sp03body-'+( field==='ocDocLink'?'oc_doc':'oracle_cfg' ));
+            if(body) body.innerHTML = renderSP03Section( field==='ocDocLink'?'oc_doc':'oracle_cfg', o, oIdx );
+          }, 900);
+        };
+
+        window.sp03DraftEmail = function(oIdx){
+          const o = MOCK[oIdx];
+          showToast('Email draft copied to clipboard (mock)', 'success');
         };
 
         // ── Tab groups config ─────────────────────────────────────────────────
@@ -7137,30 +7409,45 @@ tr:hover td { background: var(--bg3); }
         function renderBooking(oIdx){
           const o = MOCK[oIdx]; if(!o) return;
           const el = document.getElementById('od-booking-body'); if(!el) return;
+          const seq = o.seq;
+          const comp = sp03Completeness(o);
+          const pctColor = comp.pct >= 100 ? '#10b981' : comp.pct >= 60 ? '#f59e0b' : '#ef4444';
+
+          // Render same SP-03 sections but in the Booking sub-tab (Sales group)
+          const sectionsHtml = SP03_SECTIONS.map(s=>{
+            const open = window._SP03_OPEN[s.key] !== false;
+            return `<div class="sp02-section" id="bkgsec-${s.key}">
+              <div class="sp02-section-hdr" onclick="sp03Toggle('${seq}',${oIdx},'${s.key}');renderBooking(${oIdx})">
+                <span class="sp02-section-icon">${s.icon}</span>
+                <span class="sp02-section-label">${s.label}</span>
+                <span style="margin-left:auto;transition:transform .2s;display:inline-block;${open?'':'transform:rotate(-90deg)'}">▾</span>
+              </div>
+              <div class="sp02-section-body" id="bkgbody-${s.key}" style="${open?'':'display:none'}">
+                ${renderSP03Section(s.key, o, oIdx)}
+              </div>
+            </div>`;
+          }).join('');
+
           el.innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:760px">
-              <div class="od-enq-section" style="grid-column:1/-1">
-                <div class="od-enq-section-title">Booking Confirmation</div>
-                <div class="od-enq-fields">
-                  <div class="od-enq-field"><label>Order Ref</label><div class="od-enq-ro">${o.seq||'—'}</div></div>
-                  <div class="od-enq-field"><label>Customer</label><div class="od-enq-ro">${o.customer||'—'}</div></div>
-                  <div class="od-enq-field"><label>Training</label><div class="od-enq-ro">${o.training||'—'}</div></div>
-                  <div class="od-enq-field"><label>Start Date</label><div class="od-enq-ro">${o.startDate||'—'}</div></div>
-                  <div class="od-enq-field"><label>Region</label><div class="od-enq-ro">${o.region||'—'}</div></div>
-                  <div class="od-enq-field"><label>Location</label><div class="od-enq-ro">${o.location||'—'}</div></div>
-                  <div class="od-enq-field"><label>Sales Rep</label><div class="od-enq-ro">${o.sales||'—'}</div></div>
-                  <div class="od-enq-field"><label>Status</label><div class="od-enq-ro">${o.status||'—'}</div></div>
-                </div>
+            <!-- Order header strip -->
+            <div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px">
+              <span><span style="color:var(--fg3)">Order</span> <strong>${o.seq||'—'}</strong></span>
+              <span><span style="color:var(--fg3)">Customer</span> <strong>${o.customer||'—'}</strong></span>
+              <span><span style="color:var(--fg3)">Training</span> <strong>${o.training||'—'}</strong></span>
+              <span><span style="color:var(--fg3)">Date</span> <strong>${o.startDate||'—'}</strong></span>
+              <span><span style="color:var(--fg3)">Status</span> <strong style="color:var(--accent)">${STATUS_META[o.status]?.label||o.status||'—'}</strong></span>
+            </div>
+            <!-- Stammdaten bar -->
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--fg3);font-weight:600;white-space:nowrap">Master Data</span>
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+                <div style="width:${comp.pct}%;height:100%;background:${pctColor};transition:width .4s;border-radius:3px"></div>
               </div>
-              <div class="od-enq-section" style="grid-column:1/-1">
-                <div class="od-enq-section-title" style="display:flex;align-items:center;gap:8px">
-                  Booking Document
-                  <span class="od-enq-section-badge">Coming Soon</span>
-                </div>
-                <p style="font-size:12px;color:var(--fg3);margin:8px 0 0">
-                  Booking confirmation PDF will be generated and linked here once BE-013 is live.
-                </p>
-              </div>
+              <span style="font-size:11px;font-weight:700;color:${pctColor};white-space:nowrap">${comp.pct}%</span>
+            </div>
+            <!-- Sections -->
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1">
+              ${sectionsHtml}
             </div>`;
         }
 
