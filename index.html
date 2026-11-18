@@ -3045,41 +3045,98 @@ tr:hover td { background: var(--bg3); }
           renderSP02Body(oIdx, PROCESS_STEPS.findIndex(s=>s.id==='SP-02'), PROCESS_STEPS.findIndex(s=>s.id===STATUS_META[o.status]?.sp||'SP-02'));
         };
 
-        // ── Trainer Selection: smart "Push to Next" routing ──────────────────
+        // ── SP-02 universal "Push to Next Stage" modal helper ────────────────
+        function sp02Modal(title, body, buttons){
+          const modal = document.createElement('div');
+          modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;display:flex;align-items:center;justify-content:center';
+          const btnsHtml = buttons.map((b,i)=>`
+            <button id="sp02modal_btn_${i}"
+              style="flex:1;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:${b.primary?'600':'400'};cursor:pointer;border:${b.primary?'none':'1px solid var(--border)'};background:${b.primary?'var(--accent)':'transparent'};color:${b.primary?'#fff':'var(--fg2)'}">
+              ${b.label}
+            </button>`).join('');
+          modal.innerHTML = `
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:420px;width:92%">
+              <div style="font-size:16px;font-weight:600;color:var(--fg);margin-bottom:10px">${title}</div>
+              <div style="font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.65">${body}</div>
+              <div style="display:flex;gap:10px">${btnsHtml}</div>
+            </div>`;
+          document.body.appendChild(modal);
+          buttons.forEach((b,i)=>{
+            modal.querySelector(`#sp02modal_btn_${i}`).onclick = ()=>{ document.body.removeChild(modal); b.action && b.action(); };
+          });
+          modal.onclick = e=>{ if(e.target===modal) document.body.removeChild(modal); };
+        }
+
+        // ── Trainer Selection: smart routing ─────────────────────────────────
         window.sp02FinishTrainerSelection = function(oIdx, seq){
           const sd = getStageData(seq, 'TRAINER_SELECTION');
           const preferred = (sd.preferredTrainer || '').trim();
-
           if(preferred){
-            // Trainer named → go straight to Alignment Call
             advanceOrderStatus(oIdx, 'ALIGNMENT_CALL');
           } else {
-            // No trainer → modal: start recruitment or wait?
-            const modal = document.createElement('div');
-            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
-            modal.innerHTML = `
-              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:400px;width:90%">
-                <div style="font-size:16px;font-weight:600;color:var(--fg);margin-bottom:8px">⚠️ No Preferred Trainer</div>
-                <div style="font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.6">
-                  No preferred trainer has been entered yet.<br>
-                  Do you want to start external <strong>Recruitment (Path B)</strong>, or wait and keep searching?
-                </div>
-                <div style="display:flex;gap:10px">
-                  <button id="ts-modal-recruit"
-                    style="flex:1;padding:9px 14px;border-radius:6px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:13px">
-                    🔍 Start Recruitment
-                  </button>
-                  <button id="ts-modal-wait"
-                    style="flex:1;padding:9px 14px;border-radius:6px;background:transparent;color:var(--fg2);border:1px solid var(--border);cursor:pointer;font-size:13px">
-                    ⏳ Keep Waiting
-                  </button>
-                </div>
-              </div>`;
-            document.body.appendChild(modal);
-            modal.querySelector('#ts-modal-recruit').onclick = ()=>{ document.body.removeChild(modal); advanceOrderStatus(oIdx,'TRAINER_RECRUITMENT'); };
-            modal.querySelector('#ts-modal-wait').onclick   = ()=> document.body.removeChild(modal);
-            modal.onclick = e=>{ if(e.target===modal) document.body.removeChild(modal); };
+            sp02Modal(
+              '⚠️ No Preferred Trainer',
+              'No preferred trainer has been entered yet.<br>Do you want to start external <strong>Recruitment (Path B)</strong>, or keep searching the HR portal?',
+              [
+                { label:'🔍 Start Recruitment', primary:true,  action:()=> advanceOrderStatus(oIdx,'TRAINER_RECRUITMENT') },
+                { label:'⏳ Keep Waiting',       primary:false, action: null },
+              ]
+            );
           }
+        };
+
+        // ── Trainer Recruitment: push forward ─────────────────────────────────
+        window.sp02FinishTrainerRecruitment = function(oIdx, seq){
+          const sd = getStageData(seq, 'TRAINER_RECRUITMENT');
+          const candidates = sd.candidates || [];
+          const shortlisted = candidates.filter(c=>c.status==='ok');
+          if(shortlisted.length >= 1){
+            advanceOrderStatus(oIdx,'CANDIDATES_IDENTIFIED');
+          } else {
+            sp02Modal(
+              '⚠️ No Shortlisted Candidates',
+              'No candidates have been marked as shortlisted yet.<br>Shortlist at least one candidate before advancing, or push forward anyway?',
+              [
+                { label:'✅ Push Forward Anyway', primary:true,  action:()=> advanceOrderStatus(oIdx,'CANDIDATES_IDENTIFIED') },
+                { label:'↩ Keep Recruiting',      primary:false, action: null },
+              ]
+            );
+          }
+        };
+
+        // ── Candidates Identified: push forward ───────────────────────────────
+        window.sp02FinishCandidatesIdentified = function(oIdx, seq){
+          const sd = getStageData(seq, 'CANDIDATES_IDENTIFIED');
+          const name = (sd.selectedCandidateName || '').trim();
+          const rate = (sd.agreedRate || '').trim();
+          if(name && rate){
+            advanceOrderStatus(oIdx,'RECRUITMENT_DONE');
+          } else {
+            const missing = [!name && 'trainer name', !rate && 'agreed rate'].filter(Boolean).join(' and ');
+            sp02Modal(
+              '⚠️ Missing Information',
+              `Please enter the ${missing} before marking recruitment as done, or push forward anyway?`,
+              [
+                { label:'✅ Push Forward Anyway', primary:true,  action:()=> advanceOrderStatus(oIdx,'RECRUITMENT_DONE') },
+                { label:'↩ Go Back',              primary:false, action: null },
+              ]
+            );
+          }
+        };
+
+        // ── Generic: push to immediate next status ────────────────────────────
+        window.sp02FinishGeneric = function(oIdx, statusKey){
+          const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(statusKey)+1];
+          if(!nextStatus){ showToast('This is the last stage.'); return; }
+          const nextLabel = STATUS_META[nextStatus]?.label || nextStatus;
+          sp02Modal(
+            `Advance to ${nextLabel}?`,
+            `Move this order forward to <strong>${nextLabel}</strong>. Make sure all relevant information is entered above before continuing.`,
+            [
+              { label:`→ Advance to ${nextLabel}`, primary:true,  action:()=> advanceOrderStatus(oIdx, nextStatus) },
+              { label:'Cancel',                    primary:false, action: null },
+            ]
+          );
         };
 
         window.sp02AddApprovalMsg = function(seq, msg){
@@ -3306,12 +3363,15 @@ tr:hover td { background: var(--bg3); }
                 <input id="sp02newcand_${o.seq}" placeholder="Paste profile URL (Freelancer, Malt, LinkedIn…)">
                 <button class="sp02-agent-btn" onclick="sp02AddCandidate('${oIdx}','${o.seq}')">+ Add &amp; Enrich</button>
               </div>
-              ${isCurrentStatus ? `<div style="margin-top:16px">
-                <button class="sp02-advance-primary"
-                  onclick="advanceOrderStatus(${oIdx},'CANDIDATES_IDENTIFIED')">
-                  3+ candidates shortlisted → Candidates Identified →
+              <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+                <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
+                  onclick="sp02FinishTrainerRecruitment(${oIdx},'${o.seq}')">
+                  Push to Next Stage →
                 </button>
-              </div>` : ''}`;
+                <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
+                  Shortlisted candidates → <strong style="color:#a5b4fc">Candidates Identified</strong>
+                </div>
+              </div>`;
 
           }
 
@@ -3399,30 +3459,37 @@ tr:hover td { background: var(--bg3); }
                 </div>
               </div>
 
-              ${isCurrentStatus ? `<div class="sp02-decision">
-                <div class="sp02-decision-label">Advance</div>
-                <div class="sp02-decision-btns">
-                  <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'RECRUITMENT_DONE')">
-                    Rate agreed &amp; trainer confirmed → Recruitment Done →
-                  </button>
+              <div class="sp02-decision" style="margin-top:14px">
+                <div class="sp02-decision-label">Decision</div>
+                <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
+                  onclick="sp02FinishCandidatesIdentified(${oIdx},'${o.seq}')">
+                  Push to Next Stage →
+                </button>
+                <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
+                  Rate &amp; trainer confirmed → <strong style="color:#a5b4fc">Recruitment Done</strong>
                 </div>
-              </div>` : ''}`;
+              </div>`;
 
           }
 
-          // Generic: simple task checkboxes + comment field for other statuses
+          // Generic: simple task checkboxes + comment field + universal push button
           let html = tasks.map(t => taskCard(oIdx,'SP-02',t)).join('');
           html += `<div style="margin-top:12px">
             <textarea class="sp02-comment" placeholder="Notes for this stage…"
               onchange="setStageField('${o.seq}','${statusKey}','notes',this.value)">${sd.notes||''}</textarea>
           </div>`;
-          // Advance button for non-TRAINER_SELECTION active statuses
-          const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(o.status)+1];
-          if(nextStatus && o.status === statusKey){
-            html += `<div style="margin-top:12px">
-              <button class="sp02-advance-primary" onclick="advanceOrderStatus(${oIdx},'${nextStatus}')">
-                Advance to ${STATUS_META[nextStatus]?.label||nextStatus} →
+          // Universal Push to Next Stage button — always visible
+          const nextStatus = STATUS_SEQUENCE[STATUS_SEQUENCE.indexOf(statusKey)+1];
+          if(nextStatus){
+            const nextLabel = STATUS_META[nextStatus]?.label || nextStatus;
+            html += `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+              <button class="sp02-advance-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px"
+                onclick="sp02FinishGeneric(${oIdx},'${statusKey}')">
+                Push to Next Stage →
               </button>
+              <div style="margin-top:8px;font-size:11px;color:var(--fg3);text-align:center">
+                → <strong style="color:#a5b4fc">${nextLabel}</strong>
+              </div>
             </div>`;
           }
           return html;
