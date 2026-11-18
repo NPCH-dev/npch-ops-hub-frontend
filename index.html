@@ -1614,28 +1614,38 @@ tr:hover td { background: var(--bg3); }
           <!-- Stammdaten block -->
           <div id="od-stammdaten" class="od-stammdaten"></div>
           <div class="od-ribbon" id="od-ribbon"></div>
-          <!-- Tab bar -->
-          <div class="od-tabs" id="od-tabs">
-            <button class="od-tab active" data-tab="overview" onclick="switchDetailTab('overview')">Overview</button>
-            <button class="od-tab" data-tab="insights" onclick="switchDetailTab('insights')">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-              AI Insights
-            </button>
-            <button class="od-tab" data-tab="costs" onclick="switchDetailTab('costs')">Cost Breakdown</button>
-            <button class="od-tab" data-tab="liquidity" onclick="switchDetailTab('liquidity')">Liquidity</button>
-            <button class="od-tab" data-tab="enquiry" onclick="switchDetailTab('enquiry')">Enquiry</button>
-            <button class="od-tab" data-tab="activities" onclick="switchDetailTab('activities')">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Activities
-            </button>
-            <button class="od-tab" data-tab="comments" onclick="switchDetailTab('comments')">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Comments
-            </button>
-            <button class="od-tab" data-tab="files" onclick="switchDetailTab('files')" id="od-tab-files">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-              Files
-            </button>
+          <!-- Status bar -->
+          <div class="od-status-bar" id="od-status-bar"></div>
+          <!-- Two-level nav: group row + sub-tab row -->
+          <div class="od-nav-wrap" id="od-nav-wrap">
+            <!-- Group tabs (level 1) -->
+            <div class="od-groups" id="od-groups">
+              <button class="od-group active" data-group="overview" onclick="switchGroup('overview')">Overview</button>
+              <button class="od-group" data-group="sales" onclick="switchGroup('sales')">Sales</button>
+              <button class="od-group" data-group="coordination" onclick="switchGroup('coordination')">Coordination</button>
+              <button class="od-group" data-group="recruitment" onclick="switchGroup('recruitment')">Recruitment</button>
+              <button class="od-group" data-group="finance" onclick="switchGroup('finance')">Finance</button>
+              <!-- Fixed utility tabs always right -->
+              <div class="od-group-spacer"></div>
+              <button class="od-util-tab" data-tab="activities" onclick="switchDetailTab('activities')" id="util-activities">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Activities
+              </button>
+              <button class="od-util-tab" data-tab="comments" onclick="switchDetailTab('comments')" id="util-comments">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Comments
+              </button>
+              <button class="od-util-tab" data-tab="files" onclick="switchDetailTab('files')" id="util-files">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Files
+              </button>
+              <button class="od-util-tab" data-tab="insights" onclick="switchDetailTab('insights')" id="util-insights">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                AI
+              </button>
+            </div>
+            <!-- Sub-tabs (level 2) — hidden when group has only one tab -->
+            <div class="od-tabs" id="od-tabs" style="display:none"></div>
           </div>
           <div class="od-step-body" id="od-step-body"></div>
           <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
@@ -1645,6 +1655,11 @@ tr:hover td { background: var(--bg3); }
           <div id="od-activities-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
           <div id="od-comments-body" style="display:none;flex-direction:column;flex:1;min-height:0"></div>
           <div id="od-files-body" style="display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto"></div>
+          <!-- New group sub-tab bodies -->
+          <div id="od-booking-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
+          <div id="od-planning-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
+          <div id="od-delivery-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
+          <div id="od-recruitment-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
         </div><!-- end od-detail -->
 
       </div><!-- end od-layout -->
@@ -2080,9 +2095,28 @@ tr:hover td { background: var(--bg3); }
         .od-ms-step.ms-active .od-ms-icon { color:var(--accent); }
         .od-ms-step.ms-fut { opacity:.3; }
 
-        /* Detail Panel Tabs */
-        .od-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; padding:0 8px; }
-        .od-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px 8px; font-size:12px; font-weight:600; color:var(--fg3); cursor:pointer; display:flex; align-items:center; transition:all .15s; white-space:nowrap; }
+        /* Status bar */
+        .od-status-bar { display:flex; align-items:center; gap:10px; padding:5px 14px; background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0; min-height:30px; }
+        .od-sb-stage { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:.04em; text-transform:uppercase; }
+        .od-sb-sep { color:var(--border2); font-size:12px; }
+        .od-sb-next { font-size:11px; color:var(--fg3); }
+        .od-sb-next strong { color:var(--fg2); font-weight:600; }
+        .od-sb-owner { margin-left:auto; font-size:10px; background:color-mix(in srgb,var(--accent) 15%,transparent); color:var(--accent); border-radius:4px; padding:2px 7px; font-weight:600; }
+
+        /* Two-level nav */
+        .od-nav-wrap { flex-shrink:0; background:var(--bg2); }
+        .od-groups { display:flex; align-items:stretch; border-bottom:2px solid var(--border); padding:0 8px; gap:0; }
+        .od-group { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:8px 13px 7px; font-size:12px; font-weight:600; color:var(--fg3); cursor:pointer; transition:all .15s; white-space:nowrap; }
+        .od-group:hover { color:var(--fg); }
+        .od-group.active { color:var(--accent); border-bottom-color:var(--accent); }
+        .od-group-spacer { flex:1; }
+        /* Utility tabs (Activities, Comments, Files, AI) always visible right */
+        .od-util-tab { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:7px 10px 6px; font-size:11px; font-weight:600; color:var(--fg3); cursor:pointer; display:flex; align-items:center; gap:4px; transition:all .15s; white-space:nowrap; }
+        .od-util-tab:hover { color:var(--fg); }
+        .od-util-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+        /* Sub-tabs row (level 2) */
+        .od-tabs { display:flex; border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--bg2) 60%,var(--bg)); flex-shrink:0; padding:0 8px; }
+        .od-tab { background:none; border:none; border-bottom:2px solid transparent; padding:7px 12px 6px; font-size:11px; font-weight:600; color:var(--fg3); cursor:pointer; display:flex; align-items:center; gap:4px; transition:all .15s; white-space:nowrap; }
         .od-tab:hover { color:var(--fg); }
         .od-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
 
@@ -2769,7 +2803,11 @@ tr:hover td { background: var(--bg3); }
               fields.forEach(f => {
                 const val = data[f.key] || '';
                 const dot = f.mandatory && !val ? '<span style="color:#ef4444;margin-left:2px">*</span>' : '';
-                inputs.push(`<div>
+                const fkey = `${o.seq}::${s.key}::${f.key}`;
+                const hasCmt = window.FC_STORE && (window.FC_STORE[fkey]||[]).length > 0;
+                inputs.push(`<div class="fc-field-wrap">
+                  ${hasCmt ? '<div class="fc-dot"></div>' : ''}
+                  <button class="fc-trigger" title="Comment" onclick="fcOpen(event,'${fkey}','${f.label.replace(/'/g,"\\'")}')">💬</button>
                   <div class="od-field-label">${f.label}${dot}</div>
                   <input type="${f.type||'text'}" value="${val}" class="od-stage-inp"
                     onchange="stageFieldChange('${o.seq}','${s.key}','${f.key}',this.value)">
@@ -4136,15 +4174,12 @@ tr:hover td { background: var(--bg3); }
           renderStammdaten(idx);
           renderStepBody(idx, viewingStepIdx);
 
-          // Reset to Overview tab on new order open
-          document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab==='overview'));
-          document.getElementById('od-step-body').style.display      = '';
-          document.getElementById('od-insights-body').style.display  = 'none';
-          document.getElementById('od-costs-body').style.display     = 'none';
-          document.getElementById('od-liquidity-body').style.display = 'none';
-          document.getElementById('od-enquiry-body').style.display   = 'none';
-          const cb2 = document.getElementById('od-activities-body');
-          if(cb2) cb2.style.display = 'none';
+          // Render status bar
+          renderStatusBar(o);
+
+          // Role-based default group, then reset to Overview
+          const defaultGrp = ROLE_DEFAULT_GROUP[DEV_ROLE] || 'overview';
+          switchGroup(defaultGrp);
           // Init activity store + update badge
           if(!ACTIVITIES_STORE[o.seq]) ACTIVITIES_STORE[o.seq] = initMockActivities(o.seq);
           _updateActivitiesBadge(o.seq);
@@ -4380,21 +4415,81 @@ tr:hover td { background: var(--bg3); }
           filter();
         };
 
+        // ── Tab groups config ─────────────────────────────────────────────────
+        const TAB_GROUPS = {
+          overview:    { tabs: [] },   // no sub-tabs, single view
+          sales:       { tabs: ['enquiry','booking','costs'] },
+          coordination:{ tabs: ['planning','delivery'] },
+          recruitment: { tabs: [] },   // solo
+          finance:     { tabs: ['liquidity'] }
+        };
+        const GROUP_LABELS = { enquiry:'Enquiry', booking:'Booking', costs:'Revenue Planning',
+                                planning:'Planning', delivery:'Delivery', liquidity:'Liquidity' };
+        // Which group owns each tab
+        const TAB_TO_GROUP = { overview:'overview', enquiry:'sales', booking:'sales', costs:'sales',
+                                planning:'coordination', delivery:'coordination',
+                                recruitment:'recruitment', liquidity:'finance' };
+        // Utility tabs (always right, not in any group)
+        const UTIL_TABS = ['activities','comments','files','insights'];
+        // Default first sub-tab per group
+        const GROUP_DEFAULTS = { overview:'overview', sales:'enquiry', coordination:'planning',
+                                  recruitment:'recruitment', finance:'liquidity' };
+        // Role → default group
+        const ROLE_DEFAULT_GROUP = { management:'overview', coordination:'coordination',
+                                      finance:'finance', sales:'sales', recruitment:'recruitment',
+                                      admin:'overview', system:'overview' };
+        let _activeGroup = 'overview';
+        let _activeTab   = 'overview';
+
+        window.switchGroup = function(group){
+          _activeGroup = group;
+          // Update group button states
+          document.querySelectorAll('.od-group').forEach(b=>b.classList.toggle('active', b.dataset.group===group));
+          // Clear util active state
+          document.querySelectorAll('.od-util-tab').forEach(b=>b.classList.remove('active'));
+          // Build sub-tab row
+          const subRow = document.getElementById('od-tabs');
+          const grpConf = TAB_GROUPS[group];
+          if(grpConf.tabs.length > 0){
+            subRow.style.display = 'flex';
+            subRow.innerHTML = grpConf.tabs.map(t=>
+              `<button class="od-tab" data-tab="${t}" onclick="switchDetailTab('${t}')">${GROUP_LABELS[t]||t}</button>`
+            ).join('');
+          } else {
+            subRow.style.display = 'none';
+          }
+          // Switch to default tab for this group
+          switchDetailTab(GROUP_DEFAULTS[group]);
+        };
+
         // ── Tab switching ─────────────────────────────────────────────────────
         window.switchDetailTab = function(tab){
+          _activeTab = tab;
+          const isUtil = UTIL_TABS.includes(tab);
+          // Group button states
+          if(!isUtil){
+            const grp = TAB_TO_GROUP[tab] || 'overview';
+            document.querySelectorAll('.od-group').forEach(b=>b.classList.toggle('active', b.dataset.group===grp));
+            document.querySelectorAll('.od-util-tab').forEach(b=>b.classList.remove('active'));
+          } else {
+            document.querySelectorAll('.od-group').forEach(b=>b.classList.remove('active'));
+            document.querySelectorAll('.od-util-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+          }
+          // Sub-tab active states
           document.querySelectorAll('.od-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+          // costs-open layout flag (Revenue Planning tab)
           document.getElementById('od-layout').classList.toggle('costs-open', tab==='costs');
-          document.getElementById('od-step-body').style.display      = tab==='overview'    ? '' : 'none';
-          document.getElementById('od-insights-body').style.display  = tab==='insights'    ? '' : 'none';
-          document.getElementById('od-costs-body').style.display     = tab==='costs'       ? '' : 'none';
-          document.getElementById('od-liquidity-body').style.display = tab==='liquidity'   ? '' : 'none';
-          document.getElementById('od-enquiry-body').style.display   = tab==='enquiry'     ? '' : 'none';
-          const ab = document.getElementById('od-activities-body');
-          if(ab) ab.style.display = tab==='activities' ? 'flex' : 'none';
-          const cb = document.getElementById('od-comments-body');
-          if(cb) cb.style.display = tab==='comments' ? 'flex' : 'none';
-          const fb = document.getElementById('od-files-body');
-          if(fb) fb.style.display = tab==='files' ? 'flex' : 'none';
+          // Show/hide all body panels
+          const ALL_TABS = ['overview','insights','costs','liquidity','enquiry','activities','comments','files','booking','planning','delivery','recruitment'];
+          ALL_TABS.forEach(t=>{
+            const el = document.getElementById('od-'+t+'-body') || document.getElementById('od-step-body'+(t==='overview'?'':'-SKIP'));
+            if(t==='overview'){
+              document.getElementById('od-step-body').style.display = tab==='overview' ? '' : 'none';
+            } else {
+              const el2 = document.getElementById('od-'+t+'-body');
+              if(el2) el2.style.display = tab===t ? (['activities','comments'].includes(t)?'flex':'') : 'none';
+            }
+          });
           if(currentOrderIdx < 0) return;
           if(tab==='insights')    renderInsights(currentOrderIdx);
           if(tab==='costs')       renderCosts(currentOrderIdx);
@@ -4403,6 +4498,10 @@ tr:hover td { background: var(--bg3); }
           if(tab==='activities')  renderActivities(currentOrderIdx);
           if(tab==='comments')    renderComments(currentOrderIdx);
           if(tab==='files')       renderFiles(currentOrderIdx);
+          if(tab==='booking')     renderBooking(currentOrderIdx);
+          if(tab==='planning')    renderPlanning(currentOrderIdx);
+          if(tab==='delivery')    renderDelivery(currentOrderIdx);
+          if(tab==='recruitment') renderRecruitment(currentOrderIdx);
         };
 
         // ── Activities / Task Management / Board ─────────────────────────────
@@ -5106,7 +5205,11 @@ tr:hover td { background: var(--bg3); }
               const fieldHtml = (isCur || isDone) && fields.length ? fields.map(f => {
                 const val = data[f.key] || '';
                 const dot = f.mandatory && !val ? '<span style="color:#ef4444;margin-left:2px">*</span>' : '';
-                return `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                const fkey = `${o.seq}::${s.key}::${f.key}`;
+                const hasCmt = window.FC_STORE && (window.FC_STORE[fkey]||[]).length > 0;
+                return `<div class="fc-field-wrap" style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                  ${hasCmt ? '<div class="fc-dot"></div>' : ''}
+                  <button class="fc-trigger" title="Comment" onclick="fcOpen(event,'${fkey}','${f.label.replace(/'/g,"\\'")}')">💬</button>
                   <label style="font-size:10px;color:var(--fg3);min-width:120px;flex-shrink:0">${f.label}${dot}</label>
                   <input type="${f.type||'text'}" value="${val}"
                     style="font-size:11px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--fg);width:140px"
@@ -7007,6 +7110,143 @@ tr:hover td { background: var(--bg3); }
           renderFiles(oIdx);
           showToast('Drive folder unlinked');
         };
+
+        // ── Status bar ───────────────────────────────────────────────────────
+        const STATUS_NEXT = {
+          'ENQUIRY_RECEIVED':    { label:'Enquiry Received',      next:'Create Offer',         owner:'sales' },
+          'OFFER_SENT':          { label:'Offer Sent',            next:'Follow-up / Confirm',  owner:'sales' },
+          'BOOKING_RECEIVED':    { label:'Booking Received',      next:'Send Confirmation',    owner:'coordination' },
+          'ORDER_CONFIRMED':     { label:'Order Confirmed',       next:'Assign Trainer',       owner:'coordination' },
+          'TRAINER_ASSIGNED':    { label:'Trainer Assigned',      next:'Prep & Deliver',       owner:'coordination' },
+          'TRAINING_COMPLETE':   { label:'Training Complete',     next:'Issue Invoice',        owner:'finance' },
+          'INVOICE_SENT':        { label:'Invoice Sent',          next:'Track Payment',        owner:'finance' },
+          'PAYMENT_RECEIVED':    { label:'Payment Received',      next:'Archive',              owner:'finance' },
+        };
+        function renderStatusBar(o){
+          const bar = document.getElementById('od-status-bar');
+          if(!bar) return;
+          const info = STATUS_NEXT[o.status] || { label: o.status||'—', next:'', owner:'' };
+          bar.innerHTML = `
+            <span class="od-sb-stage">${info.label}</span>
+            ${info.next ? `<span class="od-sb-sep">›</span><span class="od-sb-next">Next: <strong>${info.next}</strong></span>` : ''}
+            ${info.owner ? `<span class="od-sb-owner">${info.owner}</span>` : ''}
+          `;
+        }
+
+        // ── Booking placeholder ────────────────────────────────────────────────
+        function renderBooking(oIdx){
+          const o = MOCK[oIdx]; if(!o) return;
+          const el = document.getElementById('od-booking-body'); if(!el) return;
+          el.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:760px">
+              <div class="od-enq-section" style="grid-column:1/-1">
+                <div class="od-enq-section-title">Booking Confirmation</div>
+                <div class="od-enq-fields">
+                  <div class="od-enq-field"><label>Order Ref</label><div class="od-enq-ro">${o.seq||'—'}</div></div>
+                  <div class="od-enq-field"><label>Customer</label><div class="od-enq-ro">${o.customer||'—'}</div></div>
+                  <div class="od-enq-field"><label>Training</label><div class="od-enq-ro">${o.training||'—'}</div></div>
+                  <div class="od-enq-field"><label>Start Date</label><div class="od-enq-ro">${o.startDate||'—'}</div></div>
+                  <div class="od-enq-field"><label>Region</label><div class="od-enq-ro">${o.region||'—'}</div></div>
+                  <div class="od-enq-field"><label>Location</label><div class="od-enq-ro">${o.location||'—'}</div></div>
+                  <div class="od-enq-field"><label>Sales Rep</label><div class="od-enq-ro">${o.sales||'—'}</div></div>
+                  <div class="od-enq-field"><label>Status</label><div class="od-enq-ro">${o.status||'—'}</div></div>
+                </div>
+              </div>
+              <div class="od-enq-section" style="grid-column:1/-1">
+                <div class="od-enq-section-title" style="display:flex;align-items:center;gap:8px">
+                  Booking Document
+                  <span class="od-enq-section-badge">Coming Soon</span>
+                </div>
+                <p style="font-size:12px;color:var(--fg3);margin:8px 0 0">
+                  Booking confirmation PDF will be generated and linked here once BE-013 is live.
+                </p>
+              </div>
+            </div>`;
+        }
+
+        // ── Planning placeholder ───────────────────────────────────────────────
+        function renderPlanning(oIdx){
+          const o = MOCK[oIdx]; if(!o) return;
+          const el = document.getElementById('od-planning-body'); if(!el) return;
+          el.innerHTML = `
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">Training Planning</div>
+              <div class="od-enq-fields">
+                <div class="od-enq-field"><label>Course</label><div class="od-enq-ro">${o.training||'—'}</div></div>
+                <div class="od-enq-field"><label>Start Date</label><div class="od-enq-ro">${o.startDate||'—'}</div></div>
+                <div class="od-enq-field"><label>Location</label><div class="od-enq-ro">${o.location||'—'}</div></div>
+                <div class="od-enq-field"><label>Participants</label><div class="od-enq-ro">${o.participants||'—'}</div></div>
+                <div class="od-enq-field"><label>Coordinator</label><div class="od-enq-ro">${o.coordinator||'—'}</div></div>
+                <div class="od-enq-field"><label>Trainer</label><div class="od-enq-ro">${o.trainerName||'—'}</div></div>
+              </div>
+            </div>
+            <div class="od-enq-section" style="margin-top:16px">
+              <div class="od-enq-section-title" style="display:flex;align-items:center;gap:8px">
+                Room & Logistics
+                <span class="od-enq-section-badge">Coming Soon</span>
+              </div>
+              <p style="font-size:12px;color:var(--fg3);margin:8px 0 0">Room booking, catering, materials checklist will appear here.</p>
+            </div>`;
+        }
+
+        // ── Delivery placeholder ───────────────────────────────────────────────
+        function renderDelivery(oIdx){
+          const o = MOCK[oIdx]; if(!o) return;
+          const el = document.getElementById('od-delivery-body'); if(!el) return;
+          el.innerHTML = `
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">Delivery Tracking</div>
+              <div class="od-enq-fields">
+                <div class="od-enq-field"><label>Course</label><div class="od-enq-ro">${o.training||'—'}</div></div>
+                <div class="od-enq-field"><label>Start Date</label><div class="od-enq-ro">${o.startDate||'—'}</div></div>
+                <div class="od-enq-field"><label>Trainer</label><div class="od-enq-ro">${o.trainerName||'—'}</div></div>
+                <div class="od-enq-field"><label>Status</label><div class="od-enq-ro">${o.status||'—'}</div></div>
+              </div>
+            </div>
+            <div class="od-enq-section" style="margin-top:16px">
+              <div class="od-enq-section-title" style="display:flex;align-items:center;gap:8px">
+                Post-Training
+                <span class="od-enq-section-badge">Coming Soon</span>
+              </div>
+              <p style="font-size:12px;color:var(--fg3);margin:8px 0 0">Attendance sheet, feedback survey results, and certificate generation will appear here.</p>
+            </div>`;
+        }
+
+        // ── Recruitment placeholder ────────────────────────────────────────────
+        function renderRecruitment(oIdx){
+          const o = MOCK[oIdx]; if(!o) return;
+          const el = document.getElementById('od-recruitment-body'); if(!el) return;
+          // Show SP stages relevant to recruitment: SP-05 (Trainer Assignment)
+          const spStages = ['TRAINER_SEARCH','TRAINER_CONTACTED','TRAINER_CONFIRMED','TRAINER_ASSIGNED'];
+          const statusIdx = spStages.indexOf(o.status);
+          el.innerHTML = `
+            <div class="od-enq-section">
+              <div class="od-enq-section-title">Trainer Recruitment Summary</div>
+              <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:10px">
+                ${['Search','Contact','Shortlist','Assign'].map((s,i)=>`
+                  <div style="flex:1;padding:12px 10px;text-align:center;border-right:${i<3?'1px solid var(--border)':'none'};background:${statusIdx>=i?'color-mix(in srgb,var(--accent) 12%,transparent)':'transparent'}">
+                    <div style="font-size:18px">${statusIdx>i?'✅':statusIdx===i?'🔄':'⬜'}</div>
+                    <div style="font-size:11px;font-weight:600;color:${statusIdx>=i?'var(--accent)':'var(--fg3)'};margin-top:4px">${s}</div>
+                  </div>`).join('')}
+              </div>
+            </div>
+            <div class="od-enq-section" style="margin-top:16px">
+              <div class="od-enq-section-title">Assigned Trainer</div>
+              <div class="od-enq-fields">
+                <div class="od-enq-field"><label>Name</label><div class="od-enq-ro">${o.trainerName||'Not yet assigned'}</div></div>
+                <div class="od-enq-field"><label>Call Date</label><div class="od-enq-ro">${o.trainerCallDate||'—'}</div></div>
+                <div class="od-enq-field"><label>Confirmation</label><div class="od-enq-ro">${o.trainerConfirmed?'✅ Confirmed':'Pending'}</div></div>
+                <div class="od-enq-field"><label>Fee</label><div class="od-enq-ro">${o.trainerFee ? '€'+o.trainerFee : '—'}</div></div>
+              </div>
+            </div>
+            <div class="od-enq-section" style="margin-top:16px">
+              <div class="od-enq-section-title" style="display:flex;align-items:center;gap:8px">
+                Recruitment Pipeline
+                <span class="od-enq-section-badge">Coming Soon</span>
+              </div>
+              <p style="font-size:12px;color:var(--fg3);margin:8px 0 0">Full candidate list, messaging history, and shortlisting tools will appear here (BE-014).</p>
+            </div>`;
+        }
 
         // ── renderEnquiry: extend with Booking Received data ──────────────────
         function renderEnquiry(oIdx){
