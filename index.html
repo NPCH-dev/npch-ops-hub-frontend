@@ -1740,6 +1740,14 @@ tr:hover td { background: var(--bg3); }
         .od-task.skipped input { cursor:not-allowed; }
         .od-task-skip-note { font-size:11px; color:var(--fg3); font-style:italic; margin-left:4px; }
         /* SP-01 contract/PO toggle switches */
+        /* SP-02 gate header chips inside task list */
+        .sp02-gate-header { display:flex; align-items:center; gap:7px; margin-top:14px; margin-bottom:4px; padding:5px 8px; border-radius:6px; background:var(--surface2,rgba(255,255,255,.04)); border-left:3px solid var(--border); }
+        .sp02-gate-header.sp02-gate-done { border-left-color:#22c55e; }
+        .sp02-gate-header.sp02-gate-pending { border-left-color:#f59e0b; }
+        .sp02-gate-header.sp02-gate-locked { border-left-color:var(--border); opacity:.7; }
+        .sp02-gate-icon { font-size:13px; }
+        .sp02-gate-name { font-size:11px; font-weight:600; color:var(--fg2); text-transform:uppercase; letter-spacing:.5px; }
+        .sp02-gate-name em { font-weight:400; font-style:normal; color:var(--fg3); text-transform:none; }
         .sp01-flags { display:flex; gap:20px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap; }
         .sp01-flag-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
         .sp01-flag-toggle input[type=checkbox] { display:none; }
@@ -2179,16 +2187,40 @@ tr:hover td { background: var(--bg3); }
           },
           { id:'SP-02', label:'Planning',
             fields:[
-              {key:'amount',       label:'Quote Amount'},
-              {key:'paymentTerms', label:'Payment Terms'},
-              {key:'days',         label:'Duration (days)'},
-              {key:'participants', label:'Est. Participants'},
+              {key:'trainerName',     label:'Trainer'},
+              {key:'delivery',        label:'Delivery Date'},
+              {key:'location',        label:'Location / Format'},
+              {key:'trainerRate',     label:'Trainer Rate'},
+              {key:'days',            label:'Duration (days)'},
+              {key:'participants',    label:'Est. Participants'},
             ],
+            // Gate structure:
+            //  Gate 1 — HR Portal search (internal DB, 1 week incl. 2 contact attempts)
+            //  Gate 2 — Trainer Recruitment (optional — only if internal DB yields nothing)
+            //  Gate 3 — Trainer Selection (team decision, all candidates, with reasoning)
+            //  Gate 4 — Commercial Agreement (rate confirmed before customer contact)
+            //  Gate 5 — Scoping Call (trainer + customer alignment → Delivery Confirmed)
             tasks:[
-              {id:'t1', label:'Quote prepared & reviewed'},
-              {id:'t2', label:'Quote sent to customer'},
-              {id:'t3', label:'Follow-up done'},
-              {id:'t4', label:'Quote accepted by customer'},
+              // Gate 1: HR Portal
+              {id:'t1', label:'Agenda created from offer (DE + EN, no prices)', gate:1},
+              {id:'t2', label:'HR portal searched — trainer candidates identified', gate:1},
+              {id:'t3', label:'Enquiry emails sent (5–6 candidates)', gate:1},
+              {id:'t4', label:'Follow-up calls done (~2–3 days later)', gate:1},
+              // Gate 2: Recruitment (optional)
+              {id:'t5', label:'External recruitment started (Freelancer etc.)', gate:2, optional:true},
+              {id:'t6', label:'Min. 3 external candidates shortlisted', gate:2, optional:true},
+              {id:'t7', label:'Trainer onboarding initiated (new trainers)', gate:2, optional:true},
+              // Gate 3: Trainer Selection
+              {id:'t8', label:'All candidate offers collected & compared', gate:3},
+              {id:'t9', label:'Team selection decision made (with reasoning & participants logged)', gate:3},
+              // Gate 4: Commercial Agreement
+              {id:'t10', label:'Rate agreed with selected trainer', gate:4},
+              {id:'t11', label:'Trainer onboarding complete (if new)', gate:4, optional:true},
+              // Gate 5: Scoping Call
+              {id:'t12', label:'Agenda shared with trainer', gate:5},
+              {id:'t13', label:'Scoping call held (trainer + customer)', gate:5},
+              {id:'t14', label:'Agenda finalised & topics prioritised', gate:5},
+              {id:'t15', label:'Date, location & technical setup confirmed', gate:5},
             ]
           },
           { id:'SP-03', label:'Confirm',
@@ -2599,22 +2631,60 @@ tr:hover td { background: var(--bg3); }
             return `<div><div class="od-field-label">${f.label}</div>${valHtml}</div>`;
           }).join('');
 
-          const tasksHtml = sp.tasks.map(t=>{
-            const ck = getTask(oIdx,sp.id,t.id);
-            // For SP-01: skip/gray t5 (contract) or t6 (PO) if flags say not required
-            let skipped = false;
-            let skipReason = '';
-            if(sp.id === 'SP-01'){
-              const contractReq = o.contractRequired !== false; // default true
-              const poReq       = o.poRequired === true;         // default false
-              if(t.id === 't5' && !contractReq){ skipped = true; skipReason = 'Not required (framework agreement)'; }
-              if(t.id === 't6' && !poReq)      { skipped = true; skipReason = 'Not required'; }
-            }
-            return `<div class="od-task${ck?' checked':''}${skipped?' skipped':''}" id="odt_${sp.id}_${t.id}">
-              <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} ${skipped?'disabled':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
-              <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${skipped?` <span class="od-task-skip-note">${skipReason}</span>`:''}</label>
-            </div>`;
-          }).join('');
+          // SP-02 gate names map
+          const SP02_GATE_NAMES = {
+            1: 'Gate 1 — HR Portal Search',
+            2: 'Gate 2 — External Recruitment (optional)',
+            3: 'Gate 3 — Trainer Selection',
+            4: 'Gate 4 — Commercial Agreement',
+            5: 'Gate 5 — Scoping Call',
+          };
+          let tasksHtml = '';
+          if(sp.id === 'SP-02'){
+            // Group tasks by gate, inject gate header before each new gate group
+            let lastGate = null;
+            const gt = (id) => getTask(oIdx, 'SP-02', id);
+            sp.tasks.forEach(t => {
+              if(t.gate !== lastGate){
+                // Gate header with status
+                const gateTasks = sp.tasks.filter(x=>x.gate===t.gate);
+                const reqIds    = gateTasks.filter(x=>!x.optional).map(x=>x.id);
+                const allDone   = reqIds.every(id=>gt(id));
+                const anyDone   = reqIds.some(id=>gt(id));
+                const st        = allDone ? 'done' : anyDone ? 'pending' : 'locked';
+                const icon      = st==='done' ? '✅' : st==='pending' ? '⏳' : '🔒';
+                const optional  = gateTasks.every(x=>x.optional);
+                tasksHtml += `<div class="sp02-gate-header sp02-gate-${st}">
+                  <span class="sp02-gate-icon">${icon}</span>
+                  <span class="sp02-gate-name">${SP02_GATE_NAMES[t.gate]||('Gate '+t.gate)}${optional?' <em>(optional)</em>':''}</span>
+                </div>`;
+                lastGate = t.gate;
+              }
+              const ck = gt(t.id);
+              const opt = t.optional ? ' <span class="od-task-skip-note">optional</span>' : '';
+              tasksHtml += `<div class="od-task${ck?' checked':''}" id="odt_${sp.id}_${t.id}" style="margin-left:12px">
+                <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
+                <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${opt}</label>
+              </div>`;
+            });
+          } else {
+            tasksHtml = sp.tasks.map(t=>{
+              const ck = getTask(oIdx,sp.id,t.id);
+              // For SP-01: skip/gray t5 (contract) or t6 (PO) if flags say not required
+              let skipped = false;
+              let skipReason = '';
+              if(sp.id === 'SP-01'){
+                const contractReq = o.contractRequired !== false; // default true
+                const poReq       = o.poRequired === true;         // default false
+                if(t.id === 't5' && !contractReq){ skipped = true; skipReason = 'Not required (framework agreement)'; }
+                if(t.id === 't6' && !poReq)      { skipped = true; skipReason = 'Not required'; }
+              }
+              return `<div class="od-task${ck?' checked':''}${skipped?' skipped':''}" id="odt_${sp.id}_${t.id}">
+                <input type="checkbox" id="cb_${sp.id}_${t.id}" ${ck?'checked':''} ${skipped?'disabled':''} onchange="toggleTask(${oIdx},'${sp.id}','${t.id}',this.checked)">
+                <label class="od-task-label" for="cb_${sp.id}_${t.id}">${t.label}${skipped?` <span class="od-task-skip-note">${skipReason}</span>`:''}</label>
+              </div>`;
+            }).join('');
+          }
 
           // ── SP-01: Contract / PO toggle switches + Gate 2 ───────────────────
           let gate2Html = '';
