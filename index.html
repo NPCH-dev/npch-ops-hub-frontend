@@ -5976,75 +5976,74 @@ tr:hover td { background: var(--bg3); }
           </div>`;
         }
 
-        // Email agent not yet wired → show placeholder with mock data for demo
         function renderInsights(oIdx){
           const body = document.getElementById('od-insights-body');
-          const o = MOCK[oIdx];
+          const o = MOCK[oIdx] || {};
           body.innerHTML = insightSkeleton();
 
-          // Simulate async fetch delay (replace with real api() call later)
-          setTimeout(()=>{
-            // --- MOCK DATA — replace with: api('/orders/'+o.seq+'/insights') ---
-            const emails = [
-              { from: o.contact||'Customer', subj: 'Re: Training confirmation — '+o.training.slice(0,40), date: '2 days ago', init: (o.contact||'C')[0] },
-              { from: o.sales||'Sales Team', subj: 'Quote follow-up sent', date: '5 days ago', init: (o.sales||'S')[0] },
-              { from: 'Trainer Pool', subj: 'Availability confirmed for '+o.delivery, date: '1 week ago', init: 'T' },
-            ];
-            const actions = [
-              { text: 'Send booking confirmation to '+o.customer, urgent: true },
-              { text: 'Confirm trainer briefing materials are ready', urgent: false },
-              { text: 'Check PO status — not yet received', urgent: !o.po },
-            ];
-            const summary = `Last interaction was 2 days ago. ${o.customer} confirmed the training dates. `
-              + `Waiting for ${o.po?'full invoice':'PO and pre-payment'}. `
-              + `Next step: ${o.status==='ORDER_CREATED'?'Send booking confirmation.':o.status==='DELIVERY_INVOICEABLE'?'Issue full invoice.':'Follow up on payment.'}`;
+          const orderId = o.id;
+          if(!orderId){ body.innerHTML='<div style="padding:24px;text-align:center;color:var(--fg3)">No order selected</div>'; return; }
 
-            body.innerHTML = `
-              <!-- Summary -->
-              <div class="od-insight-card">
-                <div class="od-insight-card-title">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  AI Summary
-                  <span style="margin-left:auto;font-size:9px;background:rgba(99,102,241,.15);color:var(--accent);padding:2px 6px;border-radius:10px;font-weight:700">DEMO</span>
+          api('/orders/'+orderId+'/insights')
+            .then(d => {
+              const summary      = d.summary || '';
+              const actionItems  = Array.isArray(d.action_items) ? d.action_items : [];
+              const recentEmails = Array.isArray(d.recent_emails) ? d.recent_emails : [];
+
+              body.innerHTML = `
+                <!-- Summary -->
+                <div class="od-insight-card">
+                  <div class="od-insight-card-title">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    AI Summary
+                  </div>
+                  <div class="od-summary-text">${summary || '<span style="color:var(--fg3)">No summary available.</span>'}</div>
                 </div>
-                <div class="od-summary-text">${summary}</div>
-              </div>
 
-              <!-- Action Items -->
-              <div class="od-insight-card">
-                <div class="od-insight-card-title">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                  Action Items
+                <!-- Action Items -->
+                <div class="od-insight-card">
+                  <div class="od-insight-card-title">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    Action Items
+                  </div>
+                  ${actionItems.length
+                    ? actionItems.map((a,i)=>`<div class="od-action-item"><div class="od-action-dot${i===0?' urgent':''}"></div><span>${a}</span></div>`).join('')
+                    : '<div style="color:var(--fg3);font-size:12px;padding:4px 0">No action items.</div>'
+                  }
                 </div>
-                ${actions.map(a=>`<div class="od-action-item"><div class="od-action-dot${a.urgent?' urgent':''}"></div><span>${a.text}</span></div>`).join('')}
-              </div>
 
-              <!-- Recent Emails -->
-              <div class="od-insight-card">
-                <div class="od-insight-card-title">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                  Recent Emails
-                </div>
-                ${emails.map(e=>`
-                  <div class="od-insight-email">
-                    <div class="od-insight-avatar">${e.init.toUpperCase()}</div>
-                    <div class="od-insight-email-meta">
-                      <div class="od-insight-email-from">${e.from}</div>
-                      <div class="od-insight-email-subj">${e.subj}</div>
-                    </div>
-                    <div class="od-insight-email-date">${e.date}</div>
-                  </div>`).join('')}
-              </div>
-
-              <!-- Connect CTA -->
-              <div style="text-align:center;padding:16px 0 4px;color:var(--fg3);font-size:11px">
-                <div>Connect Gmail to load real email history</div>
-                <button class="od-insight-connect" onclick="navigate('settings')" style="margin-top:10px">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  Connect Gmail
-                </button>
+                <!-- Recent Emails -->
+                <div class="od-insight-card">
+                  <div class="od-insight-card-title">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    Recent Emails
+                  </div>
+                  ${recentEmails.length
+                    ? recentEmails.map(e=>`
+                        <div class="od-insight-email">
+                          <div class="od-insight-avatar">${((e.from||'?')[0]).toUpperCase()}</div>
+                          <div class="od-insight-email-meta">
+                            <div class="od-insight-email-from">${e.from||''}</div>
+                            <div class="od-insight-email-subj">${e.subject||e.subj||''}</div>
+                          </div>
+                          <div class="od-insight-email-date">${e.date||''}</div>
+                        </div>`).join('')
+                    : `<div style="color:var(--fg3);font-size:12px;padding:4px 0">No emails found.
+                        <button class="od-insight-connect" onclick="navigate('settings')" style="margin-left:8px">
+                          Connect Gmail
+                        </button></div>`
+                  }
+                </div>`;
+            })
+            .catch(err => {
+              console.error('[insights]', err);
+              body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--fg3)">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px;opacity:.4"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+                <div>Could not load insights</div>
+                <div style="font-size:11px;margin-top:4px;opacity:.6">${err.message||'Unknown error'}</div>
+                <button onclick="renderInsights(${oIdx})" style="margin-top:12px;padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Retry</button>
               </div>`;
-          }, 900);
+            });
         }
 
         // ── Dev-mode role & permissions ───────────────────────────────────────
