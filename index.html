@@ -1972,8 +1972,9 @@ tr:hover td { background: var(--bg3); }
         .od-pricing-field label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); display:block; margin-bottom:3px; font-weight:600; }
         .od-pricing-field input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:5px 8px; font-size:12px; color:var(--fg); box-sizing:border-box; }
         .od-pricing-field input:focus { outline:none; border-color:var(--accent); }
-        .od-profit-pos { color:#34d399; font-weight:600; }
-        .od-profit-neg { color:#f87171; font-weight:600; }
+        .od-profit-pos  { color:#34d399; font-weight:600; }
+        .od-profit-warn { color:#f59e0b; font-weight:600; }
+        .od-profit-neg  { color:#f87171; font-weight:600; }
         .cb-field-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; background:var(--bg2); border-radius:7px; border:1px solid var(--border); }
         .cb-field-label { display:flex; flex-direction:column; gap:2px; }
         .cb-field-label span:first-child { font-size:13px; color:var(--fg); font-weight:500; }
@@ -4291,14 +4292,27 @@ tr:hover td { background: var(--bg3); }
           if(sc.daDesktopPerDay   === undefined) sc.daDesktopPerDay   = 0;
           if(sc.otherFlat         === undefined) sc.otherFlat         = 0;
 
-          const trainerTotal = sc.trainerRatePerDay * days;
-          const accomTotal   = sc.accomRatePerNight * sc.accomNights;
-          const daTotal      = sc.daDesktopPerDay   * days;
-          const totalCosts   = trainerTotal + sc.travelFlat + accomTotal + daTotal + sc.otherFlat;
-          const margin       = revenue - totalCosts;
-          const marginPct    = revenue > 0 ? (margin / revenue * 100) : 0;
-          const marginCls    = margin >= 0 ? 'od-profit-pos' : 'od-profit-neg';
+          const trainerTotal  = sc.trainerRatePerDay * days;
+          const accomTotal    = sc.accomRatePerNight * sc.accomNights;
+          const daTotal       = sc.daDesktopPerDay   * days;
+          const sysFeeAmt     = revenue * 0.175;  // System Fee 17.5% — fixed, not editable
+          const directCosts   = trainerTotal + sc.travelFlat + accomTotal + daTotal + sc.otherFlat + sysFeeAmt;
 
+          // Gross Margin (visible to all) — target ≥ 45%
+          const grossMargin    = revenue - directCosts;
+          const grossMarginPct = revenue > 0 ? (grossMargin / revenue * 100) : 0;
+          const gmCls = grossMarginPct >= 45 ? 'od-profit-pos' : grossMarginPct >= 30 ? 'od-profit-warn' : 'od-profit-neg';
+
+          // Management-only P&L overhead (% of revenue)
+          const cosAmt  = revenue * 0.10;  // Cost of Sales
+          const cpmAmt  = revenue * 0.05;  // Cost of Project Management
+          const riskAmt = revenue * 0.10;  // Risk
+          const pnlOverhead   = cosAmt + cpmAmt + riskAmt;
+          const profitLoss    = grossMargin - pnlOverhead;
+          const profitLossPct = revenue > 0 ? (profitLoss / revenue * 100) : 0;
+          const plCls = profitLoss >= 0 ? 'od-profit-pos' : 'od-profit-neg';
+
+          const isManagement = ['management','admin'].includes(DEV_ROLE);
           const canConfirm       = sc.trainerRatePerDay > 0;
           const alreadyConfirmed = o.status === 'SALES_CONFIRMED' || o.salesConfirmedAt;
 
@@ -4365,8 +4379,8 @@ tr:hover td { background: var(--bg3); }
                 <span style="font-size:20px;font-weight:700;color:var(--fg)">${fmtCur(revenue)}</span>
               </div>
 
-              <!-- Cost table -->
-              <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Cost Breakdown</div>
+              <!-- Direct Costs table -->
+              <div style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Direct Costs</div>
               <table class="cb-table">
                 <thead>
                   <tr>
@@ -4393,32 +4407,98 @@ tr:hover td { background: var(--bg3); }
                   </tr>
                   ${row('Remote Desktop', `${days} day${days!==1?'s':''}`, 'daDesktopPerDay', sc.daDesktopPerDay, daTotal, false)}
                   ${row('Other', '', 'otherFlat', sc.otherFlat, sc.otherFlat, false)}
+                  <tr>
+                    <td class="cb-td-name">System Fee
+                      <span class="cb-td-hint">17.5% of revenue · fixed</span>
+                    </td>
+                    <td class="cb-td-unit" style="text-align:right">
+                      <span style="font-size:12px;font-weight:600;color:var(--fg3)">17.5%</span>
+                    </td>
+                    <td class="${sysFeeAmt===0?'cb-td-total cb-zero':'cb-td-total'}">${fmt(sysFeeAmt)}</td>
+                  </tr>
                 </tbody>
                 <tfoot>
                   <tr class="cb-tfoot-row">
-                    <td colspan="2">Total Costs</td>
-                    <td class="cb-td-total">${fmt(totalCosts)}</td>
+                    <td colspan="2">Total Direct Costs</td>
+                    <td class="cb-td-total">${fmt(directCosts)}</td>
                   </tr>
                 </tfoot>
               </table>
 
-              <!-- Margin -->
-              <div class="cb-margin-block" style="margin-top:14px;margin-bottom:16px">
-                <span class="cb-margin-label">Margin</span>
+              <!-- Gross Margin (visible to all) -->
+              <div class="cb-margin-block" style="margin-top:14px;margin-bottom:4px">
+                <div>
+                  <span class="cb-margin-label">Gross Margin</span>
+                  <div style="font-size:10px;color:var(--fg3);margin-top:2px">Revenue − Direct Costs · target ≥ 45%</div>
+                </div>
                 <div class="cb-margin-values">
-                  <span class="${marginCls}" style="font-size:18px;font-weight:700">${fmtCur(margin)}</span>
-                  <span class="${marginCls}" style="font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;
-                    background:${margin>=0?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)'}">${marginPct.toFixed(1)}%</span>
+                  <span class="${gmCls}" style="font-size:18px;font-weight:700">${fmtCur(grossMargin)}</span>
+                  <span class="${gmCls}" style="font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;
+                    background:${grossMarginPct>=45?'rgba(16,185,129,.12)':grossMarginPct>=30?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)'}">
+                    ${grossMarginPct.toFixed(1)}%
+                  </span>
                 </div>
               </div>
+              ${grossMarginPct < 45 ? `<div style="font-size:11px;color:${grossMarginPct>=30?'#f59e0b':'#f87171'};margin-bottom:4px;padding:0 2px">
+                ⚠ ${grossMarginPct>=30?'Below target — review direct costs':'Below minimum — not viable at current rates'}
+              </div>` : ''}
 
-              <!-- Confirm gate -->
+              <!-- Management-only P&L section -->
+              ${isManagement ? `
+              <div style="margin-top:16px;border-top:1px dashed var(--border);padding-top:14px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+                  <span style="font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em">Internal P&amp;L</span>
+                  <span style="font-size:9px;font-weight:600;color:var(--fg3);background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:1px 7px">Management only</span>
+                </div>
+                <table class="cb-table">
+                  <tbody>
+                    <tr>
+                      <td class="cb-td-name">Cost of Sales<span class="cb-td-hint">10% of revenue</span></td>
+                      <td class="cb-td-unit"><span style="font-size:12px;font-weight:600;color:var(--fg3)">10%</span></td>
+                      <td class="cb-td-total">${fmt(cosAmt)}</td>
+                    </tr>
+                    <tr>
+                      <td class="cb-td-name">Cost of Project Mgmt<span class="cb-td-hint">5% of revenue</span></td>
+                      <td class="cb-td-unit"><span style="font-size:12px;font-weight:600;color:var(--fg3)">5%</span></td>
+                      <td class="cb-td-total">${fmt(cpmAmt)}</td>
+                    </tr>
+                    <tr>
+                      <td class="cb-td-name">Risk<span class="cb-td-hint">10% of revenue</span></td>
+                      <td class="cb-td-unit"><span style="font-size:12px;font-weight:600;color:var(--fg3)">10%</span></td>
+                      <td class="cb-td-total">${fmt(riskAmt)}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="cb-tfoot-row">
+                      <td colspan="2">Total Overhead</td>
+                      <td class="cb-td-total">${fmt(pnlOverhead)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                <div class="cb-margin-block" style="margin-top:12px">
+                  <div>
+                    <span class="cb-margin-label">Profit / Loss</span>
+                    <div style="font-size:10px;color:var(--fg3);margin-top:2px">Gross Margin − Overhead</div>
+                  </div>
+                  <div class="cb-margin-values">
+                    <span class="${plCls}" style="font-size:18px;font-weight:700">${fmtCur(profitLoss)}</span>
+                    <span class="${plCls}" style="font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;
+                      background:${profitLoss>=0?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)'}">
+                      ${profitLossPct.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>` : ''}
+
+              <!-- Confirm gate (visible to all) -->
+              <div style="margin-top:16px">
               ${alreadyConfirmed
                 ? `<div class="cb-confirmed-bar">✓ Sale Confirmed${o.salesConfirmedAt?' · '+new Date(o.salesConfirmedAt).toLocaleDateString('de-DE'):''}</div>`
                 : `<button onclick="confirmSale(${oIdx})" class="cb-confirm-btn${canConfirm?' cb-confirm-ready':''}" ${canConfirm?'':'disabled'}>
                     ${canConfirm ? '✓ Confirm Sale' : 'Enter trainer rate to confirm'}
                    </button>`
               }
+              </div>
             </div>`;
         }
 
