@@ -5555,6 +5555,9 @@ tr:hover td { background: var(--bg3); }
           document.getElementById('od-overlay-step-body').style.display        = tab==='overview'    ? '' : 'none';
           document.getElementById('od-overlay-insights-body').style.display    = tab==='insights'    ? '' : 'none';
           document.getElementById('od-overlay-activities-body').style.display  = tab==='activities'  ? '' : 'none';
+          if(tab==='insights' && currentOrderIdx>=0){
+            renderInsightsInto('od-overlay-insights-body', currentOrderIdx);
+          }
           if(tab==='activities' && currentOrderIdx>=0){
             const seq = MOCK[currentOrderIdx].seq;
             const el = document.getElementById('od-overlay-activities-body');
@@ -5981,8 +5984,9 @@ tr:hover td { background: var(--bg3); }
           </div>`;
         }
 
-        function renderInsights(oIdx){
-          const body = document.getElementById('od-insights-body');
+        function renderInsightsInto(targetId, oIdx){
+          const body = document.getElementById(targetId);
+          if(!body) return;
           const o = MOCK[oIdx] || {};
           body.innerHTML = insightSkeleton();
 
@@ -6046,10 +6050,12 @@ tr:hover td { background: var(--bg3); }
                 <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px;opacity:.4"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
                 <div>Could not load insights</div>
                 <div style="font-size:11px;margin-top:4px;opacity:.6">${err.message||'Unknown error'}</div>
-                <button onclick="renderInsights(${oIdx})" style="margin-top:12px;padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Retry</button>
+                <button onclick="renderInsightsInto('${targetId}',${oIdx})" style="margin-top:12px;padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Retry</button>
               </div>`;
             });
         }
+
+        function renderInsights(oIdx){ renderInsightsInto('od-insights-body', oIdx); }
 
         // ── Dev-mode role & permissions ───────────────────────────────────────
         let DEV_ROLE = 'management';
