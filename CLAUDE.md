@@ -53,18 +53,19 @@ API-URL kann in Einstellungen (`#settings`) überschrieben werden (gespeichert i
 | `#settings` | Einstellungen + Profil | Layout ✅ / API ⏳ |
 | `#approvals` | Freigaben | Layout ✅ / API ⏳ |
 
-## Orders-Seite (`#orders`) — aktueller Stand (Stand: 2026-11-17)
+## Orders-Seite (`#orders`) — aktueller Stand (Stand: 2026-11-19)
 
 **Layout:** HubSpot-Style Master-Detail — linke Tabelle (52 Aufträge live), rechtes Panel mit:
 - **Overview Tab:** SP-Stepper (SP-01..SP-08), Stage-Fields, Task-Checkboxen
-- **AI Insights Tab:** Skeleton-Loader → Mock-Daten (Summary, Action Items, Emails)
-  - Backend live: `GET /orders/{order_id}/insights` (BE-012 ✅ deployed)
-  - Mock ersetzen: `api('/orders/'+o.id+'/insights')` statt `setTimeout` — route nimmt UUID, nicht seq
+- **AI Insights Tab:** Echter API-Call (`GET /orders/{order_id}/insights`) ✅ live
+  - `renderInsightsInto(targetId, oIdx)` — shared function für Sidebar + Overlay
+- **#questions Seite:** Zeigt `needs_clarification` Tickets aus `/data/tickets?status=needs_clarification` ✅
 
 **Datenquellen:**
 - Tabelle: `GET /api/v1/orders` → live
 - Detail: `GET /api/v1/orders/{seq}` → live
-- Insights: Mock → Backend live ✅ (`GET /api/v1/orders/{order_id}/insights`)
+- Insights: `GET /api/v1/orders/{order_id}/insights` → live (BE-012 ✅)
+- Questions: `GET /api/v1/data/tickets?status=needs_clarification` → live (BE-018 ✅)
 
 ## Nächste Schritte
 
@@ -72,10 +73,8 @@ API-URL kann in Einstellungen (`#settings`) überschrieben werden (gespeichert i
 |---|-----|-------------|
 | 1 | ~~Ticket BE-012 anlegen~~ | ✅ done |
 | 2 | ~~Developer Agent triggern~~ | ✅ BE-012 committed + hotfixed |
-| 3 | Mock in AI Insights durch echten API-Call ersetzen | `api('/orders/'+o.id+'/insights')` — o.id = UUID |
+| 3 | ~~Mock in AI Insights durch echten API-Call ersetzen~~ | ✅ done (`36ef03a`) |
 | 4 | Gmail-Integration in Settings verdrahten | GMAIL_REFRESH_TOKEN/CLIENT_ID/SECRET in .env |
-
-**Bekanntes Problem:** POST `/api/v1/tickets` gibt 500 → Backend-Container `npch-b7` hat alten Code (pre-Nov 13 Fix). Container-Neustart in aaPanel nötig, dann läuft `Btn0JZ205bKDIQQp` durch.
 
 ## Sprint 1 — Auth & Benutzerverwaltung
 
