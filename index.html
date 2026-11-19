@@ -1146,6 +1146,11 @@ tr:hover td { background: var(--bg3); }
         Backlog
         <span class="nav-badge" id="badge-backlog" style="display:none">0</span>
       </a>
+      <a class="nav-item" data-page="questions" href="#questions">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        Questions
+        <span class="nav-badge red" id="badge-questions" style="display:none">0</span>
+      </a>
       <a class="nav-item" data-page="agents" href="#agents">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>
         Agenten
@@ -8285,6 +8290,70 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
 
+    <!-- ── Page: Questions ───────────────────────────────────────────────── -->
+    <div class="page" id="page-questions">
+      <style>
+        .qs-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+        .qs-title  { font-size:20px; font-weight:700; }
+        .qs-meta   { font-size:12px; color:var(--fg3); margin-top:2px; }
+        .qs-empty  { text-align:center; padding:60px 20px; color:var(--fg3); }
+        .qs-empty-icon { font-size:40px; margin-bottom:12px; }
+        .qs-empty-msg  { font-size:14px; }
+
+        .qs-card {
+          background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+          padding:18px 20px; margin-bottom:12px; transition:border-color .15s;
+        }
+        .qs-card:hover { border-color:var(--accent); }
+        .qs-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+        .qs-ticket-id  { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:.04em; }
+        .qs-age        { font-size:11px; color:var(--yellow); font-weight:600; display:flex; align-items:center; gap:4px; }
+        .qs-title-text { font-size:14px; font-weight:600; margin-bottom:8px; }
+        .qs-question   {
+          background:var(--bg3); border-radius:var(--radius-sm); padding:12px 14px;
+          font-size:12.5px; color:var(--fg2); line-height:1.6; white-space:pre-wrap;
+          word-break:break-word; margin-bottom:14px;
+        }
+        .qs-answer-row { display:flex; gap:8px; align-items:flex-start; }
+        .qs-textarea   {
+          flex:1; background:var(--bg3); border:1px solid var(--border);
+          border-radius:var(--radius-sm); color:var(--fg); font-size:12.5px;
+          font-family:inherit; padding:9px 12px; resize:vertical; min-height:70px;
+          outline:none; transition:border-color .15s;
+        }
+        .qs-textarea:focus { border-color:var(--accent); }
+        .qs-textarea::placeholder { color:var(--fg3); }
+        .qs-submit-btn {
+          padding:8px 16px; background:var(--accent); color:#fff; border:none;
+          border-radius:var(--radius-sm); font-size:12.5px; font-weight:600;
+          cursor:pointer; white-space:nowrap; transition:background .15s; align-self:flex-end;
+        }
+        .qs-submit-btn:hover { background:var(--accent2); }
+        .qs-submit-btn:disabled { opacity:.5; cursor:not-allowed; }
+        .qs-hint { font-size:10.5px; color:var(--fg3); margin-top:5px; text-align:right; }
+        .qs-timeout-bar {
+          height:3px; border-radius:2px; background:var(--border);
+          margin-bottom:12px; overflow:hidden;
+        }
+        .qs-timeout-fill { height:100%; border-radius:2px; background:var(--yellow); transition:width .3s; }
+      </style>
+
+      <div class="qs-header">
+        <div>
+          <div class="qs-title">❓ Open Questions</div>
+          <div class="qs-meta" id="qs-meta-text">Loading…</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadQuestionsPage()" style="font-size:11.5px">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+
+      <div id="qs-list">
+        <div class="qs-empty"><div class="qs-empty-icon">⏳</div><div class="qs-empty-msg">Loading…</div></div>
+      </div>
+    </div>
+
     <!-- ── Page: Agent Status ─────────────────────────────────────────────── -->
     <!-- ── Page: Agent Kontrollzentrum ──────────────────────────────────────── -->
     <div class="page" id="page-agents">
@@ -9139,6 +9208,7 @@ const PAGES = {
   team:         { title: 'Team / Intern',       load: null },
   sprint:       { title: 'Sprint Board',        load: loadSprint },
   backlog:      { title: 'Backlog',             load: loadBacklog },
+  questions:    { title: 'Open Questions',      load: loadQuestionsPage },
   agents:       { title: 'Agenten',             load: () => { loadAgentsPage(); if(document.getElementById('agents-auto-refresh')?.checked) toggleAgentsRefresh(true); } },
   status:       { title: 'System Status',       load: loadStatus },
   approvals:    { title: 'Freigaben',           load: loadApprovals },
@@ -10384,6 +10454,20 @@ const AGENTS_DEF = [
     trigger: 'Montags 08:30', model: 'qwen2.5-coder:32b',
     active: true, lastRun: null, nextRun: null,
   },
+  {
+    id: '3dN0FTrIB8iTPssy', icon: '🤔', name: 'Clarification Agent',
+    desc: 'Trifft autonome Entscheidungen bei offenen Fragen — lädt Spec + Decisions aus GitHub, analysiert den Kontext mit LLM und beantwortet Klärungstickets automatisch nach 2h Timeout.',
+    trigger: 'On-Demand (via Question Monitor nach 2h Timeout)', model: 'qwen2.5-coder:32b',
+    active: true, lastRun: null, nextRun: null,
+    group: 'development',
+  },
+  {
+    id: '9X2v0d0FpxfpYj6K', icon: '🕐', name: 'Question Monitor',
+    desc: 'Prüft alle 15 Min ob needs_clarification-Tickets länger als 2h offen sind — wenn ja, triggert automatisch den Clarification Agent.',
+    trigger: 'Alle 15 Minuten', model: null,
+    active: true, lastRun: null, nextRun: null,
+    group: 'development',
+  },
 ];
 
 // Mock LLM Traces (später durch Langfuse API ersetzen)
@@ -10956,6 +11040,97 @@ async function submitAnswer() {
     setTimeout(loadAgentsPage, 500);
   } catch (e) {
     btn.textContent = '✅ Submit Answer'; btn.disabled = false;
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── Questions Page ────────────────────────────────────────────────────────────
+let _questionsCache = [];
+
+async function loadQuestionsPage() {
+  const list = document.getElementById('qs-list');
+  const meta = document.getElementById('qs-meta-text');
+  if (!list) return;
+  list.innerHTML = '<div class="qs-empty"><div class="qs-empty-icon">⏳</div><div class="qs-empty-msg">Loading…</div></div>';
+  try {
+    const tickets = await api('/data/tickets?status=needs_clarification');
+    const arr = Array.isArray(tickets) ? tickets : (tickets.tickets || tickets.items || tickets.data || []);
+    _questionsCache = arr;
+    // Update badge
+    const badge = document.getElementById('badge-questions');
+    if (badge) {
+      if (arr.length > 0) { badge.textContent = arr.length; badge.style.display = ''; }
+      else badge.style.display = 'none';
+    }
+    if (meta) meta.textContent = arr.length === 0 ? 'No open questions — all clear ✅' : arr.length + ' question' + (arr.length>1?'s':'') + ' waiting for your input';
+    if (arr.length === 0) {
+      list.innerHTML = '<div class="qs-empty"><div class="qs-empty-icon">✅</div><div class="qs-empty-msg">No open questions — the Developer Agent has everything it needs.</div></div>';
+      return;
+    }
+    const now = Date.now();
+    list.innerHTML = arr.map(t => {
+      const rawDesc = t.description || '';
+      const qMatch = rawDesc.match(/QUESTION \(Agent\):\n?([\s\S]*?)(?:\n\n✅|$)/);
+      const questionText = qMatch ? qMatch[1].trim() : rawDesc.trim() || '(no question text)';
+      const title = t.title || t.ticket_id || '—';
+      const updatedMs = new Date(t.updated_at || t.created_at || 0).getTime();
+      const ageMs = now - updatedMs;
+      const ageH = ageMs / 3600000;
+      const ageLabel = ageH < 1 ? Math.round(ageMs/60000) + 'm ago' : (ageH < 24 ? ageH.toFixed(1) + 'h ago' : Math.floor(ageH/24) + 'd ago');
+      const timeoutPct = Math.min(100, (ageH / 2) * 100); // 2h = 100%
+      const isTimedOut = ageH >= 2;
+      const ageColor = isTimedOut ? 'var(--red)' : (ageH > 1 ? 'var(--yellow)' : 'var(--fg3)');
+      return `
+        <div class="qs-card" id="qsc-${escAttr(t.ticket_id||'')}">
+          <div class="qs-card-header">
+            <span class="qs-ticket-id">${escHtml(t.ticket_id||'—')}</span>
+            <span class="qs-age" style="color:${ageColor}">
+              ${isTimedOut ? '⚠️' : '⏳'} ${ageLabel}${isTimedOut ? ' — Clarification Agent auto-deciding' : ''}
+            </span>
+          </div>
+          <div class="qs-timeout-bar"><div class="qs-timeout-fill" style="width:${timeoutPct}%;background:${isTimedOut?'var(--red)':'var(--yellow)'}"></div></div>
+          <div class="qs-title-text">${escHtml(title)}</div>
+          <div class="qs-question">${escHtml(questionText)}</div>
+          <div class="qs-answer-row">
+            <textarea class="qs-textarea" id="qs-ta-${escAttr(t.ticket_id||'')}"
+              placeholder="Type your answer here and the Developer Agent will continue…"
+              onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();submitQsAnswer('${escAttr(t.ticket_id||'')}','${escAttr(questionText)}')}"
+            ></textarea>
+            <div>
+              <button class="qs-submit-btn" id="qs-btn-${escAttr(t.ticket_id||'')}"
+                onclick="submitQsAnswer('${escAttr(t.ticket_id||'')}','${escAttr(questionText)}')">
+                ✅ Answer
+              </button>
+              <div class="qs-hint">⌘ Enter</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    if (meta) meta.textContent = 'Error loading questions';
+    list.innerHTML = '<div class="qs-empty"><div class="qs-empty-icon">⚠️</div><div class="qs-empty-msg">Could not load questions: ' + escHtml(e.message) + '</div></div>';
+  }
+}
+
+async function submitQsAnswer(ticketId, originalQuestion) {
+  const ta = document.getElementById('qs-ta-' + ticketId);
+  const btn = document.getElementById('qs-btn-' + ticketId);
+  if (!ta || !btn) return;
+  const answer = ta.value.trim();
+  if (!answer) { ta.focus(); ta.style.borderColor = 'var(--red)'; setTimeout(()=>ta.style.borderColor='',1200); return; }
+  btn.textContent = '⏳'; btn.disabled = true;
+  try {
+    const newDesc = '❓ QUESTION (Agent):\n' + originalQuestion +
+      '\n\n✅ ANSWERED (Human):\n' + answer +
+      '\n\n📋 NEXT STEP: Resume implementation using the answer above.';
+    await api('/data/tickets/by-ticket-id/' + ticketId, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'backlog', description: newDesc })
+    });
+    showToast('✅ Answer submitted — Developer Agent will pick this up on next run', 'success');
+    setTimeout(loadQuestionsPage, 500);
+  } catch (e) {
+    btn.textContent = '✅ Answer'; btn.disabled = false;
     showToast('Error: ' + e.message, 'error');
   }
 }
