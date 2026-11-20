@@ -11124,7 +11124,7 @@ function _renderAgentGridFromCache() {
         <div class="ac-desc">${a.desc}</div>
         <div class="ac-meta">
           <div class="ac-meta-item">Last run: <span>${lastRunStr}</span></div>
-          <div class="ac-meta-item">Model: <span>${a.model.split(':')[0]}</span></div>
+          <div class="ac-meta-item">Model: <span>${a.model ? a.model.split(':')[0] : '—'}</span></div>
         </div>
         <div class="ac-trigger">🕐 ${a.trigger}</div>
         ${lastOut ? `<div class="ac-last-output">${escHtml(lastOut)}</div>` : ''}
