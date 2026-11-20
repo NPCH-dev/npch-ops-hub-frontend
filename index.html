@@ -11777,7 +11777,7 @@ function relTime(d) {
 
 // ── Backlog ───────────────────────────────────────────────────────────────────
 let _blAllTickets = [];
-let _blSort = { col: '', dir: 'asc' };
+let _blSort = { col: 'ticket_id', dir: 'desc' };
 let _blView = 'active'; // 'active' | 'archived' | 'trash'
 
 // Component gespeichert in localStorage: { ticketId: component }
@@ -11837,6 +11837,14 @@ function setBacklogView(view) {
   renderBacklogTable();
 }
 
+function blToggleDesc(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (btn && !btn.textContent.includes('Q')) btn.textContent = isOpen ? '▾' : '▴';
+}
+
 function blSort(col) {
   if (_blSort.col === col) {
     _blSort.dir = _blSort.dir === 'asc' ? 'desc' : 'asc';
@@ -11887,6 +11895,11 @@ function renderBacklogTable() {
       if (_blSort.col === 'component') { va = getComponent(a.ticket_id); vb = getComponent(b.ticket_id); }
       if (_blSort.col === 'priority')  { va = prioOrder[a.priority] ?? 9; vb = prioOrder[b.priority] ?? 9; return (va - vb) * dir; }
       if (_blSort.col === 'story_points') { return ((a.story_points || 0) - (b.story_points || 0)) * dir; }
+      if (_blSort.col === 'ticket_id') {
+        // Sort by numeric suffix: BE-013 → 13, ticket-002 → 2
+        const num = s => parseInt((s || '').replace(/\D+/g, '') || '0', 10);
+        return (num(va) - num(vb)) * dir;
+      }
       return String(va || '').localeCompare(String(vb || '')) * dir;
     });
   }
@@ -11915,12 +11928,56 @@ function renderBacklogTable() {
     const isTrash    = t.status === 'trash';
     const isArchived = t.status === 'archived';
     const isSel      = _blSelected.has(t.ticket_id);
-    return `<tr style="${isSel ? 'background:rgba(99,102,241,.08)' : ''}">
+    const desc = t.description || '';
+    const hasQ = desc.includes('❓ QUESTION');
+    const hasA = desc.includes('✅ ANSWER');
+    const hasDesc = desc.trim().length > 0;
+    // Parse Q&A sections
+    let qText = '', aText = '', descMain = desc;
+    if (hasQ) {
+      const qMatch = desc.match(/❓ QUESTION \(Agent\):\n([\s\S]*?)(?=\n\n✅ ANSWER:|$)/);
+      const aMatch = desc.match(/✅ ANSWER:\n([\s\S]*?)$/);
+      qText = qMatch ? qMatch[1].trim() : '';
+      aText = aMatch ? aMatch[1].trim() : '';
+      descMain = '';
+    }
+    const expandId = 'bl-desc-' + t.ticket_id.replace(/[^a-z0-9]/gi,'_');
+    const descHtml = hasQ
+      ? `<div style="display:none" id="${expandId}">
+           <table style="width:100%;border-collapse:collapse;margin-top:0">
+             <tr><td colspan="9" style="padding:10px 14px 12px 14px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+               <div style="display:flex;gap:16px;align-items:flex-start">
+                 <div style="flex:1;min-width:0">
+                   <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:4px">❓ Agent Question</div>
+                   <div style="font-size:12px;color:var(--fg2);white-space:pre-wrap;background:var(--bg3);border-radius:4px;padding:8px 10px">${escHtml(qText)}</div>
+                 </div>
+                 ${aText ? `<div style="flex:1;min-width:0">
+                   <div style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:4px">✅ Answer</div>
+                   <div style="font-size:12px;color:var(--fg2);white-space:pre-wrap;background:var(--bg3);border-radius:4px;padding:8px 10px">${escHtml(aText)}</div>
+                 </div>` : '<div style="flex:1;min-width:0;font-size:12px;color:var(--fg3);font-style:italic">No answer yet</div>'}
+               </div>
+             </td></tr>
+           </table>
+         </div>`
+      : hasDesc
+        ? `<div style="display:none" id="${expandId}">
+             <table style="width:100%;border-collapse:collapse;margin-top:0">
+               <tr><td colspan="9" style="padding:8px 14px 10px 14px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+                 <div style="font-size:12px;color:var(--fg2);white-space:pre-wrap">${escHtml(descMain)}</div>
+               </td></tr>
+             </table>
+           </div>`
+        : '';
+    return `<tr style="${isSel ? 'background:rgba(99,102,241,.08)' : ''}" id="bl-row-${t.ticket_id.replace(/[^a-z0-9]/gi,'_')}">
       <td style="padding:8px 6px 8px 14px"><input type="checkbox" class="bl-row-cb" data-tid="${escHtml(t.ticket_id)}" ${isSel?'checked':''} onchange="blRowCheck(this,'${escHtml(t.ticket_id)}')" style="cursor:pointer;width:14px;height:14px"></td>
       <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px">${escHtml(t.ticket_id)}</code></td>
       <td>
-        <div style="font-size:13px">${escHtml(t.title)}</div>
+        <div style="font-size:13px;display:flex;align-items:center;gap:6px">
+          ${escHtml(t.title)}
+          ${hasDesc ? `<span onclick="blToggleDesc('${expandId}',this)" style="cursor:pointer;font-size:10px;color:var(--fg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;flex-shrink:0;user-select:none" title="Show description">${hasQ ? (hasA ? '💬 Q&A' : '❓ Q') : '▾'}</span>` : ''}
+        </div>
         ${blockedBy ? `<div style="font-size:11px;color:var(--red);margin-top:2px">🔗 blocked: ${escHtml(blockedBy)}</div>` : ''}
+        ${descHtml}
       </td>
       <td>${comp ? `<span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 6px">${escHtml(_componentLabel[comp] || comp)}</span>` : '<span style="color:var(--fg3);font-size:12px">—</span>'}</td>
       <td><span title="${t.priority}">${prioMap[t.priority] || '🟡'} ${t.priority}</span></td>
@@ -11976,6 +12033,9 @@ async function loadBacklog() {
     await loadAllSprints();
 
     renderBacklogTable();
+    // Show sort indicator for default sort
+    const sortEl = document.getElementById('bl-sort-' + _blSort.col);
+    if (sortEl) { sortEl.textContent = _blSort.dir === 'asc' ? '▲' : '▼'; sortEl.style.opacity = '1'; }
     // Nach Render: Sprint-Dropdowns befüllen
     setTimeout(_populateSprintSelects, 50);
   } catch (e) {
