@@ -988,14 +988,40 @@ tr:hover td { background: var(--bg3); }
 
 /* ── Responsive: Mobile ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  :root { --sidebar-w: 260px; }
-  #menu-toggle { display: flex !important; }
-  #sidebar { transform: translateX(-100%); }
-  #sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.3); }
-  #overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 85; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  :root { --sidebar-w: 280px; }
+  /* On mobile sidebar is an overlay — position:fixed, slides in over content */
+  #sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0; bottom: 0;
+    z-index: 90;
+    width: var(--sidebar-w) !important; /* override sidebar-hidden width */
+    transform: translateX(-105%);
+    transition: transform .22s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #sidebar.sidebar-open-mobile {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,.35);
+  }
+  /* Sidebar resize handle hidden on mobile */
+  #sidebar-resize-handle { display: none; }
+  /* Overlay behind mobile sidebar */
+  #overlay {
+    display: block !important;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 89;
+    opacity: 0;
+    transition: opacity .22s;
+    pointer-events: none;
+  }
   #overlay.show { opacity: 1; pointer-events: auto; }
-  #main { margin-left: 0; }
-  .hdr-brand { width: auto; }
+  /* Main takes full width */
+  #main { width: 100% !important; }
+  .hdr-brand { width: auto; min-width: 0; }
   .hdr-search { display: none !important; }
   #content { padding: 16px; }
 }
@@ -9745,18 +9771,20 @@ function hashPage() {
 
 window.addEventListener('hashchange', () => navigate(hashPage()));
 window.addEventListener('load', () => {
-  // Restore sidebar open/collapsed state from localStorage
-  try {
-    const sbOpen = localStorage.getItem('npch_sidebar_open');
-    if (sbOpen === '0') {
-      const sb = document.getElementById('sidebar');
-      if (sb) {
-        sb.classList.add('sidebar-hidden');
-        const arrow = sb.querySelector('.sb-collapse-btn svg');
-        if (arrow) arrow.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+  // Restore sidebar collapsed state (desktop only — mobile always starts closed)
+  if (window.innerWidth > 768) {
+    try {
+      const sbOpen = localStorage.getItem('npch_sidebar_open');
+      if (sbOpen === '0') {
+        const sb = document.getElementById('sidebar');
+        if (sb) {
+          sb.classList.add('sidebar-hidden');
+          const arrow = sb.querySelector('.sb-collapse-btn svg');
+          if (arrow) arrow.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
   // Use URL hash if set, otherwise always start at cockpit
   const page = hashPage() || 'cockpit';
   if (checkAuth()) {
@@ -9867,17 +9895,37 @@ function toggleMegaMenu(e, tab) {
 }
 
 // ── Sidebar collapse/expand ───────────────────────────────────────────────────
+function _isMobile() { return window.innerWidth <= 768; }
+
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   if (!sb) return;
-  sb.classList.toggle('sidebar-hidden');
-  const isHidden = sb.classList.contains('sidebar-hidden');
-  // Update collapse arrow direction
-  const arrow = sb.querySelector('.sb-collapse-btn svg');
-  if (arrow) arrow.innerHTML = isHidden
-    ? '<polyline points="9 18 15 12 9 6"/>'   // right-pointing = expand
-    : '<polyline points="15 18 9 12 15 6"/>'; // left-pointing = collapse
-  try { localStorage.setItem('npch_sidebar_open', isHidden ? '0' : '1'); } catch {}
+  if (_isMobile()) {
+    // Mobile: overlay mode — toggle sidebar-open-mobile + overlay
+    const isOpen = sb.classList.toggle('sidebar-open-mobile');
+    const ov = document.getElementById('overlay');
+    if (ov) ov.classList.toggle('show', isOpen);
+  } else {
+    // Desktop: width-collapse mode
+    sb.classList.toggle('sidebar-hidden');
+    const isHidden = sb.classList.contains('sidebar-hidden');
+    // Update collapse arrow direction
+    const arrow = sb.querySelector('.sb-collapse-btn svg');
+    if (arrow) arrow.innerHTML = isHidden
+      ? '<polyline points="9 18 15 12 9 6"/>'   // right-pointing = expand
+      : '<polyline points="15 18 9 12 15 6"/>'; // left-pointing = collapse
+    try { localStorage.setItem('npch_sidebar_open', isHidden ? '0' : '1'); } catch {}
+  }
+}
+
+function closeSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  if (_isMobile()) {
+    sb.classList.remove('sidebar-open-mobile');
+    const ov = document.getElementById('overlay');
+    if (ov) ov.classList.remove('show');
+  }
 }
 
 function toggleSbSection(label) {
@@ -9914,8 +9962,13 @@ function toggleTheme() {
     if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
   });
 })();
-function closeSidebar()   { /* noop */ }
-function openSidebar()    { /* noop */ }
+function openSidebar() {
+  if (!_isMobile()) return;
+  const sb = document.getElementById('sidebar');
+  if (sb) sb.classList.add('sidebar-open-mobile');
+  const ov = document.getElementById('overlay');
+  if (ov) ov.classList.add('show');
+}
 
 // ── Task Board ────────────────────────────────────────────────────────────────
 function initTasksPage(){
