@@ -10880,25 +10880,35 @@ function loadCockpit() {
 
     document.addEventListener('mousemove', e => {
       if (!dragging) return;
-      const delta = startX - e.clientX; // drag left = wider
-      let newW = Math.max(AI_PANEL_MIN, Math.min(getAiPanelMax(), startW + delta));
-      _aiPanelW = newW;
-      // Suppress transition while dragging
+      const delta = startX - e.clientX; // drag left = wider, drag right = narrower
+      const rawW = startW + delta;
       const panel = document.getElementById('ai-panel');
       if (panel) panel.style.transition = 'none';
-      _applyAiWidth(newW, false);
+      if (rawW < 80) {
+        // Snap-to-close preview: show panel ghosted at minimum
+        if (panel) panel.style.width = '4px';
+      } else {
+        let newW = Math.max(AI_PANEL_MIN, Math.min(getAiPanelMax(), rawW));
+        _aiPanelW = newW;
+        _applyAiWidth(newW, false);
+      }
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('mouseup', e => {
       if (!dragging) return;
       dragging = false;
       handle.classList.remove('dragging');
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      // Restore transition
       const panel = document.getElementById('ai-panel');
       if (panel) panel.style.transition = '';
-      try { localStorage.setItem('npch_ai_panel_w', _aiPanelW); } catch {}
+      // Snap to close if dragged far enough right
+      const delta = startX - e.clientX;
+      if (startW + delta < 80) {
+        hideAiPanel();
+      } else {
+        try { localStorage.setItem('npch_ai_panel_w', _aiPanelW); } catch {}
+      }
     });
   });
 
