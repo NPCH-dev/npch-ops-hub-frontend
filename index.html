@@ -249,9 +249,12 @@ body {
 .conn-desc { font-size: 11px; color: var(--fg3); margin-top: 1px; }
 .conn-status-ok { font-size: 11px; color: var(--green); font-weight: 600; }
 .hbtn {
-  display: none; background: none; border: none;
-  cursor: pointer; color: var(--fg); padding: 4px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none;
+  cursor: pointer; color: var(--fg); padding: 6px;
   border-radius: 6px; line-height: 0;
+  flex-shrink: 0;
+  transition: background .15s;
 }
 .hbtn:hover { background: var(--border); }
 
@@ -376,6 +379,17 @@ body {
 }
 #sidebar-toggle:hover { background: var(--bg); color: var(--fg); }
 #sidebar-toggle svg { display: block; }
+
+/* Sidebar collapse arrow button — same style as AI panel minimize */
+.sb-collapse-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: none; border: none;
+  cursor: pointer; color: var(--sidebar-fg); opacity: .6;
+  border-radius: 6px; line-height: 0;
+  transition: background .15s, opacity .15s;
+}
+.sb-collapse-btn:hover { background: rgba(255,255,255,.07); opacity: 1; }
 
 /* ── Sidebar — flex child, collapsible via width ────────────────────────────── */
 #sidebar {
@@ -1091,7 +1105,13 @@ tr:hover td { background: var(--bg3); }
 
 <!-- Sidebar — 2-level collapsible nav -->
 <nav id="sidebar">
-  <div style="padding:10px 10px 4px">
+  <!-- Sidebar header with collapse arrow -->
+  <div style="display:flex;align-items:center;justify-content:flex-end;padding:8px 8px 4px">
+    <button class="sb-collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+  </div>
+  <div style="padding:0 10px 4px">
     <!-- Cockpit always first, top-level -->
     <a class="nav-item" data-page="cockpit" href="#cockpit" style="margin-bottom:2px">
       <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
@@ -9725,7 +9745,19 @@ function hashPage() {
 
 window.addEventListener('hashchange', () => navigate(hashPage()));
 window.addEventListener('load', () => {
-  // Use URL hash if set, otherwise always start at dashboard (not localStorage)
+  // Restore sidebar open/collapsed state from localStorage
+  try {
+    const sbOpen = localStorage.getItem('npch_sidebar_open');
+    if (sbOpen === '0') {
+      const sb = document.getElementById('sidebar');
+      if (sb) {
+        sb.classList.add('sidebar-hidden');
+        const arrow = sb.querySelector('.sb-collapse-btn svg');
+        if (arrow) arrow.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+      }
+    }
+  } catch {}
+  // Use URL hash if set, otherwise always start at cockpit
   const page = hashPage() || 'cockpit';
   if (checkAuth()) {
     navigate(page);
@@ -9834,12 +9866,18 @@ function toggleMegaMenu(e, tab) {
   else { openMegaMenu(tab); }
 }
 
-// ── Sidebar collapse/expand (kept for compat, noop since sidebar hidden) ──────
+// ── Sidebar collapse/expand ───────────────────────────────────────────────────
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   if (!sb) return;
   sb.classList.toggle('sidebar-hidden');
-  try { localStorage.setItem('npch_sidebar_open', sb.classList.contains('sidebar-hidden') ? '0' : '1'); } catch {}
+  const isHidden = sb.classList.contains('sidebar-hidden');
+  // Update collapse arrow direction
+  const arrow = sb.querySelector('.sb-collapse-btn svg');
+  if (arrow) arrow.innerHTML = isHidden
+    ? '<polyline points="9 18 15 12 9 6"/>'   // right-pointing = expand
+    : '<polyline points="15 18 9 12 15 6"/>'; // left-pointing = collapse
+  try { localStorage.setItem('npch_sidebar_open', isHidden ? '0' : '1'); } catch {}
 }
 
 function toggleSbSection(label) {
