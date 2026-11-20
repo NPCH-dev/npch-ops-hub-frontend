@@ -606,6 +606,47 @@ body.sidebar-collapsed .hdr-brand {
   #sprint-kanban { grid-template-columns: 1fr; }
 }
 
+/* ── AI Panel Tabs ─────────────────────────────────────────────────────────── */
+.ai-tabs {
+  display: flex; gap: 2px; padding: 6px 8px 0;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.ai-tab {
+  flex: 1; padding: 5px 4px; font-size: 11px; font-weight: 500;
+  color: var(--fg3); background: none; border: none; cursor: pointer;
+  border-radius: 5px 5px 0 0; border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s; white-space: nowrap;
+}
+.ai-tab:hover { color: var(--fg); background: var(--bg3); }
+.ai-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* AI tab panes */
+.ai-tab-pane { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: 10px; }
+.ai-tab-pane.active { display: flex; flex-direction: column; }
+#ai-pane-chat { padding: 0; overflow: hidden; } /* chat uses its own scroll */
+
+/* AI call button */
+.ai-call-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
+  background: #22c55e; color: #fff; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background .15s, transform .1s;
+}
+.ai-call-btn:hover { background: #16a34a; transform: scale(1.07); }
+.ai-call-btn.calling { background: #ef4444; animation: pulse-call .9s infinite; }
+@keyframes pulse-call { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+
+/* search / projects / artifacts / pinned pane placeholder */
+.ai-pane-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; flex: 1; color: var(--fg3); font-size: 12px; padding: 24px;
+}
+.ai-pane-empty svg { opacity: .35; }
+.ai-pane-search-input {
+  width: 100%; padding: 7px 10px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--bg3); color: var(--fg); font-size: 12px; margin-bottom: 8px;
+}
+.ai-pane-search-input:focus { outline: none; border-color: var(--accent); }
+
 /* ── AI Chat Panel ─────────────────────────────────────────────────────────── */
 #ai-panel {
   position: fixed;
@@ -985,7 +1026,7 @@ tr:hover td { background: var(--bg3); }
   <button class="hbtn" id="menu-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <a class="hdr-brand" href="#dashboard" onclick="navigate('dashboard');return false;" title="NobleProg Ops Hub — Home" style="cursor:pointer;text-decoration:none">
+  <a class="hdr-brand" href="." onclick="location.reload();return false;" title="NobleProg Ops Hub — Reload" style="cursor:pointer;text-decoration:none">
     <img src="nobleprog-logo-square.png" alt="NobleProg" style="width:28px;height:28px;border-radius:6px;object-fit:contain;flex-shrink:0">
     <span class="logo-name">NobleProg Ops Hub</span>
   </a>
@@ -1072,37 +1113,89 @@ tr:hover td { background: var(--bg3); }
     <button class="ai-hdr-btn" onclick="minimizeAiPanel()" title="Minimize">‹</button>
   </div>
 
-  <!-- Sessions list -->
-  <div class="ai-sessions" id="ai-sessions">
-    <div class="ai-sessions-hdr">
-      <span class="ai-sessions-label">Sessions</span>
-      <button class="ai-sessions-new" onclick="aiNewSession()" title="New session">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+  <!-- Top tabs: Chat · Search · Projects · Artifacts · Pinned -->
+  <div class="ai-tabs" id="ai-tabs">
+    <button class="ai-tab active" data-ai-tab="chat"      onclick="switchAiTab('chat')">Chat</button>
+    <button class="ai-tab"        data-ai-tab="search"    onclick="switchAiTab('search')">Search</button>
+    <button class="ai-tab"        data-ai-tab="projects"  onclick="switchAiTab('projects')">Projects</button>
+    <button class="ai-tab"        data-ai-tab="artifacts" onclick="switchAiTab('artifacts')">Artifacts</button>
+    <button class="ai-tab"        data-ai-tab="pinned"    onclick="switchAiTab('pinned')">Pinned</button>
+  </div>
+
+  <!-- ── Tab: Chat ── -->
+  <div class="ai-tab-pane active" id="ai-pane-chat">
+    <!-- Sessions list -->
+    <div class="ai-sessions" id="ai-sessions">
+      <div class="ai-sessions-hdr">
+        <span class="ai-sessions-label">Sessions</span>
+        <button class="ai-sessions-new" onclick="aiNewSession()" title="New session">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+        </button>
+      </div>
+      <div class="ai-sessions-list" id="ai-sessions-list">
+        <!-- populated by renderAiSessions() -->
+      </div>
+    </div>
+
+    <!-- Context pill -->
+    <div class="ai-context-pill" id="ai-context-pill" style="display:none">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="4"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="6" y1="6" x2="9" y2="6"/></svg>
+      <span id="ai-context-text">Orderbook</span>
+    </div>
+
+    <!-- Messages -->
+    <div class="ai-messages" id="ai-messages">
+      <div class="ai-msg ai">
+        <div class="ai-bubble">Hi! 👋 I'm your NPCH Ops AI assistant.<br><br>I have context about the current page, orders, and sprint. Just ask!</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="ai-footer">
+      <input id="ai-input" type="text" placeholder="Ask me anything…" onkeydown="if(event.key==='Enter'){aiSend()}">
+      <button class="ai-call-btn" id="ai-call-btn" onclick="toggleAiCall()" title="Call AI">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.42 2 2 0 0 1 3.6 1.26h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
       </button>
+      <button class="ai-send-btn" onclick="aiSend()">↑</button>
     </div>
-    <div class="ai-sessions-list" id="ai-sessions-list">
-      <!-- populated by renderAiSessions() -->
-    </div>
-  </div>
+  </div><!-- end ai-pane-chat -->
 
-  <!-- Context pill (shows active order / page context) -->
-  <div class="ai-context-pill" id="ai-context-pill" style="display:none">
-    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="4"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="6" y1="6" x2="9" y2="6"/></svg>
-    <span id="ai-context-text">Orderbook</span>
-  </div>
-
-  <!-- Messages -->
-  <div class="ai-messages" id="ai-messages">
-    <div class="ai-msg ai">
-      <div class="ai-bubble">Hi! 👋 I'm your NPCH Ops AI assistant.<br><br>I have context about the current page, orders, and sprint. Just ask!</div>
+  <!-- ── Tab: Search ── -->
+  <div class="ai-tab-pane" id="ai-pane-search">
+    <input class="ai-pane-search-input" type="text" placeholder="Search orders, customers, documents…" id="ai-search-input" oninput="aiPaneSearch(this.value)">
+    <div id="ai-search-results">
+      <div class="ai-pane-empty">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Type to search across orders,<br>customers &amp; documents</span>
+      </div>
     </div>
   </div>
 
-  <!-- Input -->
-  <div class="ai-footer">
-    <input id="ai-input" type="text" placeholder="Ask me anything…" onkeydown="if(event.key==='Enter'){aiSend()}">
-    <button class="ai-send-btn" onclick="aiSend()">↑</button>
+  <!-- ── Tab: Projects ── -->
+  <div class="ai-tab-pane" id="ai-pane-projects">
+    <div class="ai-pane-empty">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      <span>Projects coming soon</span>
+    </div>
   </div>
+
+  <!-- ── Tab: Artifacts ── -->
+  <div class="ai-tab-pane" id="ai-pane-artifacts">
+    <div class="ai-pane-empty">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>Artifacts &amp; documents<br>will appear here</span>
+    </div>
+  </div>
+
+  <!-- ── Tab: Pinned ── -->
+  <div class="ai-tab-pane" id="ai-pane-pinned">
+    <div class="ai-pane-empty" id="ai-pinned-empty">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span>Pin important sessions,<br>orders &amp; documents here</span>
+    </div>
+    <div id="ai-pinned-list" style="display:none"></div>
+  </div>
+
   </div><!-- end ai-panel-main -->
 </div><!-- end ai-panel -->
 
@@ -1115,6 +1208,10 @@ tr:hover td { background: var(--bg3); }
   <!-- TAB: Reporting -->
   <div class="tab-group active" data-tab-content="reporting">
     <div class="sb-section" style="padding-top:12px">
+      <a class="nav-item" data-page="cockpit" href="#cockpit">
+        <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+        My Cockpit
+      </a>
       <a class="nav-item" data-page="dashboard" href="#dashboard">
         <span class="icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="13" y="3" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="13" y="13" width="6" height="6" rx="1"/></svg></span>
         Management Board
@@ -8909,6 +9006,83 @@ tr:hover td { background: var(--bg3); }
     </div>
 
     <!-- ── Page: Settings ───────────────────────────────────────────────────── -->
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         COCKPIT PAGE
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="page" id="page-cockpit">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h1 id="cockpit-greeting">Good morning</h1>
+          <p id="cockpit-date" style="color:var(--fg3);font-size:13px"></p>
+        </div>
+        <button class="btn btn-sm" onclick="navigate('settings')" style="gap:6px;display:flex;align-items:center">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px" id="cockpit-kpi-row">
+        <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;color:var(--fg3);font-weight:500;text-transform:uppercase;letter-spacing:.06em">Open Orders</div>
+          <div style="font-size:28px;font-weight:700;color:var(--fg)" id="ck-orders">—</div>
+          <div style="font-size:11px;color:var(--fg3)" id="ck-orders-sub">loading…</div>
+        </div>
+        <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;color:var(--fg3);font-weight:500;text-transform:uppercase;letter-spacing:.06em">My Tasks</div>
+          <div style="font-size:28px;font-weight:700;color:var(--accent)" id="ck-tasks">—</div>
+          <div style="font-size:11px;color:var(--fg3)">open action items</div>
+        </div>
+        <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;color:var(--fg3);font-weight:500;text-transform:uppercase;letter-spacing:.06em">Outstanding</div>
+          <div style="font-size:28px;font-weight:700;color:#f59e0b" id="ck-outstanding">—</div>
+          <div style="font-size:11px;color:var(--fg3)">pending payments</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- My Tasks -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            My Tasks
+            <button class="btn btn-sm" onclick="navigate('tasks')">View all</button>
+          </div>
+          <div class="card-body" id="cockpit-tasks-list">
+            <div style="color:var(--fg3);font-size:12px;padding:8px 0">Loading tasks…</div>
+          </div>
+        </div>
+
+        <!-- Upcoming / Calendar -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            Upcoming Deliveries
+            <button class="btn btn-sm" onclick="navigate('delivery')">Calendar</button>
+          </div>
+          <div class="card-body" id="cockpit-calendar-list">
+            <div style="color:var(--fg3);font-size:12px;padding:8px 0">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Open Questions -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            Open Questions
+            <button class="btn btn-sm" onclick="navigate('questions')">View all</button>
+          </div>
+          <div class="card-body" id="cockpit-questions-list">
+            <div style="color:var(--fg3);font-size:12px;padding:8px 0">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">Recent Activity</div>
+          <div class="card-body" id="cockpit-activity-list">
+            <div style="color:var(--fg3);font-size:12px;padding:8px 0">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end page-cockpit -->
+
     <div class="page" id="page-settings">
       <div class="page-header"><h1>Settings</h1><p>Profile, appearance &amp; integrations</p></div>
 
@@ -8980,6 +9154,51 @@ tr:hover td { background: var(--bg3); }
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                     Light
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: AI Assistant -->
+          <div class="card settings-section">
+            <div class="card-header">AI Assistant</div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+              <div>
+                <label class="settings-label">Start mode</label>
+                <div style="font-size:11px;color:var(--fg3);margin-bottom:6px">How the AI panel opens when you navigate to a page</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap" id="ai-start-mode-btns">
+                  <button class="btn btn-sm ai-mode-btn" data-mode="open" onclick="setAiStartMode('open')" style="display:flex;align-items:center;gap:5px">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                    Side panel
+                  </button>
+                  <button class="btn btn-sm ai-mode-btn" data-mode="wide" onclick="setAiStartMode('wide')" style="display:flex;align-items:center;gap:5px">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+                    Half window
+                  </button>
+                  <button class="btn btn-sm ai-mode-btn" data-mode="minimized" onclick="setAiStartMode('minimized')" style="display:flex;align-items:center;gap:5px">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                    Minimized
+                  </button>
+                  <button class="btn btn-sm ai-mode-btn" data-mode="hidden" onclick="setAiStartMode('hidden')" style="display:flex;align-items:center;gap:5px">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    Hidden
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="settings-label">Default width</label>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+                  <input type="range" id="ai-width-slider" min="200" max="700" step="10" style="flex:1"
+                    oninput="document.getElementById('ai-width-val').textContent=this.value+'px'"
+                    onchange="setAiDefaultWidth(+this.value)">
+                  <span id="ai-width-val" style="font-size:12px;color:var(--fg3);min-width:40px">340px</span>
+                </div>
+              </div>
+              <div>
+                <label class="settings-label">Auto-open on Cockpit</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <input type="checkbox" id="ai-auto-cockpit" onchange="saveAiSettings()" style="accent-color:var(--accent)">
+                  <span style="font-size:12px;color:var(--fg3)">Always open the AI panel when navigating to My Cockpit</span>
                 </div>
               </div>
             </div>
@@ -9496,6 +9715,7 @@ function showToast(msg, type = 'error') {
 
 // ── Router ────────────────────────────────────────────────────────────────────
 const PAGES = {
+  cockpit:      { title: 'My Cockpit',          load: loadCockpit },
   dashboard:    { title: 'Management Board',    load: loadDashboard },
   inquiries:    { title: 'Pipeline / Anfragen', load: null },
   bookings:     { title: 'Buchungen',           load: null },
@@ -9550,13 +9770,19 @@ function navigate(page) {
   // Load data
   if (PAGES[key].load) PAGES[key].load();
 
-  // Auto-open AI panel on orders page; fully hide on others
+  // AI panel: show on all pages, update context pill
+  const aiMode = _getAiStartMode();
+  if (aiMode !== 'hidden') {
+    if (!document.getElementById('ai-panel').classList.contains('open')) {
+      openAiPanel();
+    }
+  }
   if (key === 'orders') {
-    openAiPanel();
     updateAiContext('Orderbook · ' + (typeof MOCK !== 'undefined' ? MOCK.length + ' orders' : ''));
+  } else if (key === 'cockpit') {
+    updateAiContext('My Cockpit');
   } else {
-    hideAiPanel();
-    updateAiContext('');
+    updateAiContext(PAGES[key]?.title || '');
   }
 
   // Persist
@@ -9582,6 +9808,7 @@ window.addEventListener('load', () => {
 
 // ── Top Nav Tabs ──────────────────────────────────────────────────────────────
 const PAGE_TAB = {
+  cockpit:'reporting',
   dashboard:'reporting',
   inquiries:'sales', bookings:'sales', orders:'sales', proposals:'sales',
   delivery:'coordination', trainers:'coordination', approvals:'coordination',
@@ -10534,6 +10761,175 @@ function expandAiPanel() {
   main?.classList.remove('ai-minimized-main');
   _applyAiWidth(_aiPanelW, false);
   setTimeout(() => document.getElementById('ai-input')?.focus(), 100);
+}
+
+// ── AI Tab switching ──────────────────────────────────────────────────────────
+function switchAiTab(tab) {
+  document.querySelectorAll('.ai-tab').forEach(b => b.classList.toggle('active', b.dataset.aiTab === tab));
+  document.querySelectorAll('.ai-tab-pane').forEach(p => p.classList.toggle('active', p.id === 'ai-pane-' + tab));
+  if (tab === 'chat') setTimeout(() => document.getElementById('ai-input')?.focus(), 80);
+  if (tab === 'search') setTimeout(() => document.getElementById('ai-search-input')?.focus(), 80);
+  try { localStorage.setItem('npch_ai_tab', tab); } catch {}
+}
+
+// ── AI inline search ──────────────────────────────────────────────────────────
+function aiPaneSearch(q) {
+  const el = document.getElementById('ai-search-results');
+  if (!q.trim()) {
+    el.innerHTML = '<div class="ai-pane-empty"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Type to search across orders,<br>customers &amp; documents</span></div>';
+    return;
+  }
+  const ql = q.toLowerCase();
+  const hits = (window.MOCK || []).filter(o =>
+    (o.customer||'').toLowerCase().includes(ql) ||
+    (o.training||'').toLowerCase().includes(ql) ||
+    (o.seq||'').toLowerCase().includes(ql)
+  ).slice(0, 12);
+  if (!hits.length) {
+    el.innerHTML = '<div class="ai-pane-empty" style="margin-top:16px"><span>No results for "<strong>' + q + '</strong>"</span></div>';
+    return;
+  }
+  el.innerHTML = hits.map(o => `
+    <div style="padding:8px;border-radius:6px;cursor:pointer;border-bottom:1px solid var(--border)"
+         onclick="navigate('orders');setTimeout(()=>openOrder(${o._idx??0}),80)">
+      <div style="font-size:12px;font-weight:600;color:var(--fg)">${o.customer}</div>
+      <div style="font-size:11px;color:var(--fg3);margin-top:2px">${o.seq||''} · ${o.training||''}</div>
+    </div>`).join('');
+}
+
+// ── AI call / voice (placeholder) ────────────────────────────────────────────
+let _aiCalling = false;
+function toggleAiCall() {
+  _aiCalling = !_aiCalling;
+  const btn = document.getElementById('ai-call-btn');
+  btn?.classList.toggle('calling', _aiCalling);
+  btn?.setAttribute('title', _aiCalling ? 'End call' : 'Call AI');
+  if (_aiCalling) {
+    _aiAddMsg('ai', '📞 Voice mode is coming soon. For now, type your questions below.');
+    _aiCalling = false;
+    btn?.classList.remove('calling');
+  }
+}
+
+// ── AI start-mode settings ───────────────────────────────────────────────────
+function _getAiStartMode() {
+  try { return localStorage.getItem('npch_ai_start_mode') || 'open'; } catch { return 'open'; }
+}
+function setAiStartMode(mode) {
+  try { localStorage.setItem('npch_ai_start_mode', mode); } catch {}
+  document.querySelectorAll('.ai-mode-btn').forEach(b => {
+    b.classList.toggle('btn-primary', b.dataset.mode === mode);
+  });
+  // Apply immediately
+  if (mode === 'wide') {
+    _aiPanelW = Math.round(window.innerWidth * 0.48);
+    openAiPanel();
+  } else if (mode === 'minimized') {
+    openAiPanel(); minimizeAiPanel();
+  } else if (mode === 'hidden') {
+    hideAiPanel();
+  } else {
+    _aiPanelW = 340;
+    openAiPanel();
+  }
+}
+function setAiDefaultWidth(w) {
+  _aiPanelW = w;
+  _applyAiWidth(w, false);
+  try { localStorage.setItem('npch_ai_panel_w', w); } catch {}
+}
+function saveAiSettings() {
+  const autoCockpit = document.getElementById('ai-auto-cockpit')?.checked;
+  try { localStorage.setItem('npch_ai_auto_cockpit', autoCockpit ? '1' : '0'); } catch {}
+}
+function initAiSettings() {
+  const mode = _getAiStartMode();
+  document.querySelectorAll('.ai-mode-btn').forEach(b => {
+    b.classList.toggle('btn-primary', b.dataset.mode === mode);
+  });
+  const slider = document.getElementById('ai-width-slider');
+  if (slider) { slider.value = _aiPanelW; document.getElementById('ai-width-val').textContent = _aiPanelW + 'px'; }
+  try {
+    const autoCockpit = localStorage.getItem('npch_ai_auto_cockpit') !== '0';
+    const cb = document.getElementById('ai-auto-cockpit');
+    if (cb) cb.checked = autoCockpit;
+  } catch {}
+}
+document.addEventListener('DOMContentLoaded', initAiSettings);
+
+// ── Cockpit page ──────────────────────────────────────────────────────────────
+function loadCockpit() {
+  // Greeting
+  const h = new Date().getHours();
+  const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const greetEl = document.getElementById('cockpit-greeting');
+  if (greetEl) greetEl.textContent = greeting + ' 👋';
+  const dateEl = document.getElementById('cockpit-date');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // KPI from MOCK orders
+  const orders = window.MOCK || [];
+  const open = orders.filter(o => o.status && !o.status.includes('FULL_PAYMENT_DONE')).length;
+  const outstanding = orders.filter(o => o.status === 'FULL_PAYMENT_INVOICED').length;
+  const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setEl('ck-orders', open);
+  setEl('ck-orders-sub', open + ' of ' + orders.length + ' total');
+  setEl('ck-tasks', '—');
+  setEl('ck-outstanding', outstanding);
+
+  // Upcoming deliveries (next 30 days from MOCK)
+  const calEl = document.getElementById('cockpit-calendar-list');
+  if (calEl) {
+    const now = Date.now();
+    const upcoming = orders.filter(o => {
+      if (!o.delivery) return false;
+      const parts = o.delivery.split('.');
+      if (parts.length < 3) return false;
+      const d = new Date(parts[2], parts[1]-1, parts[0]);
+      return d > now && d < now + 30*86400000;
+    }).slice(0,5);
+    if (!upcoming.length) {
+      calEl.innerHTML = '<div style="color:var(--fg3);font-size:12px;padding:4px 0">No deliveries in the next 30 days</div>';
+    } else {
+      calEl.innerHTML = upcoming.map(o => `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer"
+             onclick="navigate('orders');setTimeout(()=>openOrder(${o._idx??0}),80)">
+          <div style="min-width:52px;text-align:center;background:var(--bg3);border-radius:6px;padding:3px 6px;font-size:11px;font-weight:600;color:var(--accent)">${o.delivery}</div>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--fg)">${o.customer}</div>
+            <div style="font-size:11px;color:var(--fg3)">${(o.training||'').substring(0,40)}</div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // Open questions placeholder
+  const qEl = document.getElementById('cockpit-questions-list');
+  if (qEl) {
+    qEl.innerHTML = '<div style="color:var(--fg3);font-size:12px;padding:4px 0">Loading…</div>';
+    api('/data/tickets?status=needs_clarification').then(r => {
+      const items = r?.items || r?.data || r || [];
+      if (!items.length) { qEl.innerHTML = '<div style="color:var(--fg3);font-size:12px;padding:4px 0">No open questions ✓</div>'; return; }
+      qEl.innerHTML = items.slice(0,5).map(t => `
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:500;color:var(--fg)">${t.ticket_id||t.id}: ${t.title||''}</div>
+          <div style="font-size:11px;color:var(--fg3);margin-top:2px">${(t.description||'').substring(0,60)}…</div>
+        </div>`).join('');
+    }).catch(() => { qEl.innerHTML = '<div style="color:var(--fg3);font-size:12px">Could not load questions</div>'; });
+  }
+
+  // Activity placeholder
+  const actEl = document.getElementById('cockpit-activity-list');
+  if (actEl) actEl.innerHTML = orders.slice(0,5).map(o => `
+    <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+      <div style="font-size:12px;color:var(--fg)">${o.customer} — <span style="color:var(--fg3)">${o.status||''}</span></div>
+    </div>`).join('');
+
+  // Auto-open AI panel on cockpit if setting enabled
+  try {
+    if (localStorage.getItem('npch_ai_auto_cockpit') !== '0') openAiPanel();
+  } catch {}
 }
 
 // ── Resize drag ───────────────────────────────────────────────────────────────
