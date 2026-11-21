@@ -11,98 +11,84 @@
 /* ── Base reset ─────────────────────────────────────────────────────────────── */
 [hidden] { display: none !important; }
 
-/* ── Design Tokens — Langfuse Dark ─────────────────────────────────────────── */
+/* ── Design Tokens — HubSpot-style, NobleProg Blue ─────────────────────────── */
 :root {
-  /* Backgrounds — Langfuse dark gray */
-  --bg:       #141414;
-  --bg2:      #1c1c1c;
-  --bg3:      #222222;
-  --bg4:      #2a2a2a;
+  /* Backgrounds — HubSpot Light (default) */
+  --bg:       #f5f8fa;
+  --bg2:      #ffffff;
+  --bg3:      #eaf0f6;
+  --bg4:      #dde6ed;
   /* Borders */
-  --border:   #2a2a2a;
-  --border2:  #383838;
-  /* Text */
-  --fg:       #fafafa;
-  --fg2:      #a3a3a3;
-  --fg3:      #737373;
-  /* Accent — NobleProg Blue */
+  --border:   #cbd6e2;
+  --border2:  #b0c1d4;
+  /* Text — HubSpot dark navy tones */
+  --fg:       #1b2a3b;
+  --fg2:      #516f90;
+  --fg3:      #99acc2;
+  /* Accent — NobleProg Blue (replaces HubSpot Orange) */
   --accent:   #0057B8;
-  --accent2:  #0066d4;
-  --accent-fg:#ffffff;    /* text on blue bg: white */
-  --accent-bg: rgba(0,87,184,.12);
+  --accent2:  #004fa5;
+  --accent-fg:#ffffff;
+  --accent-bg: rgba(0,87,184,.10);
   /* Status colors */
-  --green:    #22c55e;
-  --green-bg: rgba(34,197,94,.12);
-  --yellow:   #eab308;
-  --yellow-bg:rgba(234,179,8,.12);
-  --red:      #ef4444;
-  --red-bg:   rgba(239,68,68,.12);
-  --purple:   #a855f7;
-  --purple-bg:rgba(168,85,247,.12);
-  --orange:   #f97316;
-  --cyan:     #06b6d4;
+  --green:    #00a37a;
+  --green-bg: rgba(0,163,122,.10);
+  --yellow:   #d4a017;
+  --yellow-bg:rgba(212,160,23,.12);
+  --red:      #e84646;
+  --red-bg:   rgba(232,70,70,.10);
+  --purple:   #7c5cbf;
+  --purple-bg:rgba(124,92,191,.10);
+  --orange:   #e67e22;
+  --cyan:     #0091ae;
   /* Layout */
-  --radius:   8px;
-  --radius-sm:5px;
+  --radius:   3px;
+  --radius-sm:3px;
   --sidebar-w:240px;
   --ai-panel-w: 340px;
-  --header-h: 52px;
+  --header-h: 56px;
   --topnav-h: 44px;
-  /* Sidebar — always dark */
-  --sidebar-bg:     #141414;
-  --sidebar-fg:     #737373;
-  --sidebar-act:    #fafafa;
-  --sidebar-act-bg: rgba(255,255,255,.08);
-  --sidebar-hover:  rgba(255,255,255,.04);
-  --sidebar-div:    rgba(255,255,255,.06);
-  --header-bg:      #141414;
-  --pattern-dot:    rgba(255,255,255,.045);
-  color-scheme: dark;
+  /* Sidebar — HubSpot dark navy */
+  --sidebar-bg:     #1b2a3b;
+  --sidebar-fg:     #8fa8c0;
+  --sidebar-act:    #ffffff;
+  --sidebar-act-bg: rgba(255,255,255,.12);
+  --sidebar-hover:  rgba(255,255,255,.07);
+  --sidebar-div:    rgba(255,255,255,.08);
+  --header-bg:      #ffffff;
+  --card-bg:        #ffffff;
+  --pattern-dot:    rgba(0,0,0,0);
+  /* Shadows — HubSpot style */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04);
+  --shadow:    0 2px 8px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
+  color-scheme: light;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg:      #fafafa;
-    --bg2:     #ffffff;
-    --bg3:     #f5f5f5;
-    --bg4:     #e5e5e5;
-    --border:  #e5e5e5;
-    --border2: #d4d4d4;
-    --fg:      #0a0a0a;
-    --fg2:     #404040;
-    --fg3:     #737373;
-    --accent-bg: rgba(0,87,184,.12);
-    --green-bg:  rgba(34,197,94,.10);
-    --yellow-bg: rgba(234,179,8,.10);
-    --red-bg:    rgba(239,68,68,.10);
-    --purple-bg: rgba(168,85,247,.10);
-    --header-bg: #ffffff;
-    --sidebar-bg:     #fafafa;
-    --sidebar-fg:     #737373;
-    --sidebar-act:    #0a0a0a;
-    --sidebar-act-bg: rgba(0,0,0,.06);
-    --sidebar-hover:  rgba(0,0,0,.03);
-    --sidebar-div:    rgba(0,0,0,.08);
-    color-scheme: light;
-  }
-}
+/* Dark mode override */
 :root[data-theme="dark"] {
-  --bg:#141414;--bg2:#1c1c1c;--bg3:#222222;--bg4:#2a2a2a;
-  --border:#2a2a2a;--border2:#383838;--fg:#fafafa;--fg2:#a3a3a3;--fg3:#737373;
-  --header-bg:#141414;--sidebar-bg:#141414;
-  --sidebar-fg:#737373;--sidebar-act:#fafafa;--sidebar-act-bg:rgba(255,255,255,.08);
-  --sidebar-hover:rgba(255,255,255,.04);--sidebar-div:rgba(255,255,255,.08);
-  --accent-bg:rgba(0,87,184,.18);--green-bg:rgba(34,197,94,.12);
-  --yellow-bg:rgba(234,179,8,.12);--red-bg:rgba(239,68,68,.12);--purple-bg:rgba(168,85,247,.12);
+  --bg:#0f1721;--bg2:#162032;--bg3:#1a2840;--bg4:#1e2f4a;
+  --border:#2a3f56;--border2:#3a5270;
+  --fg:#dce8f4;--fg2:#7ea8c9;--fg3:#4e7090;
+  --header-bg:#162032;--card-bg:#162032;
+  --sidebar-bg:#0f1721;
+  --sidebar-fg:#4e7090;--sidebar-act:#dce8f4;
+  --sidebar-act-bg:rgba(255,255,255,.10);
+  --sidebar-hover:rgba(255,255,255,.05);
+  --sidebar-div:rgba(255,255,255,.07);
+  --accent-bg:rgba(0,87,184,.20);
+  --green-bg:rgba(0,163,122,.15);--yellow-bg:rgba(212,160,23,.15);
+  --red-bg:rgba(232,70,70,.15);--purple-bg:rgba(124,92,191,.15);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.3);--shadow:0 2px 8px rgba(0,0,0,.35);
   color-scheme:dark;
 }
 :root[data-theme="light"] {
-  --bg:#f5f5f5;--bg2:#ffffff;--bg3:#ebebeb;--bg4:#e0e0e0;
-  --border:#e0e0e0;--border2:#cacaca;--fg:#0a0a0a;--fg2:#404040;--fg3:#666666;
-  --header-bg:#ffffff;--sidebar-bg:#1e2235;
-  --sidebar-fg:#8b93b0;--sidebar-act:#ffffff;--sidebar-act-bg:rgba(255,255,255,.12);
-  --sidebar-hover:rgba(255,255,255,.06);--sidebar-div:rgba(255,255,255,.1);
-  --accent-bg:rgba(0,87,184,.10);--green-bg:rgba(34,197,94,.10);
-  --yellow-bg:rgba(234,179,8,.10);--red-bg:rgba(239,68,68,.10);--purple-bg:rgba(168,85,247,.10);
+  --bg:#f5f8fa;--bg2:#ffffff;--bg3:#eaf0f6;--bg4:#dde6ed;
+  --border:#cbd6e2;--border2:#b0c1d4;--fg:#1b2a3b;--fg2:#516f90;--fg3:#99acc2;
+  --header-bg:#ffffff;--card-bg:#ffffff;
+  --sidebar-bg:#1b2a3b;
+  --sidebar-fg:#8fa8c0;--sidebar-act:#ffffff;--sidebar-act-bg:rgba(255,255,255,.12);
+  --sidebar-hover:rgba(255,255,255,.07);--sidebar-div:rgba(255,255,255,.08);
+  --accent-bg:rgba(0,87,184,.10);--green-bg:rgba(0,163,122,.10);
+  --yellow-bg:rgba(212,160,23,.12);--red-bg:rgba(232,70,70,.10);--purple-bg:rgba(124,92,191,.10);
   color-scheme:light;
 }
 
@@ -110,13 +96,12 @@
 *, *::before, *::after { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: 'Geist', 'Inter', -apple-system, sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
   background-color: var(--bg);
-  background-image: radial-gradient(var(--pattern-dot, rgba(255,255,255,.04)) 1px, transparent 1px);
-  background-size: 20px 20px;
   color: var(--fg);
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Fixed Header ──────────────────────────────────────────────────────────── */
@@ -202,11 +187,16 @@ body.admin-mode [data-admin-section] {
 }
 
 /* ── Task Detail Panel ───────────────────────────────────────────────────── */
-/* ── Task Detail — centered modal over main area only ────────────────── */
+/* Overlay covers exactly the main area — left edge tracks sidebar dynamically via JS */
 #ck-task-detail {
   position: fixed;
-  top: var(--header-h); left: var(--sidebar-w); right: 0; bottom: 0;
-  background: rgba(0,0,0,.48);
+  top: var(--header-h);
+  /* left is set by JS via style attribute to match current sidebar width */
+  left: var(--sidebar-w);
+  right: 0; bottom: 0;
+  background: rgba(10, 20, 35, 0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 100;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
@@ -214,16 +204,19 @@ body.admin-mode [data-admin-section] {
 }
 #ck-task-detail.open { opacity: 1; pointer-events: auto; }
 .ck-det-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border); border-radius: 12px;
-  width: min(1020px, 92%); max-height: 85vh;
+  /* Solid opaque background — never transparent */
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: min(1060px, calc(100% - 48px));
+  max-height: calc(100% - 48px);
   display: flex; flex-direction: column;
-  box-shadow: 0 20px 56px rgba(0,0,0,.45);
-  transform: translateY(-18px);
-  transition: transform .22s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 8px 40px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.18);
+  transform: translateY(-16px) scale(.99);
+  transition: transform .22s cubic-bezier(.4,0,.2,1), opacity .18s ease;
   overflow: hidden;
 }
-#ck-task-detail.open .ck-det-card { transform: translateY(0); }
+#ck-task-detail.open .ck-det-card { transform: translateY(0) scale(1); }
 /* Header row */
 .ck-det-header {
   display: flex; align-items: center; gap: 10px;
@@ -1018,16 +1011,18 @@ body.admin-mode [data-admin-section] {
 
 /* ── Component: Card / Panel ───────────────────────────────────────────────── */
 .card {
-  background: var(--bg2);
+  background: var(--card-bg, var(--bg2));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 16px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
 }
 .card-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
-  font-weight: 600; font-size: 13.5px;
+  font-weight: 600; font-size: 13px;
+  color: var(--fg);
 }
 .card-body { padding: 18px; }
 
