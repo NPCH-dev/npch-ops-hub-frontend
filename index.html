@@ -1542,7 +1542,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 <script src="https://accounts.google.com/gsi/client" async></script>
 
 <!-- Login Screen -->
-<div id="login-screen" style="position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px">
+<div id="login-screen" style="position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;pointer-events:auto">
   <div style="width:100%;max-width:380px">
     <div style="text-align:center;margin-bottom:32px">
       <img src="nobleprog-logo-square.png" style="width:52px;height:52px;border-radius:12px;margin-bottom:16px">
@@ -10285,14 +10285,34 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 <script>
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function checkAuth() {
-  const token = (() => { try { return localStorage.getItem('npch_token') || sessionStorage.getItem('npch_token') || ''; } catch { return ''; } })();
+  const token = (() => {
+    try {
+      // Primary key
+      let t = localStorage.getItem('npch_token') || sessionStorage.getItem('npch_token') || '';
+      // Fallback: migrate legacy key 'authToken' → 'npch_token'
+      if (!t) {
+        const legacy = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+        if (legacy && legacy !== 'preview-mode-fake-token') {
+          localStorage.setItem('npch_token', legacy);
+          localStorage.removeItem('authToken');
+          t = legacy;
+        }
+      }
+      return t;
+    } catch { return ''; }
+  })();
   CONFIG.authToken = token;
-  if (token) {
-    document.getElementById('login-screen').style.display = 'none';
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-  }
+  if (token) { hideLoginScreen(); } else { showLoginScreen(); }
   return !!token;
+}
+
+function hideLoginScreen() {
+  const el = document.getElementById('login-screen');
+  if(el){ el.style.display = 'none'; el.style.pointerEvents = 'none'; }
+}
+function showLoginScreen() {
+  const el = document.getElementById('login-screen');
+  if(el){ el.style.display = 'flex'; el.style.pointerEvents = 'auto'; }
 }
 
 function enableDevMode() { /* removed */ }
@@ -10326,7 +10346,7 @@ async function doLogin() {
       if (remember) localStorage.setItem('npch_token', data.access_token);
       else sessionStorage.setItem('npch_token', data.access_token);
     } catch {}
-    document.getElementById('login-screen').style.display = 'none';
+    hideLoginScreen();
     loadUser();
     navigate('cockpit');
   } catch (e) {
@@ -10414,7 +10434,7 @@ async function doGoogleLogin() {
       if (remember) localStorage.setItem('npch_token', data.access_token);
       else sessionStorage.setItem('npch_token', data.access_token);
     } catch {}
-    document.getElementById('login-screen').style.display = 'none';
+    hideLoginScreen();
     loadUser();
     navigate('cockpit');
   } catch (e) {
@@ -10428,7 +10448,7 @@ async function doGoogleLogin() {
 function logout() {
   try { localStorage.removeItem('npch_token'); sessionStorage.removeItem('npch_token'); localStorage.removeItem('npch_page'); } catch {}
   CONFIG.authToken = '';
-  document.getElementById('login-screen').style.display = 'flex';
+  showLoginScreen();
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
 }
@@ -10458,7 +10478,7 @@ async function api(path, opts = {}) {
     CONFIG.authToken = '';
     try { localStorage.removeItem('npch_token'); sessionStorage.removeItem('npch_token'); } catch {}
     const loginEl = document.getElementById('login-screen');
-    if (loginEl) loginEl.style.display = 'flex';
+    if (loginEl) showLoginScreen();
     throw new Error('Session abgelaufen — bitte neu anmelden');
   }
   if (!res.ok) {
