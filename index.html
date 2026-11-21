@@ -692,6 +692,24 @@ body.admin-mode [data-admin-section] {
   box-shadow: 0 0 0 3px rgba(0,87,184,.12);
 }
 .settings-input::placeholder { color: var(--fg3); }
+
+/* ── Component: form-control — shared input/select/textarea ─────────────── */
+.form-control {
+  width: 100%; padding: 7px 10px; box-sizing: border-box;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--fg);
+  font-size: 13px; font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+  appearance: auto;
+}
+.form-control:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,87,184,.12);
+}
+.form-control::placeholder { color: var(--fg3); }
+.form-control:disabled { opacity: .55; cursor: not-allowed; background: var(--bg3); }
+select.form-control { cursor: pointer; }
+textarea.form-control { resize: vertical; min-height: 72px; line-height: 1.5; }
 .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 600px) { .settings-row { grid-template-columns: 1fr; } }
 .role-badge {
@@ -1464,6 +1482,11 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
 .btn-danger:hover { background: #d03535; border-color: #d03535; }
+.btn-secondary {
+  background: var(--bg2); border-color: var(--border2); color: var(--fg2);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.btn-secondary:hover { background: var(--bg3); border-color: var(--border2); color: var(--fg); }
 
 /* ── Component: Empty state ────────────────────────────────────────────────── */
 .empty { text-align: center; padding: 48px 24px; color: var(--fg3); }
