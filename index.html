@@ -167,6 +167,40 @@ body {
   transition: background .15s, color .15s;
 }
 .hdr-icon-btn:hover { background: var(--bg); color: var(--fg); }
+
+/* ── Admin Mode toggle ───────────────────────────────────────────────── */
+#admin-mode-btn {
+  display: none; /* hidden until admin role confirmed */
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1.5px solid transparent;
+  color: var(--fg3);
+  gap: 5px;
+  align-items: center;
+  transition: background .15s, color .15s, border-color .15s;
+}
+#admin-mode-btn.admin-visible { display: flex; }
+#admin-mode-btn.admin-on {
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.45);
+  color: #ef4444;
+}
+#admin-mode-btn.admin-on:hover { background: rgba(239,68,68,.22); }
+/* When admin mode is active, body gets this class */
+body.admin-mode .admin-edit-icon { display: inline-flex !important; }
+body.admin-mode .admin-section-gear { display: inline-flex !important; }
+/* by default these are hidden */
+.admin-edit-icon, .admin-section-gear { display: none !important; }
+/* Subtle orange outline on editable sections in admin mode */
+body.admin-mode [data-admin-section] {
+  outline: 1.5px dashed rgba(239,68,68,.25);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .badge-dot {
   position: absolute; top: 4px; right: 4px;
   width: 7px; height: 7px;
@@ -1077,6 +1111,10 @@ tr:hover td { background: var(--bg3); }
       <span class="badge-dot"></span>
     </button>
     <button class="hdr-icon-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark mode" style="font-size:16px;line-height:1">🌙</button>
+    <button class="hdr-icon-btn" id="admin-mode-btn" onclick="toggleAdminMode()" title="Admin Mode — reveal edit &amp; permission controls">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span id="admin-mode-label">Admin</span>
+    </button>
     <button class="hdr-icon-btn" id="ai-toggle-hdr-btn" onclick="toggleAiPanel()" title="KI-Assistent" style="position:relative">
       <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
     </button>
@@ -6208,6 +6246,32 @@ tr:hover td { background: var(--bg3); }
 
         function renderInsights(oIdx){ renderInsightsInto('od-insights-body', oIdx); }
 
+        // ── Admin Mode ────────────────────────────────────────────────────────
+        let ADMIN_MODE = (localStorage.getItem('npch_admin_mode') === '1');
+
+        function toggleAdminMode() {
+          ADMIN_MODE = !ADMIN_MODE;
+          localStorage.setItem('npch_admin_mode', ADMIN_MODE ? '1' : '0');
+          applyAdminMode();
+        }
+
+        function applyAdminMode() {
+          const btn = document.getElementById('admin-mode-btn');
+          const lbl = document.getElementById('admin-mode-label');
+          if (!btn) return;
+          if (ADMIN_MODE) {
+            document.body.classList.add('admin-mode');
+            btn.classList.add('admin-on');
+            if (lbl) lbl.textContent = 'Admin ON';
+            btn.title = 'Admin Mode active — click to deactivate';
+          } else {
+            document.body.classList.remove('admin-mode');
+            btn.classList.remove('admin-on');
+            if (lbl) lbl.textContent = 'Admin';
+            btn.title = 'Admin Mode — reveal edit & permission controls';
+          }
+        }
+
         // ── Dev-mode role & permissions ───────────────────────────────────────
         let DEV_ROLE = 'management';
         let selectedIdxs = new Set();
@@ -10144,6 +10208,20 @@ async function loadUser() {
 
     // Theme buttons active state
     updateThemeButtons();
+
+    // Admin mode button — only visible for admin role
+    const adminBtn = document.getElementById('admin-mode-btn');
+    if (adminBtn) {
+      const roles = (user.role || '').split(',').map(r => r.trim());
+      if (roles.includes('admin')) {
+        adminBtn.classList.add('admin-visible');
+        applyAdminMode(); // apply persisted state
+      } else {
+        adminBtn.classList.remove('admin-visible');
+        // ensure admin mode is off for non-admins
+        if (ADMIN_MODE) { ADMIN_MODE = false; applyAdminMode(); }
+      }
+    }
 
   } catch {
     document.getElementById('user-name').textContent = 'Not signed in';
