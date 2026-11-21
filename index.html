@@ -202,19 +202,28 @@ body.admin-mode [data-admin-section] {
 }
 
 /* ── Task Detail Panel ───────────────────────────────────────────────────── */
-/* ── Task Detail — drop-down over board body ─────────────────────────── */
-#ck-panel-board { position: relative; }
+/* ── Task Detail — centered modal over main area only ────────────────── */
 #ck-task-detail {
-  position: absolute; top: 0; left: 0; right: 0;
-  background: var(--card-bg);
-  border: 1px solid var(--border); border-radius: 10px;
-  z-index: 50; display: flex; flex-direction: column;
-  transform: translateY(-18px); opacity: 0; pointer-events: none;
-  transition: transform .22s cubic-bezier(.4,0,.2,1), opacity .18s ease;
-  min-height: 560px; max-height: calc(100vh - var(--header-h) - 32px);
-  overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.28);
+  position: fixed;
+  top: var(--header-h); left: var(--sidebar-w); right: 0; bottom: 0;
+  background: rgba(0,0,0,.48);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s ease;
 }
-#ck-task-detail.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+#ck-task-detail.open { opacity: 1; pointer-events: auto; }
+.ck-det-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border); border-radius: 12px;
+  width: min(1020px, 92%); max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 56px rgba(0,0,0,.45);
+  transform: translateY(-18px);
+  transition: transform .22s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+#ck-task-detail.open .ck-det-card { transform: translateY(0); }
 /* Header row */
 .ck-det-header {
   display: flex; align-items: center; gap: 10px;
@@ -245,7 +254,7 @@ body.admin-mode [data-admin-section] {
 .ck-det-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .ck-det-tab:hover:not(.active) { background: var(--bg2); color: var(--fg); }
 /* Pane wrapper */
-.ck-det-body { flex: 1; overflow-y: auto; }
+.ck-det-body { flex: 1; overflow-y: auto; min-height: 0; }
 .ck-det-pane { display: none; }
 .ck-det-pane.active { display: block; }
 /* Two-col layout for details pane */
@@ -15313,7 +15322,9 @@ function fmtDate(d) {
 </div><!-- end .app-body -->
 
 <!-- ── Task Detail Panel ──────────────────────────────────────────────────── -->
-<div id="ck-task-detail" role="dialog" aria-label="Task detail">
+<div id="ck-task-detail" role="dialog" aria-label="Task detail"
+     onclick="if(event.target===this)closeTaskDetail()">
+<div class="ck-det-card">
   <!-- Header row: back + ID + close -->
   <div class="ck-det-header">
     <button class="ck-det-back" onclick="closeTaskDetail()">
@@ -15472,7 +15483,8 @@ function fmtDate(d) {
       </div>
     </div>
   </div>
-</div>
+</div><!-- end ck-det-card -->
+</div><!-- end ck-task-detail -->
 
 <!-- ── New Task Modal ─────────────────────────────────────────────────────── -->
 <div id="ck-new-task-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
