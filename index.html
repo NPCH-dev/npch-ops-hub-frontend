@@ -538,6 +538,14 @@ body.admin-mode [data-admin-section] {
 }
 .ck-mode-btn.active { background: var(--card-bg); color: var(--fg); }
 .ck-toolbar-right { display: flex; align-items: center; gap: 8px; }
+.ck-dept-tab {
+  background: none; border: none; padding: 5px 14px;
+  border-radius: 6px; cursor: pointer; font-size: 12px;
+  font-weight: 500; color: var(--fg3); font-family: inherit;
+  transition: background .12s, color .12s;
+}
+.ck-dept-tab:hover { background: var(--bg3); color: var(--fg2); }
+.ck-dept-tab.active { background: var(--accent); color: #fff; }
 
 .ck-filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .ck-filter-input {
@@ -9773,6 +9781,9 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           </div>
         </div>
 
+        <!-- Department subtabs (visible when Dept view + management role) -->
+        <div id="ck-dept-subtabs" style="display:none;gap:4px;padding:0 16px 10px;border-bottom:1px solid var(--border)"></div>
+
         <!-- Filter bar -->
         <div class="ck-filter-bar">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--fg3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -11794,6 +11805,9 @@ let CK_TASKS = [];
 let CK_COLLAPSED = new Set();
 let CK_SEARCH = '';
 let CK_LOADED = false;
+let CK_DEPT_FILTER = null; // null = show all (management), 'Sales' etc. = single dept
+
+const CK_DEPARTMENTS = ['Sales','Coordination','Recruitment','Finance','Management'];
 
 // Mock tasks — replaced by api('/tasks') once backend endpoint is available
 const CK_MOCK_TASKS = [
@@ -11937,10 +11951,59 @@ function admAddAutomation() {
   renderAdminAutomations();
 }
 
+function ckUserRole() {
+  return (window._currentUser?.role || '').toLowerCase();
+}
+
+function ckCanSeeAllDepts() {
+  const r = ckUserRole();
+  return r === 'management' || r === 'admin' || r === 'system';
+}
+
+function ckUserDept() {
+  // Map role → department label (best-effort)
+  const MAP = { sales:'Sales', coordination:'Coordination', recruitment:'Recruitment',
+                finance:'Finance', management:'Management', admin:'Management' };
+  return MAP[ckUserRole()] || null;
+}
+
+function renderDeptSubtabs() {
+  const bar = document.getElementById('ck-dept-subtabs');
+  if (!bar) return;
+
+  if (CK_VIEW !== 'dept') { bar.style.display = 'none'; return; }
+
+  const canAll = ckCanSeeAllDepts();
+  const userDept = ckUserDept();
+
+  // If non-management user: auto-filter to their dept, hide subtabs
+  if (!canAll) {
+    CK_DEPT_FILTER = userDept;
+    bar.style.display = 'none';
+    return;
+  }
+
+  // Management: show all dept tabs
+  bar.style.display = 'flex';
+  const all = [null, ...CK_DEPARTMENTS]; // null = "All"
+  bar.innerHTML = all.map(d => {
+    const label = d || 'All';
+    const active = CK_DEPT_FILTER === d;
+    return `<button class="ck-dept-tab${active?' active':''}" onclick="switchDeptFilter(${d ? "'"+d+"'" : 'null'})">${label}</button>`;
+  }).join('');
+}
+
+function switchDeptFilter(dept) {
+  CK_DEPT_FILTER = dept;
+  renderDeptSubtabs();
+  renderBoard();
+}
+
 function switchBoardView(view) {
   CK_VIEW = view;
   document.querySelectorAll('.ck-view-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.view === view));
+  renderDeptSubtabs();
   renderBoard();
 }
 
@@ -11967,6 +12030,11 @@ async function loadCockpitBoard() {
   } catch {
     CK_TASKS = CK_MOCK_TASKS; // mock until BE endpoint exists
   }
+  // Set initial dept filter based on user role
+  if (!ckCanSeeAllDepts()) {
+    CK_DEPT_FILTER = ckUserDept();
+  }
+  renderDeptSubtabs();
   renderBoard();
 }
 
@@ -11980,6 +12048,11 @@ function ckGetGrouped() {
   if (CK_VIEW === 'mine') {
     const me = window._currentUser?.full_name?.split(' ').map(s=>s[0]).join('').toUpperCase() || '';
     tasks = tasks.filter(t => !t.assignee || me.length < 2 || t.assignee.toUpperCase().includes(me));
+  }
+
+  // Department filter (from subtabs or auto-set for non-management users)
+  if (CK_VIEW === 'dept' && CK_DEPT_FILTER) {
+    tasks = tasks.filter(t => (t.dept || 'General') === CK_DEPT_FILTER);
   }
 
   const groups = {};
