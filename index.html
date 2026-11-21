@@ -6115,6 +6115,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
                   ondblclick="boardCardDblClick(event,${oIdx})"
                   draggable="true"
                   ondragstart="boardDragStart(event,${oIdx})"
+                  ondragend="boardDragEnd(event)"
                   title="Click: stage tracker · Double-click: open detail">
                 <div class="od-board-card-title">${o.seq||''}</div>
                 <div class="od-board-card-sub">${o.customer||''} · ${o.training||''}</div>
@@ -6131,6 +6132,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 
             return `<div class="od-board-col" data-phase="${ph.id}"
                 ondragover="boardDragOver(event)"
+                ondragleave="boardDragLeave(event)"
                 ondrop="boardDrop(event,'${ph.id}')">
               <div class="od-board-col-head">
                 <div class="od-board-col-name">${ph.id} · ${ph.label}</div>
@@ -6278,6 +6280,18 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', String(oIdx));
           e.currentTarget.classList.add('dragging');
+        };
+
+        window.boardDragEnd = function(e){
+          e.currentTarget.classList.remove('dragging');
+          document.querySelectorAll('.od-board-col').forEach(c => c.classList.remove('drag-over'));
+        };
+
+        window.boardDragLeave = function(e){
+          // Only remove drag-over when truly leaving the column (not entering a child)
+          if(!e.currentTarget.contains(e.relatedTarget)){
+            e.currentTarget.classList.remove('drag-over');
+          }
         };
 
         window.boardDragOver = function(e){
@@ -6505,53 +6519,146 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           const toLabel   = STATUS_META[targetStatus]?.label || targetStatus;
           const fields    = STAGE_FIELDS[targetStatus] || [];
           const data      = getStageData(o.seq, targetStatus);
+          const mandatoryFields = fields.filter(f => f.mandatory);
+          const hasMandFields = mandatoryFields.length > 0;
 
-          const fieldsHtml = fields.map(f => {
-            const val = data[f.key] || '';
-            const dot = f.mandatory ? '<span style="color:#ef4444">*</span>' : '';
-            return `<div style="margin-bottom:8px">
-              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:3px">${f.label} ${dot}</label>
-              <input id="smf_${f.key}" type="${f.type||'text'}" value="${val}"
-                style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:var(--fg);font-size:12px"
-                oninput="stageFieldChange('${o.seq}','${targetStatus}','${f.key}',this.value)">
-            </div>`;
-          }).join('');
+          const fieldsHtml = fields.length ? `
+            <div style="margin-bottom:14px">
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+                Required for this stage
+                ${hasMandFields ? '<span style="color:var(--red);margin-left:4px">* required</span>' : ''}
+              </div>
+              ${fields.map(f => {
+                const val = data[f.key] || '';
+                return `<div class="sm-field-row" data-key="${f.key}" data-mandatory="${f.mandatory}" style="margin-bottom:10px">
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--fg2);margin-bottom:4px">
+                    ${f.label}${f.mandatory ? ' <span style="color:var(--red)">*</span>' : ''}
+                  </label>
+                  <input id="smf_${f.key}" type="${f.type||'text'}" value="${val}"
+                    class="form-control"
+                    placeholder="${f.mandatory ? 'Required' : 'Optional'}"
+                    oninput="stageFieldChange('${o.seq}','${targetStatus}','${f.key}',this.value);smfValidate(this,${f.mandatory})">
+                </div>`;
+              }).join('')}
+            </div>` : '';
 
           const tasks  = (ACTIVITIES_STORE[o.seq]||[]).filter(e=>e.type==='task'&&!e.done);
-          const taskHtml = tasks.length ? `<div style="margin-top:8px;font-size:11px;color:var(--fg3);font-weight:600;margin-bottom:4px">Open tasks (${tasks.length})</div>` +
-            tasks.map(t => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px">
-              <input type="checkbox" ${t.mandatory ? 'disabled' : `onchange="toggleTask('${o.seq}',${t.id})"`}>
-              <span style="${t.mandatory ? 'color:#ef4444' : 'color:var(--fg2)'}">${t.taskTitle}${t.mandatory?' (mandatory)':''}</span>
-            </div>`).join('') : '';
+          const mandatoryTasks = tasks.filter(t => t.mandatory);
+          const taskHtml = tasks.length ? `
+            <div style="margin-bottom:14px">
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+                Open tasks (${tasks.length})${mandatoryTasks.length ? ` · <span style="color:var(--red)">${mandatoryTasks.length} mandatory</span>` : ''}
+              </div>
+              ${tasks.map(t => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px">
+                <input type="checkbox" ${t.mandatory ? 'disabled title="Mandatory — must be completed first"' : `onchange="toggleTask('${o.seq}',${t.id})"`}
+                  style="accent-color:var(--accent);width:14px;height:14px">
+                <span style="color:${t.mandatory ? 'var(--red)' : 'var(--fg2)'}">${t.taskTitle}${t.mandatory ? ' <span style="font-size:10px;opacity:.8">(mandatory)</span>' : ''}</span>
+              </div>`).join('')}
+            </div>` : '';
 
           const existing = document.getElementById('od-status-modal');
           if(existing) existing.remove();
 
           const modal = document.createElement('div');
           modal.id = 'od-status-modal';
-          modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center';
-          modal.innerHTML = `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:24px;width:420px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
-            <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:4px">Advance Status</div>
-            <div style="font-size:12px;color:var(--fg3);margin-bottom:16px">
-              <strong style="color:var(--fg)">${o.seq}</strong> · ${fromLabel}
-              <span style="color:var(--accent)"> → </span>${toLabel}
-            </div>
-            ${fieldsHtml}
-            ${taskHtml}
-            ${withSkip && canBypassMandatory() ? `<div style="margin-top:8px;padding:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:11px;color:#f59e0b">⚠ Skipping mandatory fields/tasks — your action will be logged.</div>` : ''}
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-              <button onclick="document.getElementById('od-status-modal').remove()"
-                style="padding:6px 14px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--fg);font-size:12px;cursor:pointer">Cancel</button>
-              <button onclick="confirmStatusChange(${oIdx},'${targetStatus}',${!!withSkip})"
-                style="padding:6px 14px;border:none;border-radius:5px;background:var(--accent);color:#fff;font-size:12px;cursor:pointer;font-weight:600">Confirm</button>
-            </div>
-          </div>`;
+          modal.style.cssText = `position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+            background:rgba(10,20,35,0.68);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)`;
+          modal.innerHTML = `
+            <div style="background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:10px;
+              width:min(96vw,460px);max-height:85vh;overflow-y:auto;
+              box-shadow:0 8px 40px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.12)">
+              <!-- Header -->
+              <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <span style="font-size:14px;font-weight:700;color:var(--fg)">Status Transition</span>
+                  <button onclick="document.getElementById('od-status-modal').remove()"
+                    style="background:none;border:none;cursor:pointer;color:var(--fg3);font-size:18px;line-height:1;padding:0 2px"
+                    title="Close">×</button>
+                </div>
+                <div style="font-size:12px;color:var(--fg3)">
+                  <strong style="color:var(--fg)">${o.seq}</strong>
+                  <span style="margin:0 6px;color:var(--border2)">|</span>
+                  <span>${fromLabel}</span>
+                  <span style="color:var(--accent);margin:0 6px">→</span>
+                  <span style="font-weight:600;color:var(--fg)">${toLabel}</span>
+                </div>
+              </div>
+              <!-- Body -->
+              <div style="padding:18px 20px">
+                ${hasMandFields && !withSkip ? `
+                  <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--accent-bg);border:1px solid rgba(0,87,184,.2);border-radius:var(--radius);margin-bottom:16px;font-size:12px;color:var(--accent)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Fill in all required fields (<span style="color:var(--red)">*</span>) to confirm this transition.
+                  </div>` : ''}
+                ${withSkip && canBypassMandatory() ? `
+                  <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--yellow-bg);border:1px solid rgba(212,160,23,.3);border-radius:var(--radius);margin-bottom:16px;font-size:12px;color:var(--yellow)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Skipping mandatory fields — this action will be logged.
+                  </div>` : ''}
+                ${fieldsHtml}
+                ${taskHtml}
+                <div id="sm-error-banner" style="display:none;padding:8px 12px;background:var(--red-bg);border:1px solid rgba(232,70,70,.3);border-radius:var(--radius);font-size:12px;color:var(--red);margin-bottom:12px"></div>
+              </div>
+              <!-- Footer -->
+              <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('od-status-modal').remove()">Cancel</button>
+                ${withSkip && canBypassMandatory()
+                  ? `<button class="btn btn-sm" style="background:var(--yellow);color:#fff;border-color:var(--yellow)"
+                      onclick="confirmStatusChange(${oIdx},'${targetStatus}',true)">Skip &amp; Confirm</button>`
+                  : `<button class="btn btn-primary btn-sm" onclick="confirmStatusChange(${oIdx},'${targetStatus}',false)">
+                      Confirm Transition →
+                    </button>`
+                }
+              </div>
+            </div>`;
           document.body.appendChild(modal);
           modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+
+          // Focus first empty mandatory field
+          const firstMand = modal.querySelector('.sm-field-row[data-mandatory="true"] input');
+          if(firstMand && !firstMand.value) setTimeout(() => firstMand.focus(), 80);
+        };
+
+        // Inline field validation highlight
+        window.smfValidate = function(inp, mandatory){
+          if(!mandatory) return;
+          const row = inp.closest('.sm-field-row');
+          if(!row) return;
+          if(inp.value.trim()){
+            inp.style.borderColor = 'var(--green)';
+          } else {
+            inp.style.borderColor = 'var(--red)';
+          }
         };
 
         window.confirmStatusChange = function(oIdx, targetStatus, skipped){
           const o = MOCK[oIdx];
+
+          // Validate mandatory fields (unless skipping with bypass permission)
+          if(!skipped){
+            const fields = STAGE_FIELDS[targetStatus] || [];
+            const mandatoryFields = fields.filter(f => f.mandatory);
+            const missing = [];
+            mandatoryFields.forEach(f => {
+              const inp = document.getElementById('smf_' + f.key);
+              const val = inp ? inp.value.trim() : (getStageData(o.seq, targetStatus)[f.key] || '');
+              if(!val){
+                missing.push(f.label);
+                if(inp){ inp.style.borderColor = 'var(--red)'; inp.focus(); }
+              } else {
+                if(inp) inp.style.borderColor = 'var(--green)';
+              }
+            });
+            if(missing.length){
+              const banner = document.getElementById('sm-error-banner');
+              if(banner){
+                banner.style.display = 'block';
+                banner.textContent = 'Please fill in: ' + missing.join(', ');
+              }
+              return; // block transition
+            }
+          }
+
           const fromStatus = o.status;
 
           // Log to activities
