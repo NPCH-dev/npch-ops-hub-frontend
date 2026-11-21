@@ -1721,6 +1721,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
       <a class="nav-item" data-page="approvals" href="#approvals">
         <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
         Freigaben
+        <span class="nav-badge red" id="badge-approvals" style="display:none">0</span>
       </a>
     </div>
   </div>
@@ -10541,6 +10542,76 @@ const PAGES = {
   wiki:         { title: 'Team Wiki',        load: loadWiki },
 };
 
+// ── Nav Badge Update ────────────────────────────────────────────────────────
+async function updateNavBadges() {
+  if (!CONFIG.authToken) return;
+
+  // Helper: set badge value + colour class (removes old colour first)
+  function setBadge(id, count, colorClass) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('blue','warn','red','green');
+    if (count > 0) {
+      if (colorClass) el.classList.add(colorClass);
+      el.textContent = count > 99 ? '99+' : count;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  // Run all badge fetches in parallel — failures are silently ignored
+  const results = await Promise.allSettled([
+    // Orders: new/unread (status = inquiry or new_order ≈ early-funnel items not yet worked)
+    api('/orders?limit=200'),
+    // Questions: needs_clarification tickets
+    api('/data/tickets?status=needs_clarification'),
+    // Backlog: backlog-status tickets
+    api('/tickets?limit=200'),
+    // Approvals: pending approvals (endpoint may not exist yet — handled in catch)
+    api('/approvals?status=pending&limit=100').catch(() => null),
+  ]);
+
+  // Orders badge — count orders with status 'inquiry' or 'new_order'
+  if (results[0].status === 'fulfilled') {
+    try {
+      const orders = Array.isArray(results[0].value) ? results[0].value
+        : (results[0].value?.items || results[0].value?.data || []);
+      const NEW_STATUSES = new Set(['inquiry','new_inquiry','new_order','new']);
+      const newCount = orders.filter(o => NEW_STATUSES.has(o.status)).length;
+      setBadge('badge-orders', newCount, 'red');
+    } catch {}
+  }
+
+  // Questions badge
+  if (results[1].status === 'fulfilled') {
+    try {
+      const arr = Array.isArray(results[1].value) ? results[1].value
+        : (results[1].value?.tickets || results[1].value?.items || results[1].value?.data || []);
+      setBadge('badge-questions', arr.length, 'red');
+    } catch {}
+  }
+
+  // Backlog badge
+  if (results[2].status === 'fulfilled') {
+    try {
+      const tickets = Array.isArray(results[2].value) ? results[2].value : [];
+      const blCount = tickets.filter(t => t.status === 'backlog').length;
+      setBadge('badge-backlog', blCount, 'blue');
+    } catch {}
+  }
+
+  // Approvals badge
+  if (results[3].status === 'fulfilled' && results[3].value) {
+    try {
+      const arr = Array.isArray(results[3].value) ? results[3].value
+        : (results[3].value?.items || results[3].value?.data || []);
+      setBadge('badge-approvals', arr.length, 'red');
+    } catch {}
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 function navigate(page) {
   const key = page || 'cockpit';
   if (!PAGES[key]) return navigate('cockpit');
@@ -10587,6 +10658,9 @@ function navigate(page) {
   closeMegaMenu();
   // Close any open modals/panels
   if (typeof closeNewOrderPanel === 'function') closeNewOrderPanel();
+
+  // Refresh nav badges on every navigation
+  updateNavBadges();
 }
 
 function hashPage() {
@@ -10614,6 +10688,7 @@ window.addEventListener('load', () => {
   if (checkAuth()) {
     navigate(page);
     loadUser();
+    updateNavBadges();
   }
 });
 
@@ -14884,7 +14959,8 @@ async function loadApprovals() {
           <button class="btn btn-ghost btn-sm" onclick="showDetail(${item.id})">Details</button>
         </div>
       </div>`).join('');
-    document.getElementById('badge-approvals').textContent = items.length;
+    const appBadge = document.getElementById('badge-approvals');
+    if (appBadge) { appBadge.textContent = items.length; appBadge.style.display = items.length ? '' : 'none'; }
     document.getElementById('stat-approvals').textContent = items.length;
   } catch (e) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Fehler: ${e.message}</p></div>`;
