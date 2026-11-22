@@ -1681,6 +1681,11 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
         Management Board
         <span class="nav-badge warn" id="badge-dashboard" style="display:none">0</span>
       </a>
+      <a class="nav-item" data-page="today" href="#today">
+        <span class="icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        Today
+        <span class="nav-badge red" id="badge-today" style="display:none">0</span>
+      </a>
     </div>
   </div>
 
@@ -2339,6 +2344,10 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
                 <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                 Files
               </button>
+              <button class="od-util-tab" data-tab="emails" onclick="switchDetailTab('emails')" id="util-emails">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Emails
+              </button>
               <button class="od-util-tab" data-tab="insights" onclick="switchDetailTab('insights')" id="util-insights">
                 <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                 AI
@@ -2349,6 +2358,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           </div>
           <div class="od-step-body" id="od-step-body"></div>
           <div class="od-insights-body" id="od-insights-body" style="display:none"></div>
+          <div id="od-emails-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-costs-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-liquidity-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
           <div id="od-enquiry-body" style="display:none;padding:18px 20px;overflow-y:auto;flex:1"></div>
@@ -5650,7 +5660,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
                                 planning:'coordination', delivery:'coordination',
                                 recruitment:'recruitment', liquidity:'finance' };
         // Utility tabs (always right, not in any group)
-        const UTIL_TABS = ['activities','comments','files','insights'];
+        const UTIL_TABS = ['activities','comments','files','emails','insights'];
         // Default first sub-tab per group
         const GROUP_DEFAULTS = { overview:'overview', sales:'enquiry', coordination:'planning',
                                   recruitment:'recruitment', finance:'liquidity' };
@@ -5700,9 +5710,8 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           // costs-open layout flag (Revenue Planning tab)
           document.getElementById('od-layout').classList.toggle('costs-open', tab==='costs');
           // Show/hide all body panels
-          const ALL_TABS = ['overview','insights','costs','liquidity','enquiry','activities','comments','files','booking','planning','delivery','recruitment'];
+          const ALL_TABS = ['overview','insights','emails','costs','liquidity','enquiry','activities','comments','files','booking','planning','delivery','recruitment'];
           ALL_TABS.forEach(t=>{
-            const el = document.getElementById('od-'+t+'-body') || document.getElementById('od-step-body'+(t==='overview'?'':'-SKIP'));
             if(t==='overview'){
               document.getElementById('od-step-body').style.display = tab==='overview' ? '' : 'none';
             } else {
@@ -5712,6 +5721,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           });
           if(currentOrderIdx < 0) return;
           if(tab==='insights')    renderInsights(currentOrderIdx);
+          if(tab==='emails')      loadOrderEmails(MOCK[currentOrderIdx].seq, 'od-emails-body');
           if(tab==='costs')       renderCosts(currentOrderIdx);
           if(tab==='liquidity')   renderLiquidity(currentOrderIdx);
           if(tab==='enquiry')     renderEnquiry(currentOrderIdx);
@@ -6218,12 +6228,16 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
               <div class="od-tabs" id="od-tabs-overlay" style="display:flex;gap:4px">
                 <button class="od-tab active" data-tab="overview" onclick="switchOverlayTab('overview')">Overview</button>
                 <button class="od-tab" data-tab="insights" onclick="switchOverlayTab('insights')">AI Insights</button>
+                <button class="od-tab" data-tab="emails" onclick="switchOverlayTab('emails')">Emails</button>
                 <button class="od-tab" data-tab="activities" onclick="switchOverlayTab('activities')">Activities</button>
               </div>
             </div>
             <div id="od-overlay-step-body" style="padding:16px 18px 20px"></div>
             <div id="od-overlay-insights-body" style="display:none;padding:16px 18px 20px">
               <div class="ai-skeleton-box" style="padding:16px;text-align:center;color:var(--fg3)">AI Insights loading…</div>
+            </div>
+            <div id="od-overlay-emails-body" style="display:none;padding:16px 18px 20px">
+              <div class="empty"><div class="empty-icon">📬</div><p>Loading email thread…</p></div>
             </div>
             <div id="od-overlay-activities-body" style="display:none;padding:16px 18px 20px"></div>
           `;
@@ -6249,9 +6263,13 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
             b.classList.toggle('active', b.dataset.tab===tab));
           document.getElementById('od-overlay-step-body').style.display        = tab==='overview'    ? '' : 'none';
           document.getElementById('od-overlay-insights-body').style.display    = tab==='insights'    ? '' : 'none';
+          document.getElementById('od-overlay-emails-body').style.display      = tab==='emails'      ? '' : 'none';
           document.getElementById('od-overlay-activities-body').style.display  = tab==='activities'  ? '' : 'none';
           if(tab==='insights' && currentOrderIdx>=0){
             renderInsightsInto('od-overlay-insights-body', currentOrderIdx);
+          }
+          if(tab==='emails' && currentOrderIdx>=0){
+            loadOrderEmails(MOCK[currentOrderIdx].seq, 'od-overlay-emails-body');
           }
           if(tab==='activities' && currentOrderIdx>=0){
             const seq = MOCK[currentOrderIdx].seq;
@@ -8792,6 +8810,21 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
       </div>
     </div>
 
+    <!-- ── Page: Today ───────────────────────────────────────────────────── -->
+    <div class="page" id="page-today">
+      <div class="page-header">
+        <h1>Today</h1>
+        <p id="today-subtitle">Your daily action list</p>
+      </div>
+      <div class="stats-grid" style="margin-bottom:16px">
+        <div class="stat-card red"><div class="stat-label">Overdue</div><div class="stat-value" id="today-kpi-overdue">—</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Approvals</div><div class="stat-value" id="today-kpi-approvals">—</div></div>
+        <div class="stat-card"><div class="stat-label">Open Questions</div><div class="stat-value" id="today-kpi-questions">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Total Items</div><div class="stat-value" id="today-kpi-total">—</div></div>
+      </div>
+      <div id="today-sections"></div>
+    </div>
+
     <!-- ── Page: Finance ─────────────────────────────────────────────────── -->
     <div class="page" id="page-finance">
       <div class="page-header"><h1>Finance Dashboard</h1><p>Umsatz, Liquidität & P&L</p></div>
@@ -10580,6 +10613,7 @@ function showToast(msg, type = 'error') {
 const PAGES = {
   cockpit:      { title: 'My Cockpit',          load: loadCockpit },
   dashboard:    { title: 'Management Board',    load: loadDashboard },
+  today:        { title: 'Today',               load: loadToday },
   inquiries:    { title: 'Pipeline / Inquiries', load: loadInquiries },
   bookings:     { title: 'Bookings',             load: loadBookings },
   orders:       { title: 'Orders',               load: loadOrders },
@@ -15409,7 +15443,112 @@ function fmtEur(val) {
   return new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(val);
 }
 
+// ── Order Emails (Communication Trail) ───────────────────────────────────────
+async function loadOrderEmails(orderSeq, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  el.innerHTML = '<div class="empty"><div class="empty-icon">📬</div><p>Loading…</p></div>';
+  try {
+    const emails = await api(`/orders/${orderSeq}/emails`);
+    const rows = Array.isArray(emails) ? emails : (emails.emails || emails.items || []);
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No emails found for this order.</p></div>';
+      return;
+    }
+    el.innerHTML = rows.map(m => {
+      const dirIcon = m.direction === 'inbound' ? '📩' : '📤';
+      const dateStr = m.date ? new Date(m.date).toLocaleDateString('en-DE', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      const snippet = (m.snippet || m.body_preview || m.body || '').replace(/</g,'&lt;').substring(0,200);
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-weight:600;font-size:13px">${dirIcon} ${m.subject || '(no subject)'}</div>
+          <div style="font-size:11px;color:var(--fg3)">${dateStr}</div>
+        </div>
+        <div style="font-size:12px;color:var(--fg3);margin-bottom:4px">
+          <strong>From:</strong> ${m.from || '—'} &nbsp;→&nbsp; <strong>To:</strong> ${m.to || '—'}
+        </div>
+        <div style="font-size:12px;color:var(--fg2);line-height:1.5">${snippet}${snippet.length >= 200 ? '…' : ''}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.warn('[OrderEmails] endpoint not ready:', e.message);
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🚧</div>
+      <p>Email endpoint not yet live.<br><span style="font-size:11px;color:var(--fg3)">Available after BE-028 is deployed.</span></p></div>`;
+  }
+}
+
 // showDetail is defined in the orders page IIFE (window.showDetail)
+
+// ── Today View ────────────────────────────────────────────────────────────────
+async function loadToday() {
+  const sectionsEl = document.getElementById('today-sections');
+  if (!sectionsEl) return;
+  sectionsEl.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>Loading your day…</p></div>';
+
+  const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const sub = document.getElementById('today-subtitle');
+
+  try {
+    const data = await api('/today');
+    const sections = data.sections || [];
+    const summary = data.summary || {};
+
+    // Update subtitle with date
+    if (sub) {
+      const d = new Date();
+      sub.textContent = d.toLocaleDateString('en-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    }
+
+    // KPI tiles from summary
+    setKpi('today-kpi-overdue',   summary.overdue_count   ?? '—');
+    setKpi('today-kpi-approvals', summary.approval_count  ?? '—');
+    setKpi('today-kpi-questions', summary.question_count  ?? '—');
+    setKpi('today-kpi-total',     summary.total_items != null ? summary.total_items : (sections.flatMap(s=>s.items||[]).length || '—'));
+
+    if (!sections.length) {
+      sectionsEl.innerHTML = '<div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">✅</div><p>Nothing urgent today — great!</p></div></div></div>';
+      return;
+    }
+
+    const iconMap = { overdue_invoices:'🔴', pending_approvals:'🟡', open_questions:'🔵', upcoming_trainings:'📅', sprint_items:'🛠', default:'📌' };
+    const colorMap = { overdue_invoices:'red', pending_approvals:'yellow', open_questions:'blue', upcoming_trainings:'green', sprint_items:'blue' };
+
+    sectionsEl.innerHTML = sections.map(section => {
+      const items = section.items || [];
+      if (!items.length) return '';
+      const icon = iconMap[section.type] || iconMap.default;
+      const color = colorMap[section.type] || 'blue';
+      const rows = items.map(item => {
+        const badge = item.priority === 'high' ? '<span class="badge badge-red">high</span>' : item.priority === 'medium' ? '<span class="badge badge-yellow">medium</span>' : '';
+        const orderRef = item.order_ref ? `<span style="color:var(--fg3);font-size:11px"> · ${item.order_ref}</span>` : '';
+        const amount = item.amount ? `<span style="font-weight:600;color:var(--fg)">${fmtEur(item.amount)}</span>` : '';
+        const dueStr = item.due_date ? `<span style="color:var(--red);font-size:11px">${fmtDate(item.due_date)}</span>` : '';
+        const link = item.link_route ? `onclick="navigate('${item.link_route}')" style="cursor:pointer"` : '';
+        return `<div class="mb-prio-item" ${link}>
+          <div class="mb-prio-dot ${color}"></div>
+          <div class="mb-prio-body">
+            <div class="mb-prio-name">${item.title || '—'}${orderRef}</div>
+            <div class="mb-prio-meta">${item.subtitle || item.customer_name || ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">${badge}${amount}${dueStr}</div>
+        </div>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:12px">
+        <div class="card-header">${icon} ${section.label || section.type} <span style="color:var(--fg3);font-weight:400;font-size:12px">(${items.length})</span></div>
+        <div class="card-body" style="padding:0">${rows}</div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    console.warn('[Today] endpoint not ready:', e.message);
+    if (sub) sub.textContent = 'Priority feed — available after BE-027 is deployed';
+    setKpi('today-kpi-total', '—');
+    sectionsEl.innerHTML = `<div class="card"><div class="card-body">
+      <div class="empty"><div class="empty-icon">🚧</div>
+      <p>The <code>/today</code> endpoint is not yet live.<br>Run the backend ticket script to trigger BE-027 via the n8n agent.</p></div>
+    </div></div>`;
+  }
+}
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function saveSettings() {
