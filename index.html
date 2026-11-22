@@ -11201,86 +11201,119 @@ async function loadDashboard() {
   // Greeting
   const now = new Date();
   const hour = now.getHours();
-  const greeting = hour < 12 ? 'Guten Morgen' : hour < 17 ? 'Guten Tag' : 'Guten Abend';
-  const days = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
-  const months = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  const dateStr = `${days[now.getDay()]}, ${now.getDate()}. ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = now.toLocaleDateString('en-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   const userEl = document.getElementById('user-name');
-  const firstName = (userEl?.textContent || 'Christian').split(' ')[0];
+  const firstName = (userEl?.textContent || 'there').split(' ')[0];
   const greetEl = document.getElementById('mb-greeting');
   if (greetEl) greetEl.textContent = `${greeting}, ${firstName} — ${dateStr}`;
 
-  // KPI mock data (until API endpoints exist)
   const setKpi = (id, val, sub) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-    const subEl = document.getElementById(id + '-sub');
-    if (subEl && sub !== undefined) subEl.textContent = sub;
+    const el = document.getElementById(id); if (el) el.textContent = val;
+    const subEl = document.getElementById(id + '-sub'); if (subEl && sub !== undefined) subEl.textContent = sub;
   };
-  setKpi('mb-kpi-orders', '14', '↑ 2 diese Woche');
-  setKpi('mb-kpi-sla', '3');
-  setKpi('mb-kpi-todos', '7', 'davon 2 heute fällig');
-  setKpi('mb-kpi-revenue', '€ 48k', '↗ 76 % von Plan');
-  setKpi('mb-kpi-forecast', '€ 142k', '→ Prognose');
-
-  // Widget mocks
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setEl('mb-sales-badge', '5 offen');
-  setEl('mb-sales-pipeline', '€ 220k');
-  setEl('mb-sales-inquiries', '11');
-  setEl('mb-sales-bookings', '6');
-  setEl('mb-coord-risk', '2 at risk');
-  setEl('mb-coord-trainers', '4');
-  setEl('mb-coord-dates', '3');
-  setEl('mb-coord-conflicts', '1');
-  setEl('mb-dev-badge', '1 aktiv');
-  setEl('mb-dev-backlog', '8');
-  setEl('mb-dev-inprogress', '1');
-  setEl('mb-dev-done', '12');
 
-  // State Machine phases
-  const phases = [
-    { sp: 'SP-01', name: 'Booking Received\nSales Confirmed',  count: 4, sla: 'green',  slaText: 'Im SLA' },
-    { sp: 'SP-02', name: 'Trainer Selection\nDelivery Confirmed', count: 6, sla: 'yellow', slaText: 'SLA nähert sich' },
-    { sp: 'SP-03', name: 'Order Confirm.',   count: 3, sla: 'green',  slaText: 'Im SLA' },
-    { sp: 'SP-04', name: 'Pre-Payment',      count: 2, sla: 'red',    slaText: 'SLA überschritten' },
-    { sp: 'SP-05', name: 'In Delivery',      count: 5, sla: 'green',  slaText: 'Im SLA' },
-    { sp: 'SP-06', name: 'Post-Delivery\nDocs',  count: 1, sla: 'yellow', slaText: 'SLA nähert sich' },
-    { sp: 'SP-07', name: 'Invoice',          count: 3, sla: 'red',    slaText: 'Handlungsbedarf' },
-    { sp: 'SP-08', name: 'Payment\nReceived', count: 0, sla: 'green',  slaText: 'Abgeschlossen' },
-  ];
-  const track = document.getElementById('mb-sm-track');
-  if (track) {
-    track.innerHTML = phases.map(p => `
-      <div class="mb-sm-phase" onclick="navigate('orders')">
-        <div class="mb-sm-phase-sp">${p.sp}</div>
-        <div class="mb-sm-phase-name">${p.name.replace('\n','<br>')}</div>
-        <div class="mb-sm-phase-count ${p.count > 3 ? p.sla : ''}">${p.count}</div>
-        <div class="mb-sm-sla ${p.sla}">${p.slaText}</div>
-      </div>`).join('');
+  // Try live KPI endpoint, fall back to order-list aggregation
+  try {
+    const kpi = await api('/dashboard/kpis');
+    setKpi('mb-kpi-orders', kpi.open_orders ?? '—', `${kpi.orders_in_progress ?? 0} in progress`);
+    setKpi('mb-kpi-sla', kpi.approvals_pending ?? '—');
+    setKpi('mb-kpi-todos', kpi.invoices_overdue ?? '—', `${kpi.invoices_overdue_amount ? fmtEur(kpi.invoices_overdue_amount) + ' overdue' : ''}`);
+    setKpi('mb-kpi-revenue', kpi.revenue_mtd != null ? fmtEur(kpi.revenue_mtd) : '—',
+      kpi.revenue_target ? `↗ ${Math.round((kpi.revenue_mtd/kpi.revenue_target)*100)}% of target` : '');
+    setKpi('mb-kpi-forecast', kpi.bookings_this_month != null ? `${kpi.bookings_this_month} bookings` : '—',
+      kpi.training_days_this_month ? `${kpi.training_days_this_month} training days` : '');
+    setEl('mb-coord-trainers', kpi.trainers_active ?? '—');
+    setEl('mb-coord-conflicts', kpi.trainers_needed ?? '—');
+    console.log('[Dashboard] KPIs loaded from API');
+  } catch(e) {
+    console.warn('[Dashboard] KPI endpoint not ready, using order-list aggregation:', e.message);
+    // Fallback: aggregate from /orders
+    try {
+      const orders = await api('/orders?limit=200');
+      const rows = Array.isArray(orders) ? orders : (orders.items || []);
+      const open = rows.filter(o => o.main_status && !['SP08_PAYMENT_RECEIVED','cancelled'].includes(o.main_status)).length;
+      const inProg = rows.filter(o => ['SP05_IN_DELIVERY','SP05_DELIVERY_IN_PROGRESS'].includes(o.main_status)).length;
+      setKpi('mb-kpi-orders', open, `${inProg} in delivery`);
+      setKpi('mb-kpi-revenue', `${rows.length} orders`, 'API endpoint pending');
+    } catch {}
   }
 
-  // Priorities
-  const priorities = [
-    { dot:'red',    name:'Rechnung #2024-089 — Arvato (überfällig)',    meta:'Finance',         due:'Heute',    dueClass:'today' },
-    { dot:'red',    name:'Trainer für "Azure Fundamentals" fehlt',       meta:'Coordination',    due:'Heute',    dueClass:'today' },
-    { dot:'yellow', name:'Angebot für Siemens AG nachfassen',            meta:'Sales',           due:'Morgen',   dueClass:'soon' },
-    { dot:'yellow', name:'Delivery-Plan KW47 finalisieren',              meta:'Coordination',    due:'Fr 15.11', dueClass:'soon' },
-    { dot:'blue',   name:'Sprint Review vorbereiten',                    meta:'Entwicklung',     due:'Fr 15.11', dueClass:'' },
-    { dot:'blue',   name:'API: Order-State-Machine Endpoint',            meta:'Dev Agent',       due:'Sprint',   dueClass:'' },
-  ];
-  const list = document.getElementById('mb-prio-list');
-  if (list) {
-    list.innerHTML = priorities.map(p => `
-      <div class="mb-prio-item" data-dept="${p.meta}">
-        <div class="mb-prio-dot ${p.dot}"></div>
-        <div class="mb-prio-body">
-          <div class="mb-prio-name">${p.name}</div>
-          <div class="mb-prio-meta">${p.meta}</div>
-        </div>
-        <div class="mb-prio-due ${p.dueClass}">${p.due}</div>
-      </div>`).join('');
+  // Try today endpoint for priorities
+  try {
+    const today = await api('/today');
+    const sections = today.sections || [];
+    const allItems = sections.flatMap(s => (s.items||[]).map(i => ({ ...i, _section: s.type, _label: s.label })));
+    const list = document.getElementById('mb-prio-list');
+    if (list && allItems.length) {
+      list.innerHTML = allItems.slice(0,8).map(item => {
+        const dot = item._section.includes('overdue') || item._section.includes('question') ? 'red'
+          : item._section.includes('approval') ? 'yellow' : 'blue';
+        const dept = item._section.replace(/_/g,' ');
+        return `<div class="mb-prio-item" data-dept="${dept}">
+          <div class="mb-prio-dot ${dot}"></div>
+          <div class="mb-prio-body">
+            <div class="mb-prio-name">${item.title || '—'}</div>
+            <div class="mb-prio-meta">${item._label}</div>
+          </div>
+          <div class="mb-prio-due today">${item.order_ref || ''}</div>
+        </div>`;
+      }).join('');
+      setEl('mb-kpi-sla', today.summary?.total_items ?? allItems.length);
+    }
+  } catch(e) {
+    console.warn('[Dashboard] /today endpoint not ready:', e.message);
+    // Show static placeholder until BE-027 ships
+    const list = document.getElementById('mb-prio-list');
+    if (list && !list.children.length) {
+      list.innerHTML = '<div class="empty" style="padding:20px"><p style="color:var(--fg3)">Priority feed available after BE-027 is deployed</p></div>';
+    }
   }
+
+  // Dev widget: load from /tickets
+  try {
+    const tickets = await api('/tickets?limit=100');
+    const tRows = Array.isArray(tickets) ? tickets : (tickets.items || []);
+    const backlog = tRows.filter(t => t.status === 'backlog').length;
+    const inProg = tRows.filter(t => t.status === 'in_progress').length;
+    const done = tRows.filter(t => t.status === 'done').length;
+    setEl('mb-dev-backlog', backlog);
+    setEl('mb-dev-inprogress', inProg);
+    setEl('mb-dev-done', done);
+    setEl('mb-dev-badge', inProg > 0 ? `${inProg} active` : 'idle');
+  } catch {}
+
+  // State Machine: live from orders
+  const smLabels = {
+    SP01: 'Inquiry', SP02: 'Coordination', SP03: 'Order Confirm.',
+    SP04: 'Pre-Payment', SP05: 'In Delivery', SP06: 'Post-Delivery',
+    SP07: 'Invoice', SP08: 'Payment'
+  };
+  const smColors = { SP01:'green', SP02:'yellow', SP03:'green', SP04:'red', SP05:'green', SP06:'yellow', SP07:'red', SP08:'green' };
+  const smSlaText = { SP01:'On track', SP02:'Check SLA', SP03:'On track', SP04:'Action needed', SP05:'In delivery', SP06:'Check SLA', SP07:'Action needed', SP08:'Done' };
+  try {
+    const orders = await api('/orders?limit=200');
+    const rows = Array.isArray(orders) ? orders : (orders.items || []);
+    const counts = {};
+    rows.forEach(o => {
+      const sp = (o.main_status||'').match(/SP0?(\d)/)?.[0]?.toUpperCase() || 'SP01';
+      counts[sp] = (counts[sp]||0) + 1;
+    });
+    const track = document.getElementById('mb-sm-track');
+    if (track) {
+      track.innerHTML = Object.entries(smLabels).map(([sp,name]) => {
+        const count = counts[sp] || 0;
+        const sla = smColors[sp] || 'green';
+        return `<div class="mb-sm-phase" onclick="navigate('orders')">
+          <div class="mb-sm-phase-sp">${sp.replace('SP0','SP-').replace('SP','SP-')}</div>
+          <div class="mb-sm-phase-name">${name}</div>
+          <div class="mb-sm-phase-count ${count > 3 ? sla : ''}">${count}</div>
+          <div class="mb-sm-sla ${sla}">${smSlaText[sp]}</div>
+        </div>`;
+      }).join('');
+    }
+  } catch {}
 }
 
 function filterPriorities() {
