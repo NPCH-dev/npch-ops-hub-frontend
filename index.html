@@ -2086,16 +2086,24 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
     <!-- ── Page: Anfragen ──────────────────────────────────────────────────── -->
     <div class="page" id="page-inquiries">
       <div class="page-header">
-        <h1>Anfragen</h1>
-        <p>SP-01 — Eingehende Trainingsanfragen</p>
+        <h1>Pipeline / Inquiries</h1>
+        <p>SP-01 — Incoming training inquiries & forecast</p>
+      </div>
+      <!-- Stats Row -->
+      <div class="stats-grid" id="inquiries-stats" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">Open Inquiries</div><div class="stat-value">—</div></div>
+        <div class="stat-card"><div class="stat-label">Total Pipeline</div><div class="stat-value">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Weighted Forecast</div><div class="stat-value">—</div></div>
       </div>
       <div class="card">
-        <div class="card-header">
-          Offene Anfragen
-          <button class="btn btn-primary btn-sm">+ Neue Anfrage</button>
-        </div>
-        <div class="card-body">
-          <div class="empty"><div class="empty-icon">📥</div><p>Noch nicht verbunden — API coming soon</p></div>
+        <div class="card-header">Open Inquiries</div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Customer</th><th>Topic</th><th style="text-align:right">Budget</th><th style="text-align:center">Win %</th><th>Assigned To</th></tr></thead>
+              <tbody id="inquiries-body"><tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2108,8 +2116,18 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 
     <!-- ── Page: Buchungen ────────────────────────────────────────────────── -->
     <div class="page" id="page-bookings">
-      <div class="page-header"><h1>Buchungen</h1><p>SP-03 — Buchungsbestätigungen</p></div>
-      <div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">📅</div><p>API coming soon</p></div></div></div>
+      <div class="page-header"><h1>Bookings</h1><p>SP-03 — Booking confirmations</p></div>
+      <div class="card">
+        <div class="card-header">All Bookings</div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Booking Ref</th><th>Customer</th><th>Training</th><th>Date(s)</th><th>Trainer</th><th style="text-align:center">Pax</th><th>Status</th></tr></thead>
+              <tbody id="bookings-body"><tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Page: Aufträge ────────────────────────────────────────────────── -->
@@ -8738,14 +8756,40 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 
     <!-- ── Page: Trainer ─────────────────────────────────────────────────── -->
     <div class="page" id="page-trainers">
-      <div class="page-header"><h1>Trainer</h1><p>SP-05 — Trainerverwaltung & Zuweisung</p></div>
-      <div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">👨‍🏫</div><p>API coming soon</p></div></div></div>
+      <div class="page-header"><h1>Trainers</h1><p>SP-05 — Trainer database & assignment</p></div>
+      <div class="card">
+        <div class="card-header">Trainer Database</div>
+        <div class="card-body" id="trainers-body">
+          <div class="empty"><div class="empty-icon">👨‍🏫</div><p>Loading…</p></div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Page: Rechnungen ───────────────────────────────────────────────── -->
     <div class="page" id="page-invoices">
-      <div class="page-header"><h1>Rechnungen</h1><p>SP-07 — Rechnungserstellung & Versand</p></div>
-      <div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">🧾</div><p>API coming soon</p></div></div></div>
+      <div class="page-header"><h1>Invoices</h1><p>SP-07 — Invoice management</p></div>
+      <div class="card">
+        <div class="card-header">All Invoices</div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Invoice Ref</th><th>Order Ref</th><th>Customer</th><th style="text-align:right">Total</th><th>Due Date</th><th>Paid</th><th>Status</th></tr></thead>
+              <tbody id="invoices-body"><tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Page: Delivery Calendar ───────────────────────────────────────── -->
+    <div class="page" id="page-delivery">
+      <div class="page-header"><h1>Delivery Calendar</h1><p>SP-05 — Upcoming trainings & schedule</p></div>
+      <div class="card">
+        <div class="card-header">This Month's Trainings</div>
+        <div class="card-body" id="delivery-calendar-body">
+          <div class="empty"><div class="empty-icon">📅</div><p>Loading…</p></div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Page: Finance ─────────────────────────────────────────────────── -->
@@ -8761,8 +8805,18 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
 
     <!-- ── Page: Zahlungen ────────────────────────────────────────────────── -->
     <div class="page" id="page-payments">
-      <div class="page-header"><h1>Zahlungen</h1><p>SP-08 — Zahlungseingang & Mahnwesen</p></div>
-      <div class="card"><div class="card-body"><div class="empty"><div class="empty-icon">💳</div><p>API coming soon</p></div></div></div>
+      <div class="page-header"><h1>Payments</h1><p>SP-08 — Payment receipts</p></div>
+      <div class="card">
+        <div class="card-header">Payment History</div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Invoice Ref</th><th>Order Ref</th><th>Customer</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead>
+              <tbody id="payments-body"><tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Page: Sprint Board ─────────────────────────────────────────────── -->
@@ -10526,13 +10580,13 @@ function showToast(msg, type = 'error') {
 const PAGES = {
   cockpit:      { title: 'My Cockpit',          load: loadCockpit },
   dashboard:    { title: 'Management Board',    load: loadDashboard },
-  inquiries:    { title: 'Pipeline / Anfragen', load: null },
-  bookings:     { title: 'Buchungen',           load: null },
-  orders:       { title: 'Auftragsbuch',        load: loadOrders },
-  delivery:     { title: 'Delivery Planning',   load: null },
-  trainers:     { title: 'Trainer Recruitment', load: null },
-  invoices:     { title: 'Rechnungen',          load: null },
-  payments:     { title: 'Zahlungen / Mahnwesen', load: null },
+  inquiries:    { title: 'Pipeline / Inquiries', load: loadInquiries },
+  bookings:     { title: 'Bookings',             load: loadBookings },
+  orders:       { title: 'Orders',               load: loadOrders },
+  delivery:     { title: 'Delivery Calendar',    load: loadDelivery },
+  trainers:     { title: 'Trainers',             load: loadTrainers },
+  invoices:     { title: 'Invoices',             load: loadInvoices },
+  payments:     { title: 'Payments',             load: loadPayments },
   campaigns:    { title: 'Kampagnen',           load: null },
   leads:        { title: 'Lead-Quellen',        load: null },
   'trainer-db': { title: 'Trainer-Datenbank',   load: null },
@@ -15053,39 +15107,273 @@ function escHtml(s) {
 
 async function loadApprovals() {
   const el = document.getElementById('approvals-list');
-  el.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>Laden…</p></div>';
+  if (!el) return;
+  el.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>Loading…</p></div>';
   try {
-    const data = await api('/daily-items?resolved=false&limit=20');
-    const items = Array.isArray(data) ? data : (data.items || []);
+    // Try new /approvals endpoint first, fall back to /daily-items
+    let items = [];
+    try {
+      const data = await api('/approvals?status=pending&limit=50');
+      items = Array.isArray(data) ? data : (data.items || []);
+    } catch {
+      const data = await api('/daily-items?resolved=false&limit=20');
+      items = Array.isArray(data) ? data : (data.items || []);
+    }
     if (!items.length) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><p>Alles freigegeben!</p></div>';
+      el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><p>No pending approvals — all clear!</p></div>';
       return;
     }
-    el.innerHTML = items.map(item => `
-      <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span class="badge badge-blue">${item.type}</span>
-          <strong>${item.title}</strong>
-        </div>
-        <div style="color:var(--fg2);font-size:12px;margin-bottom:12px">${item.created_by || 'System'} · ${fmtDate(item.created_at)}</div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="approve(${item.id})">✅ Freigeben</button>
-          <button class="btn btn-ghost btn-sm" onclick="showDetail(${item.id})">Details</button>
-        </div>
-      </div>`).join('');
+    el.innerHTML = items.map(item => {
+      const priorityBadge = item.priority === 'high' ? 'badge-red' : item.priority === 'normal' ? 'badge-yellow' : 'badge-gray';
+      return `
+        <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;background:var(--bg3)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+            <span class="badge badge-blue">${item.type || 'approval'}</span>
+            ${item.priority ? `<span class="badge ${priorityBadge}">${item.priority}</span>` : ''}
+            <strong style="font-size:14px">${item.title || item.description || '—'}</strong>
+            ${item.order_ref ? `<span style="font-size:12px;color:var(--fg3);margin-left:auto">${item.order_ref}</span>` : ''}
+          </div>
+          <div style="color:var(--fg2);font-size:12px;margin-bottom:4px">${item.requested_by || item.created_by || 'System'} · ${fmtDate(item.requested_at || item.created_at)}</div>
+          ${item.description && item.title ? `<div style="color:var(--fg2);font-size:12px;margin-bottom:8px">${item.description}</div>` : ''}
+          ${item.amount ? `<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">${fmtEur(item.amount)}</div>` : ''}
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="approveItem('${item.id}')">✅ Approve</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectItem('${item.id}')">✗ Reject</button>
+          </div>
+        </div>`;
+    }).join('');
     const appBadge = document.getElementById('badge-approvals');
     if (appBadge) { appBadge.textContent = items.length; appBadge.style.display = items.length ? '' : 'none'; }
-    document.getElementById('stat-approvals').textContent = items.length;
+    const statEl = document.getElementById('stat-approvals');
+    if (statEl) statEl.textContent = items.length;
   } catch (e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Fehler: ${e.message}</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Error: ${e.message}</p></div>`;
   }
 }
 
-async function approve(id) {
+async function approveItem(id) {
   try {
-    await api(`/daily-items/${id}`, { method: 'PATCH', body: JSON.stringify({ resolved: true, resolved_by: 'ui' }) });
+    try { await api(`/approvals/${id}/approve`, { method: 'POST', body: JSON.stringify({ comment: 'Approved via UI' }) }); }
+    catch { await api(`/daily-items/${id}`, { method: 'PATCH', body: JSON.stringify({ resolved: true, resolved_by: 'ui' }) }); }
+    showToast('✅ Approved');
     loadApprovals();
-  } catch (e) { showToast('Fehler: ' + e.message); }
+  } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function rejectItem(id) {
+  const comment = prompt('Reason for rejection (optional):') ?? '';
+  try {
+    await api(`/approvals/${id}/reject`, { method: 'POST', body: JSON.stringify({ comment }) });
+    showToast('Rejected');
+    loadApprovals();
+  } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ── Invoices ──────────────────────────────────────────────────────────────────
+async function loadInvoices() {
+  const el = document.getElementById('invoices-body');
+  if (!el) return;
+  el.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr>';
+  try {
+    const data = await api('/invoices?limit=100');
+    const rows = Array.isArray(data) ? data : (data.items || []);
+    if (!rows.length) {
+      el.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">No invoices found</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map(inv => {
+      const statusClass = { paid:'badge-green', sent:'badge-blue', overdue:'badge-red', draft:'badge-gray' }[inv.status] || 'badge-gray';
+      const overdue = inv.days_overdue > 0 ? `<span style="color:var(--red);font-size:11px"> (${inv.days_overdue}d overdue)</span>` : '';
+      return `<tr>
+        <td><strong>${inv.invoice_ref || '—'}</strong></td>
+        <td>${inv.order_ref || '—'}</td>
+        <td>${inv.customer_name || '—'}</td>
+        <td style="text-align:right">${fmtEur(inv.total_amount)}</td>
+        <td>${fmtDate(inv.due_date)}${overdue}</td>
+        <td>${inv.paid_date ? fmtDate(inv.paid_date) : '—'}</td>
+        <td><span class="badge ${statusClass}">${inv.status}</span></td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:32px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+async function loadPayments() {
+  const el = document.getElementById('payments-body');
+  if (!el) return;
+  el.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr>';
+  try {
+    const data = await api('/payments?limit=100');
+    const rows = Array.isArray(data) ? data : (data.items || []);
+    if (!rows.length) {
+      el.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">No payments recorded</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map(p => `<tr>
+      <td>${fmtDate(p.payment_date)}</td>
+      <td><strong>${p.invoice_ref || '—'}</strong></td>
+      <td>${p.order_ref || '—'}</td>
+      <td>${p.customer_name || '—'}</td>
+      <td style="text-align:right"><strong>${fmtEur(p.amount)}</strong></td>
+      <td><span class="badge ${p.status==='confirmed'?'badge-green':'badge-yellow'}">${p.status || 'pending'}</span></td>
+    </tr>`).join('');
+  } catch(e) {
+    el.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:32px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Trainers ──────────────────────────────────────────────────────────────────
+async function loadTrainers() {
+  const el = document.getElementById('trainers-body');
+  if (!el) return;
+  el.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>Loading trainers…</p></div>';
+  try {
+    const data = await api('/trainers?limit=100');
+    const rows = Array.isArray(data) ? data : (data.items || []);
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">👨‍🏫</div><p>No trainers in database yet</p></div>';
+      return;
+    }
+    el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">` +
+      rows.map(t => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">
+              ${(t.name||'?').split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2)}
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:14px">${t.name || '—'}</div>
+              <div style="font-size:11px;color:var(--fg3)">${t.location || ''}</div>
+            </div>
+            <div style="margin-left:auto">
+              <span class="badge ${t.available ? 'badge-green' : 'badge-gray'}">${t.available ? 'Available' : 'Busy'}</span>
+            </div>
+          </div>
+          ${t.skills?.length ? `<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px">${t.skills.map(s=>`<span class="badge badge-blue" style="font-size:10px">${s}</span>`).join('')}</div>` : ''}
+          <div style="font-size:12px;color:var(--fg2);display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            ${t.rate_per_day ? `<div>Rate: <strong>${fmtEur(t.rate_per_day)}/day</strong></div>` : ''}
+            ${t.trainings_delivered ? `<div>Delivered: <strong>${t.trainings_delivered}</strong></div>` : ''}
+            ${t.rating ? `<div>Rating: <strong>${t.rating}⭐</strong></div>` : ''}
+            ${t.languages?.length ? `<div>Languages: <strong>${t.languages.join(', ')}</strong></div>` : ''}
+          </div>
+        </div>`).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Error: ${e.message}</p></div>`;
+  }
+}
+
+// ── Bookings ──────────────────────────────────────────────────────────────────
+async function loadBookings() {
+  const el = document.getElementById('bookings-body');
+  if (!el) return;
+  el.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr>';
+  try {
+    const data = await api('/bookings?limit=100');
+    const rows = Array.isArray(data) ? data : (data.items || []);
+    if (!rows.length) {
+      el.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg3);padding:32px">No bookings found</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map(b => {
+      const sc = { confirmed:'badge-green', pending:'badge-yellow', cancelled:'badge-red' }[b.status] || 'badge-gray';
+      return `<tr>
+        <td><strong>${b.booking_ref || '—'}</strong></td>
+        <td>${b.customer_name || '—'}</td>
+        <td>${b.training_topic || '—'}</td>
+        <td>${b.start_date ? fmtDate(b.start_date) : '—'}${b.end_date && b.end_date !== b.start_date ? ' → ' + fmtDate(b.end_date) : ''}</td>
+        <td>${b.trainer_name || '—'}</td>
+        <td style="text-align:center">${b.participants || '—'}</td>
+        <td><span class="badge ${sc}">${b.status || 'pending'}</span></td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:32px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Delivery Calendar ─────────────────────────────────────────────────────────
+async function loadDelivery() {
+  const el = document.getElementById('delivery-calendar-body');
+  if (!el) return;
+  el.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>Loading delivery schedule…</p></div>';
+  const now = new Date();
+  try {
+    const data = await api(`/delivery/calendar?year=${now.getFullYear()}&month=${now.getMonth()+1}`);
+    const events = data.events || (Array.isArray(data) ? data : []);
+    if (!events.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><p>No trainings scheduled this month</p></div>';
+      return;
+    }
+    // Simple list view grouped by week
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">` +
+      events.map(e => `
+        <div style="display:flex;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);border-left:4px solid ${e.color||'var(--accent)'}">
+          <div style="text-align:center;min-width:52px">
+            <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase">${new Date(e.start_date).toLocaleDateString('en',{weekday:'short'})}</div>
+            <div style="font-size:22px;font-weight:700;line-height:1">${new Date(e.start_date).getDate()}</div>
+            <div style="font-size:10px;color:var(--fg3)">${new Date(e.start_date).toLocaleDateString('en',{month:'short'})}</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:14px;margin-bottom:2px">${e.title || '—'}</div>
+            <div style="font-size:12px;color:var(--fg2)">👤 ${e.trainer_name || 'TBD'} · 📍 ${e.location || 'TBD'}</div>
+            ${e.end_date && e.end_date !== e.start_date ? `<div style="font-size:11px;color:var(--fg3);margin-top:2px">Until ${fmtDate(e.end_date)}</div>` : ''}
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <span class="badge ${e.status==='confirmed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-yellow'}">${e.status||'pending'}</span>
+          </div>
+        </div>`).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Error: ${e.message}</p></div>`;
+  }
+}
+
+// ── Inquiries / Pipeline ──────────────────────────────────────────────────────
+async function loadInquiries() {
+  const el = document.getElementById('inquiries-body');
+  const statsEl = document.getElementById('inquiries-stats');
+  if (!el) return;
+  el.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr>';
+  try {
+    const data = await api('/inquiries?limit=100');
+    const rows = Array.isArray(data) ? data : (data.items || []);
+
+    // Update stats
+    if (statsEl) {
+      const totalBudget = rows.reduce((s,r) => s + (r.budget_estimate||0), 0);
+      const weighted = rows.reduce((s,r) => s + (r.budget_estimate||0)*(r.probability_percent||0)/100, 0);
+      statsEl.innerHTML = `
+        <div class="stat-card"><div class="stat-label">Open Inquiries</div><div class="stat-value">${rows.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Pipeline</div><div class="stat-value">${fmtEur(totalBudget)}</div></div>
+        <div class="stat-card green"><div class="stat-label">Weighted Forecast</div><div class="stat-value">${fmtEur(weighted)}</div></div>
+      `;
+    }
+
+    if (!rows.length) {
+      el.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:32px">No open inquiries</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map(r => {
+      const probColor = r.probability_percent >= 70 ? 'badge-green' : r.probability_percent >= 40 ? 'badge-yellow' : 'badge-red';
+      return `<tr>
+        <td>${fmtDate(r.created_at)}</td>
+        <td><strong>${r.customer_name || '—'}</strong></td>
+        <td>${r.training_topic || '—'}</td>
+        <td style="text-align:right">${r.budget_estimate ? fmtEur(r.budget_estimate) : '—'}</td>
+        <td style="text-align:center"><span class="badge ${probColor}">${r.probability_percent ?? '—'}%</span></td>
+        <td>${r.assigned_to || '—'}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:32px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Helper: format EUR ────────────────────────────────────────────────────────
+function fmtEur(val) {
+  if (val == null) return '—';
+  return new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(val);
 }
 
 // showDetail is defined in the orders page IIFE (window.showDetail)
