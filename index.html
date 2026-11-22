@@ -11499,23 +11499,34 @@ let _currentSprintData = null;  // currently displayed sprint with tickets
 
 async function loadSprint() {
   try {
-    // Load all sprints for nav
-    const sprintsRaw = await api('/');
-    const sprints = Array.isArray(sprintsRaw) ? sprintsRaw.sort((a, b) => (a.number || 0) - (b.number || 0)) : [];
+    // Try /sprint/current first (BE-030), then /sprints list
+    let sprints = [];
+    let activeSprintData = null;
+    try {
+      const current = await api('/sprint/current');
+      if (current && current.id) {
+        activeSprintData = current;
+        if (!Array.isArray(activeSprintData.tickets)) activeSprintData.tickets = [];
+        sprints = [current];
+      }
+    } catch {}
+    if (!sprints.length) {
+      const sprintsRaw = await api('/sprints');
+      sprints = Array.isArray(sprintsRaw) ? sprintsRaw.sort((a,b) => (a.number||0)-(b.number||0)) : [];
+    }
     if (sprints.length) {
       _loadedSprints = sprints;
       let activeIdx = sprints.findIndex(s => s.status === 'active');
       if (activeIdx < 0) activeIdx = sprints.length - 1;
       _sprintIdx = activeIdx;
-      // Load active sprint with tickets
-      const sprintData = await api('/' + sprints[activeIdx].id).catch(() => ({ ...sprints[activeIdx], tickets: [] }));
+      const sprintData = activeSprintData || await api('/sprints/' + sprints[activeIdx].id).catch(() => ({ ...sprints[activeIdx], tickets: [] }));
       if (!Array.isArray(sprintData.tickets)) sprintData.tickets = [];
       _currentSprintData = sprintData;
       _renderSprintNav();
       _renderSprintBoard(sprintData);
       return;
     }
-  } catch (e) { /* fallback to dummy data */ }
+  } catch (e) { console.warn('[Sprint] API not ready:', e.message); }
   _loadedSprints = null;
   _currentSprintData = _DUMMY_SPRINTS[_sprintIdx];
   _renderSprintNav();
@@ -11550,7 +11561,7 @@ async function _sprintGoto(i) {
   if (_loadedSprints) {
     try {
       const sprint = _loadedSprints[i];
-      const sprintData = await api('/' + sprint.id);
+      const sprintData = await api('/sprints/' + sprint.id);
       if (!Array.isArray(sprintData.tickets)) sprintData.tickets = [];
       _currentSprintData = sprintData;
       _renderSprintBoard(sprintData);
