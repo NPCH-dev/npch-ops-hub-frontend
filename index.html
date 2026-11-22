@@ -8974,6 +8974,15 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           <option value="n8n">🔄 n8n</option>
           <option value="general">📌 General</option>
         </select>
+        <select id="bl-filter-repo" onchange="renderBacklogTable()" style="padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px">
+          <option value="">All Repos</option>
+          <option value="npch-ops-hub">⚙️ npch-ops-hub</option>
+          <option value="npch-ops-hub-frontend">🖥 npch-ops-hub-frontend</option>
+          <option value="npch-infra">🏗 npch-infra</option>
+          <option value="npch-dev-agents">🤖 npch-dev-agents</option>
+          <option value="npch-process-agents">🔄 npch-process-agents</option>
+          <option value="npch-alie">🎙 npch-alie</option>
+        </select>
         <span id="bl-count" style="font-size:12px;color:var(--fg3);margin-left:4px"></span>
       </div>
 
@@ -8984,15 +8993,16 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
               <thead><tr>
                 <th style="width:36px;padding:8px 6px 8px 14px"><input type="checkbox" id="bl-select-all" onchange="blSelectAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
                 <th style="width:120px;cursor:pointer;user-select:none" onclick="blSort('ticket_id')"><span>ID</span><span id="bl-sort-ticket_id" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
-                <th style="cursor:pointer;user-select:none" onclick="blSort('title')"><span>Titel</span><span id="bl-sort-title" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
-                <th style="width:110px;cursor:pointer;user-select:none" onclick="blSort('component')"><span>Kategorie</span><span id="bl-sort-component" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
+                <th style="cursor:pointer;user-select:none" onclick="blSort('title')"><span>Title</span><span id="bl-sort-title" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
+                <th style="width:130px;cursor:pointer;user-select:none" onclick="blSort('repo')"><span>Repository</span><span id="bl-sort-repo" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
+                <th style="width:110px;cursor:pointer;user-select:none" onclick="blSort('component')"><span>Category</span><span id="bl-sort-component" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
                 <th style="width:80px;cursor:pointer;user-select:none" onclick="blSort('priority')"><span>Prio</span><span id="bl-sort-priority" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
                 <th style="width:50px;cursor:pointer;user-select:none" onclick="blSort('story_points')"><span>SP</span><span id="bl-sort-story_points" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
                 <th style="width:120px;cursor:pointer;user-select:none" onclick="blSort('status')"><span>Status</span><span id="bl-sort-status" style="font-size:10px;margin-left:4px;opacity:.5"></span></th>
                 <th style="width:160px">Sprint</th>
                 <th style="width:150px"></th>
               </tr></thead>
-              <tbody id="backlog-tbody"><tr><td colspan="9" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr></tbody>
+              <tbody id="backlog-tbody"><tr><td colspan="10" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -9058,9 +9068,21 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
             <div>
-              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Kategorie / Komponente</label>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Repository</label>
+              <select id="tm-repo" style="width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
+                <option value="">— auto-detect —</option>
+                <option value="npch-ops-hub">⚙️ npch-ops-hub</option>
+                <option value="npch-ops-hub-frontend">🖥 npch-ops-hub-frontend</option>
+                <option value="npch-infra">🏗 npch-infra</option>
+                <option value="npch-dev-agents">🤖 npch-dev-agents</option>
+                <option value="npch-process-agents">🔄 npch-process-agents</option>
+                <option value="npch-alie">🎙 npch-alie</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--fg3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Category / Component</label>
               <select id="tm-component" style="width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:13px">
-                <option value="">— keine —</option>
+                <option value="">— none —</option>
                 <option value="frontend">🖥 Frontend</option>
                 <option value="backend">⚙️ Backend</option>
                 <option value="infrastructure">🏗 Infrastructure</option>
@@ -14446,6 +14468,29 @@ function setHours(ticketId, val) {
 
 const _componentLabel = { frontend:'🖥 Frontend', backend:'⚙️ Backend', infrastructure:'🏗 Infra', database:'🗄 DB', n8n:'🔄 n8n', general:'📌 General' };
 
+// Repo mapping: ticket prefix → git repository
+const _repoMap = {
+  'FE':    'npch-ops-hub-frontend',
+  'BE':    'npch-ops-hub',
+  'INFRA': 'npch-infra',
+  'DA':    'npch-dev-agents',
+  'PA':    'npch-process-agents',
+  'ALIE':  'npch-alie',
+};
+const _repoLabel = {
+  'npch-ops-hub':           '⚙️ npch-ops-hub',
+  'npch-ops-hub-frontend':  '🖥 npch-ops-hub-frontend',
+  'npch-infra':             '🏗 npch-infra',
+  'npch-dev-agents':        '🤖 npch-dev-agents',
+  'npch-process-agents':    '🔄 npch-process-agents',
+  'npch-alie':              '🎙 npch-alie',
+};
+function getRepo(ticket) {
+  if (ticket.repo) return ticket.repo;
+  const prefix = (ticket.ticket_id || '').split('-')[0].toUpperCase();
+  return _repoMap[prefix] || 'npch-ops-hub';
+}
+
 function setBacklogView(view) {
   _blView = view;
   ['active','archived','trash'].forEach(v => {
@@ -14475,7 +14520,7 @@ function blSort(col) {
     _blSort.dir = 'asc';
   }
   // Update header arrows
-  ['ticket_id','title','component','priority','story_points','status'].forEach(c => {
+  ['ticket_id','title','repo','component','priority','story_points','status'].forEach(c => {
     const el = document.getElementById('bl-sort-' + c);
     if (!el) return;
     if (c === col) { el.textContent = _blSort.dir === 'asc' ? '▲' : '▼'; el.style.opacity = '1'; }
@@ -14492,6 +14537,7 @@ function renderBacklogTable() {
   const stFilter  = document.getElementById('bl-filter-status')?.value || '';
   const prioF     = document.getElementById('bl-filter-prio')?.value || '';
   const compF     = document.getElementById('bl-filter-component')?.value || '';
+  const repoF     = document.getElementById('bl-filter-repo')?.value || '';
 
   // View filter
   let tickets = _blAllTickets.filter(t => {
@@ -14504,34 +14550,43 @@ function renderBacklogTable() {
   if (stFilter)  tickets = tickets.filter(t => t.status === stFilter);
   if (prioF)     tickets = tickets.filter(t => t.priority === prioF);
   if (compF)     tickets = tickets.filter(t => (t.component || getComponent(t.ticket_id)) === compF);
+  if (repoF)     tickets = tickets.filter(t => getRepo(t) === repoF);
   if (search)    tickets = tickets.filter(t =>
     t.ticket_id.toLowerCase().includes(search) || (t.title || '').toLowerCase().includes(search)
   );
 
-  // Sort
+  // Sort — default: group by repo then by ticket_id
+  const prioOrder = { critical:0, high:1, normal:2, low:3 };
   if (_blSort.col) {
     const dir = _blSort.dir === 'asc' ? 1 : -1;
-    const prioOrder = { critical:0, high:1, normal:2, low:3 };
     tickets = [...tickets].sort((a, b) => {
       let va = a[_blSort.col], vb = b[_blSort.col];
       if (_blSort.col === 'component') { va = getComponent(a.ticket_id); vb = getComponent(b.ticket_id); }
+      if (_blSort.col === 'repo')      { va = getRepo(a); vb = getRepo(b); }
       if (_blSort.col === 'priority')  { va = prioOrder[a.priority] ?? 9; vb = prioOrder[b.priority] ?? 9; return (va - vb) * dir; }
       if (_blSort.col === 'story_points') { return ((a.story_points || 0) - (b.story_points || 0)) * dir; }
       if (_blSort.col === 'ticket_id') {
-        // Sort by numeric suffix: BE-013 → 13, ticket-002 → 2
         const num = s => parseInt((s || '').replace(/\D+/g, '') || '0', 10);
         return (num(va) - num(vb)) * dir;
       }
       return String(va || '').localeCompare(String(vb || '')) * dir;
     });
+  } else {
+    // Default: group by repo alphabetically, then by ticket prefix + number
+    tickets = [...tickets].sort((a, b) => {
+      const ra = getRepo(a), rb = getRepo(b);
+      if (ra !== rb) return ra.localeCompare(rb);
+      const num = s => parseInt((s || '').replace(/\D+/g, '') || '0', 10);
+      return num(a.ticket_id) - num(b.ticket_id);
+    });
   }
 
   // Count badge
   const countEl = document.getElementById('bl-count');
-  if (countEl) countEl.textContent = tickets.length + ' Tickets';
+  if (countEl) countEl.textContent = tickets.length + ' tickets';
 
   if (!tickets.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--fg3);padding:32px">Keine Tickets gefunden</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--fg3);padding:32px">No tickets found</td></tr>`;
     return;
   }
 
@@ -14544,9 +14599,34 @@ function renderBacklogTable() {
   // Sprint-Selects nach Render befüllen
   setTimeout(_populateSprintSelects, 20);
 
-  tbody.innerHTML = tickets.map(t => {
+  // Build rows — insert repo group headers when no repo filter is active
+  const groupByRepo = !repoF && !_blSort.col;
+  let lastRepo = null;
+  const rows = [];
+  for (const t of tickets) {
+    const repo = getRepo(t);
+    if (groupByRepo && repo !== lastRepo) {
+      lastRepo = repo;
+      const sp = tickets.filter(x => getRepo(x) === repo).reduce((s, x) => s + (x.story_points || 0), 0);
+      const cnt = tickets.filter(x => getRepo(x) === repo).length;
+      rows.push(`<tr><td colspan="10" style="padding:8px 14px;background:rgba(99,102,241,.07);border-top:2px solid var(--border2);border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;font-weight:700;color:var(--accent);font-family:monospace">${_repoLabel[repo] || repo}</span>
+          <span style="font-size:11px;color:var(--fg3);background:var(--bg3);border-radius:10px;padding:1px 8px">${cnt} tickets · ${sp} SP</span>
+          <a href="https://github.com/NPCH-dev/${repo}" target="_blank" style="font-size:11px;color:var(--fg3);text-decoration:none;margin-left:auto;opacity:.6" title="Open in GitHub">↗ GitHub</a>
+        </div>
+      </td></tr>`);
+    }
+    rows.push(_renderBacklogRow(t, prioMap));
+  }
+  tbody.innerHTML = rows.join('');
+  return;
+}
+
+function _renderBacklogRow(t, prioMap) {
     const blockedBy = parseBlockedBy(t.acceptance_criteria);
     const comp = t.component || getComponent(t.ticket_id);
+    const repo = getRepo(t);
     const isTrash    = t.status === 'trash';
     const isArchived = t.status === 'archived';
     const isSel      = _blSelected.has(t.ticket_id);
@@ -14567,7 +14647,7 @@ function renderBacklogTable() {
     const descHtml = hasQ
       ? `<div style="display:none" id="${expandId}">
            <table style="width:100%;border-collapse:collapse;margin-top:0">
-             <tr><td colspan="9" style="padding:10px 14px 12px 14px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+             <tr><td colspan="10" style="padding:10px 14px 12px 14px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
                <div style="display:flex;gap:16px;align-items:flex-start">
                  <div style="flex:1;min-width:0">
                    <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:4px">❓ Agent Question</div>
@@ -14584,7 +14664,7 @@ function renderBacklogTable() {
       : hasDesc
         ? `<div style="display:none" id="${expandId}">
              <table style="width:100%;border-collapse:collapse;margin-top:0">
-               <tr><td colspan="9" style="padding:8px 14px 10px 14px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+               <tr><td colspan="10" style="padding:8px 14px 10px 14px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
                  <div style="font-size:12px;color:var(--fg2);white-space:pre-wrap">${escHtml(descMain)}</div>
                </td></tr>
              </table>
@@ -14601,6 +14681,7 @@ function renderBacklogTable() {
         ${blockedBy ? `<div style="font-size:11px;color:var(--red);margin-top:2px">🔗 blocked: ${escHtml(blockedBy)}</div>` : ''}
         ${descHtml}
       </td>
+      <td><span style="font-size:11px;color:var(--accent);font-family:monospace;white-space:nowrap">${escHtml(repo.replace('npch-',''))}</span></td>
       <td>${comp ? `<span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 6px">${escHtml(_componentLabel[comp] || comp)}</span>` : '<span style="color:var(--fg3);font-size:12px">—</span>'}</td>
       <td><span title="${t.priority}">${prioMap[t.priority] || '🟡'} ${t.priority}</span></td>
       <td style="text-align:center">${t.story_points || '—'}</td>
@@ -14608,36 +14689,35 @@ function renderBacklogTable() {
       <td>
         ${!isTrash && !isArchived
           ? `<select class="bl-sprint-sel" data-tid="${escHtml(t.ticket_id)}" onchange="inlineSprintChange(this)" style="padding:4px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:${t.sprint_id ? 'var(--accent2)' : 'var(--fg3)'};font-size:11px;max-width:140px">
-              <option value="">— kein Sprint —</option>
+              <option value="">— no sprint —</option>
             </select>`
           : '—'}
       </td>
       <td style="white-space:nowrap">
         <div style="display:flex;gap:4px;justify-content:flex-end">
           ${isTrash ? `
-            <button class="kc-btn green" onclick="restoreTicket('${escHtml(t.ticket_id)}')" title="Wiederherstellen">↩</button>
-            <button class="kc-btn red" onclick="hardDeleteTicket('${escHtml(t.ticket_id)}')" title="Endgültig löschen">🗑</button>
+            <button class="kc-btn green" onclick="restoreTicket('${escHtml(t.ticket_id)}')" title="Restore">↩</button>
+            <button class="kc-btn red" onclick="hardDeleteTicket('${escHtml(t.ticket_id)}')" title="Delete permanently">🗑</button>
           ` : isArchived ? `
-            <button class="kc-btn" onclick="openTicketModal('${escHtml(t.ticket_id)}','backlog')" title="Bearbeiten">✏️</button>
-            <button class="kc-btn green" onclick="restoreTicket('${escHtml(t.ticket_id)}')" title="Wiederherstellen">↩</button>
-            <button class="kc-btn red" onclick="trashTicket('${escHtml(t.ticket_id)}')" title="In Papierkorb">🗑</button>
+            <button class="kc-btn" onclick="openTicketModal('${escHtml(t.ticket_id)}','backlog')" title="Edit">✏️</button>
+            <button class="kc-btn green" onclick="restoreTicket('${escHtml(t.ticket_id)}')" title="Restore">↩</button>
+            <button class="kc-btn red" onclick="trashTicket('${escHtml(t.ticket_id)}')" title="Move to trash">🗑</button>
           ` : `
-            <button class="kc-btn" onclick="openTicketModal('${escHtml(t.ticket_id)}','backlog')" title="Bearbeiten">✏️</button>
+            <button class="kc-btn" onclick="openTicketModal('${escHtml(t.ticket_id)}','backlog')" title="Edit">✏️</button>
             <button class="kc-btn" onclick="openAgentRunModal('${escHtml(t.ticket_id)}','${escHtml(t.title.replace(/'/g,"&#39;"))}')" title="n8n Agent" style="background:rgba(99,102,241,.15);color:#818cf8">🤖</button>
             ${t.status === 'backlog' ? `<button class="kc-btn green" onclick="quickStatus('${escHtml(t.ticket_id)}','todo')" title="→ Todo">▶</button>` : ''}
-            <button class="kc-btn" onclick="archiveTicket('${escHtml(t.ticket_id)}')" title="Archivieren" style="color:var(--fg3)">🗂</button>
-            <button class="kc-btn red" onclick="trashTicket('${escHtml(t.ticket_id)}')" title="In Papierkorb">🗑</button>
+            <button class="kc-btn" onclick="archiveTicket('${escHtml(t.ticket_id)}')" title="Archive" style="color:var(--fg3)">🗂</button>
+            <button class="kc-btn red" onclick="trashTicket('${escHtml(t.ticket_id)}')" title="Move to trash">🗑</button>
           `}
         </div>
       </td>
     </tr>`;
-  }).join('');
 }
 
 async function loadBacklog() {
   const tbody = document.getElementById('backlog-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--fg3);padding:32px">Laden…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--fg3);padding:32px">Loading…</td></tr>';
   try {
     // Alle Tickets holen (inkl. archived/trash für Tab-Wechsel ohne Re-Fetch)
     const tickets = await api('/tickets?limit=200');
@@ -15048,6 +15128,7 @@ async function openTicketModal(ticketId, context) {
       document.getElementById('tm-ac').value = cleanAC(t.acceptance_criteria);
       document.getElementById('tm-blocked-by').value = parseBlockedBy(t.acceptance_criteria);
       document.getElementById('tm-component').value = t.component || getComponent(t.ticket_id) || '';
+      document.getElementById('tm-repo').value = t.repo || '';
       document.getElementById('tm-hours').value = getHours(t.ticket_id);
       document.getElementById('tm-notes').value = getNotes(t.ticket_id);
       // Buttons je nach Status
@@ -15089,6 +15170,7 @@ async function openTicketModal(ticketId, context) {
     document.getElementById('tm-ac').value = '';
     document.getElementById('tm-blocked-by').value = '';
     document.getElementById('tm-component').value = '';
+    document.getElementById('tm-repo').value = '';
     document.getElementById('tm-hours').value = '';
     document.getElementById('tm-notes').value = '';
   }
@@ -15117,6 +15199,7 @@ async function saveTicket() {
   const acRaw    = document.getElementById('tm-ac').value.trim();
   const blocked  = document.getElementById('tm-blocked-by').value.trim();
   const comp     = document.getElementById('tm-component')?.value || '';
+  const repo     = document.getElementById('tm-repo')?.value || '';
   const hours    = document.getElementById('tm-hours')?.value || '';
   const notes    = document.getElementById('tm-notes')?.value.trim() || '';
   if (!ticketId) { showFormErr(err, 'Ticket-ID ist erforderlich'); return; }
@@ -15133,6 +15216,8 @@ async function saveTicket() {
     acceptance_criteria: buildACField(acRaw, blocked) || null,
     story_points: sp ? parseInt(sp) : null,
     assigned_agent: agent || null,
+    ...(comp ? { component: comp } : {}),
+    ...(repo ? { repo } : {}),
   };
 
   try {
