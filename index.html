@@ -6876,7 +6876,8 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
         function renderInsights(oIdx){ renderInsightsInto('od-insights-body', oIdx); }
 
         // ── Admin Mode ────────────────────────────────────────────────────────
-        let ADMIN_MODE = (localStorage.getItem('npch_admin_mode') === '1');
+        // var (not let) so it's accessible globally from loadUser() and other fns
+        var ADMIN_MODE = (localStorage.getItem('npch_admin_mode') === '1');
 
         function toggleAdminMode() {
           ADMIN_MODE = !ADMIN_MODE;
