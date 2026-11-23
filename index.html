@@ -10578,7 +10578,16 @@ function logout() {
 // ── Config ────────────────────────────────────────────────────────────────────
 const CONFIG = {
   apiBase: (() => {
-    try { return localStorage.getItem('npch_api_url') || 'https://api.npch-nobleprog.com/api/v1'; } catch { return 'https://api.npch-nobleprog.com/api/v1'; }
+    try {
+      const stored = localStorage.getItem('npch_api_url');
+      // Auto-migrate old processengine.de URL to new domain
+      if (stored && stored.includes('processengine.de')) {
+        const migrated = stored.replace('api.processengine.de', 'api.npch-nobleprog.com');
+        localStorage.setItem('npch_api_url', migrated);
+        return migrated;
+      }
+      return stored || 'https://api.npch-nobleprog.com/api/v1';
+    } catch { return 'https://api.npch-nobleprog.com/api/v1'; }
   })(),
   authToken: (() => {
     try { return localStorage.getItem('npch_token') || sessionStorage.getItem('npch_token') || ''; } catch { return ''; }
