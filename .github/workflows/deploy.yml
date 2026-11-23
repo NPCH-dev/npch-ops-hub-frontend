@@ -17,5 +17,5 @@ jobs:
           curl -sf \
             -X POST \
             -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
-            "https://dev.processengine.de/deploy-webhook.php" \
+            "https://dev.npch-nobleprog.com/deploy-webhook.php" \
           || echo "Webhook call failed — manual deploy needed"
