@@ -9745,7 +9745,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
         <div class="card-body">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
             <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Backend (develop)</div><div style="font-size:13px;font-weight:500" id="deploy-backend">GitHub Actions → ghcr.io</div></div>
-            <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Frontend (main)</div><div style="font-size:13px;font-weight:500" id="deploy-frontend">deploy-webhook.php → dev.processengine.de</div></div>
+            <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Frontend (main)</div><div style="font-size:13px;font-weight:500" id="deploy-frontend">deploy-webhook.php → dev.npch-nobleprog.com</div></div>
             <div><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Container</div><div style="font-size:13px;font-weight:500" id="deploy-container">npch-b7 · Image npch-ops-hub:backend</div></div>
           </div>
         </div>
@@ -11413,7 +11413,7 @@ async function loadStatus() {
 
   const systems = [
     { name: 'Backend API',           sub: 'api.npch-nobleprog.com',    ok: apiOk,  detail: apiOk ? apiLatency : 'Nicht erreichbar', icon: '⚙️' },
-    { name: 'Frontend',              sub: 'dev.processengine.de',     ok: true,   detail: 'Diese Seite', icon: '🌐' },
+    { name: 'Frontend',              sub: 'dev.npch-nobleprog.com',   ok: true,   detail: 'Diese Seite', icon: '🌐' },
     { name: 'Datenbank',             sub: 'npch-postgres Container',  ok: apiOk,  detail: apiOk ? 'Verbunden' : 'Unbekannt', icon: '🗄️' },
     { name: 'Developer Agent',       sub: 'n8n Workflow VlWgEiwV6L',  ok: null,   detail: 'Status via n8n', icon: '🤖', trigger: true },
     { name: 'Ticket Runner',         sub: 'n8n — alle 3 Min.',        ok: null,   detail: 'Kontinuierlich', icon: '🔁' },
@@ -15973,8 +15973,8 @@ function _renderServerCard(srv) {
   const MONITORING = {
     'webserver': [
       { label: 'aaPanel',    url: 'https://panel.processengine.de/acp26', icon: '🖥️' },
-      { label: 'Frontend',   url: 'https://dev.processengine.de', icon: '🌐' },
-      { label: 'API Health', url: 'https://api.processengine.de/api/v1/health/', icon: '🏥' },
+      { label: 'Frontend',   url: 'https://dev.npch-nobleprog.com', icon: '🌐' },
+      { label: 'API Health', url: 'https://api.npch-nobleprog.com/api/v1/health/', icon: '🏥' },
       { label: 'Netdata',    url: 'http://78.47.130.46:19999/', icon: '📊' },
     ],
     'gex45-1': [
