@@ -6876,12 +6876,12 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
         function renderInsights(oIdx){ renderInsightsInto('od-insights-body', oIdx); }
 
         // ── Admin Mode ────────────────────────────────────────────────────────
-        // var (not let) so it's accessible globally from loadUser() and other fns
-        var ADMIN_MODE = (localStorage.getItem('npch_admin_mode') === '1');
+        // window.ADMIN_MODE so it's accessible from other <script> blocks
+        window.ADMIN_MODE = (localStorage.getItem('npch_admin_mode') === '1');
 
         function toggleAdminMode() {
-          ADMIN_MODE = !ADMIN_MODE;
-          localStorage.setItem('npch_admin_mode', ADMIN_MODE ? '1' : '0');
+          window.ADMIN_MODE = !window.ADMIN_MODE;
+          localStorage.setItem('npch_admin_mode', window.ADMIN_MODE ? '1' : '0');
           applyAdminMode();
         }
 
@@ -11188,7 +11188,7 @@ async function loadUser() {
       } else {
         adminBtn.classList.remove('admin-visible');
         // ensure admin mode is off for non-admins
-        if (ADMIN_MODE) { ADMIN_MODE = false; applyAdminMode(); }
+        if (window.ADMIN_MODE) { window.ADMIN_MODE = false; applyAdminMode(); }
       }
     }
 
