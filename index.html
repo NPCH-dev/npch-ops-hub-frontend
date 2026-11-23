@@ -10202,7 +10202,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
             <div class="card-body">
               <label class="settings-label">Backend API URL</label>
               <input id="cfg-api-url" type="text" class="settings-input"
-                value="https://api.processengine.de/api/v1"
+                value="https://api.npch-nobleprog.com/api/v1"
                 style="font-family:JetBrains Mono,monospace;font-size:12px">
               <div style="margin-top:12px;display:flex;gap:8px">
                 <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save</button>
@@ -10577,7 +10577,7 @@ function logout() {
 // ── Config ────────────────────────────────────────────────────────────────────
 const CONFIG = {
   apiBase: (() => {
-    try { return localStorage.getItem('npch_api_url') || 'https://api.processengine.de/api/v1'; } catch { return 'https://api.processengine.de/api/v1'; }
+    try { return localStorage.getItem('npch_api_url') || 'https://api.npch-nobleprog.com/api/v1'; } catch { return 'https://api.npch-nobleprog.com/api/v1'; }
   })(),
   authToken: (() => {
     try { return localStorage.getItem('npch_token') || sessionStorage.getItem('npch_token') || ''; } catch { return ''; }
@@ -11402,7 +11402,7 @@ async function loadStatus() {
   } catch {}
 
   const systems = [
-    { name: 'Backend API',           sub: 'api.processengine.de',    ok: apiOk,  detail: apiOk ? apiLatency : 'Nicht erreichbar', icon: '⚙️' },
+    { name: 'Backend API',           sub: 'api.npch-nobleprog.com',    ok: apiOk,  detail: apiOk ? apiLatency : 'Nicht erreichbar', icon: '⚙️' },
     { name: 'Frontend',              sub: 'dev.processengine.de',     ok: true,   detail: 'Diese Seite', icon: '🌐' },
     { name: 'Datenbank',             sub: 'npch-postgres Container',  ok: apiOk,  detail: apiOk ? 'Verbunden' : 'Unbekannt', icon: '🗄️' },
     { name: 'Developer Agent',       sub: 'n8n Workflow VlWgEiwV6L',  ok: null,   detail: 'Status via n8n', icon: '🤖', trigger: true },
