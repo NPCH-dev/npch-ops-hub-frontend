@@ -10512,18 +10512,17 @@ async function doGoogleLogin() {
       });
       google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          // Fallback: render official Google Sign-In button and auto-click it
+          // Fallback: render official Google Sign-In button — user must click it
           const container = document.getElementById('google-btn-fallback');
           container.innerHTML = '';
           google.accounts.id.renderButton(container, {
             theme: 'outline', size: 'large', text: 'signin_with', width: 300
           });
-          // Auto-click the rendered button to open the Google popup
-          setTimeout(() => {
-            const rendered = container.querySelector('[role="button"]') || container.querySelector('div') || container.firstElementChild;
-            if (rendered) rendered.click();
-            else reject(new Error('Could not render Google sign-in button'));
-          }, 300);
+          container.style.display = 'flex';
+          // Hide our custom button, show the official one
+          document.getElementById('google-signin-btn').style.display = 'none';
+          btn.disabled = false;
+          btn.style.opacity = '1';
         }
       });
     });
@@ -10808,6 +10807,33 @@ window.addEventListener('load', () => {
     navigate(page);
     loadUser();
     updateNavBadges();
+  } else {
+    // Pre-initialize Google Sign-In so renderButton works immediately
+    if (typeof google !== 'undefined' && google?.accounts?.id && CONFIG.googleClientId) {
+      google.accounts.id.initialize({
+        client_id: CONFIG.googleClientId,
+        callback: async (response) => {
+          if (!response.credential) return;
+          try {
+            const res = await fetch(CONFIG.apiBase + '/auth/google', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id_token: response.credential })
+            });
+            if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+            const data = await res.json();
+            CONFIG.authToken = data.access_token;
+            try { localStorage.setItem('npch_token', data.access_token); } catch {}
+            hideLoginScreen(); loadUser(); navigate('cockpit');
+          } catch(e) { showLoginError('Google Sign-In failed: ' + e.message); }
+        },
+        auto_select: false, cancel_on_tap_outside: false
+      });
+      // Render official Google button directly
+      const container = document.getElementById('google-btn-fallback');
+      google.accounts.id.renderButton(container, { theme: 'outline', size: 'large', text: 'signin_with', width: 300 });
+      container.style.display = 'flex';
+      document.getElementById('google-signin-btn').style.display = 'none';
+    }
   }
 });
 
