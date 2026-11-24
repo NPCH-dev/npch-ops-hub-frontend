@@ -1587,6 +1587,7 @@ tr:hover td { background: var(--bg3); cursor: pointer; }
     Search tasks, orders, pages…
     <span style="margin-left:auto;font-size:11px;background:var(--border);padding:1px 5px;border-radius:4px;flex-shrink:0;">⌘K</span>
   </div>
+  <span id="hdr-greeting" style="font-size:13px;color:var(--fg2);white-space:nowrap;flex-shrink:0;"></span>
   <div class="hdr-right">
     <button class="hdr-icon-btn" onclick="refreshPage()" title="Refresh">
       <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -11139,6 +11140,15 @@ async function loadUser() {
     // Topbar avatar
     const hdrAv = document.getElementById('user-avatar');
     if (hdrAv) hdrAv.textContent = initials;
+
+    // Topbar greeting
+    const firstName = (user.full_name || user.email || '').split(' ')[0];
+    const hdrGreet = document.getElementById('hdr-greeting');
+    if (hdrGreet && firstName) {
+      const h = new Date().getHours();
+      const gr = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+      hdrGreet.textContent = gr + ', ' + firstName + ' 👋';
+    }
 
     // Dropdown
     const ddInit = document.getElementById('av-dd-initials');
