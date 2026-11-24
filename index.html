@@ -10522,7 +10522,8 @@ async function doGoogleLogin() {
             redirect_uri: 'postmessage',
             response_type: 'id_token',
             scope: 'openid email profile',
-            nonce: Math.random().toString(36).slice(2)
+            nonce: Math.random().toString(36).slice(2),
+            origin: window.location.origin
           });
           const popup = window.open(
             'https://accounts.google.com/o/oauth2/v2/auth?' + params,
